@@ -1,27 +1,79 @@
 const KEY = "rbt_crm_v41_all_in_one";
+const SUPABASE_URL = "https://alxckrhyqtmejelhzbej.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_sVWiQsMYQb349INaIMh_Rw_8CwbOac5";
+const CRM_STATE_TABLE = "crm_state";
+const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let authUserId = "";
+let saveTimer = null;
 const state = {
   clients: [], equipment: [], operators: [], orders: [], operations: [], repairs: [],
   calendarDate: new Date(), chartMode: "bars", calendarMode: "month",
   integrations: { googleFormsUrl: "", autoSync: false, importedResponseIds: [], lastSyncAt: "", lastSyncStatus: "" }
 };
 function $(id){ return document.getElementById(id); }
+function on(id, event, handler){
+  const el = $(id);
+  if(el) el.addEventListener(event, handler);
+}
 function uid(p){ return p + "_" + Math.random().toString(36).slice(2,9); }
-function save(){ localStorage.setItem(KEY, JSON.stringify({clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode,integrations:state.integrations})); }
+function serializeState(){
+  return {clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode,integrations:state.integrations};
+}
+function applyState(raw){
+  state.clients=raw.clients||[]; state.equipment=raw.equipment||[]; state.operators=raw.operators||[];
+  state.orders=raw.orders||[]; state.operations=raw.operations||[]; state.repairs=raw.repairs||[];
+  state.chartMode=raw.chartMode||"bars"; state.calendarMode=raw.calendarMode||"month";
+  state.integrations={
+    googleFormsUrl: raw.integrations?.googleFormsUrl || "",
+    autoSync: Boolean(raw.integrations?.autoSync),
+    importedResponseIds: Array.isArray(raw.integrations?.importedResponseIds) ? raw.integrations.importedResponseIds : [],
+    lastSyncAt: raw.integrations?.lastSyncAt || "",
+    lastSyncStatus: raw.integrations?.lastSyncStatus || ""
+  };
+}
+function scheduleCloudSave(){
+  if(!authUserId || !supabaseClient) return;
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveCloudState, 500);
+}
+async function saveCloudState(){
+  if(!authUserId || !supabaseClient) return;
+  const { error } = await supabaseClient
+    .from(CRM_STATE_TABLE)
+    .upsert({ user_id: authUserId, data: serializeState() }, { onConflict: "user_id" });
+  if(error){
+    renderAuthStatus("error", `Ошибка сохранения в облако: ${error.message}`);
+    return;
+  }
+  renderAuthStatus("ok", `Авторизован: ${authUserId}. Данные синхронизируются с облаком.`);
+}
+async function loadCloudState(){
+  if(!authUserId || !supabaseClient) return;
+  const { data, error } = await supabaseClient
+    .from(CRM_STATE_TABLE)
+    .select("data")
+    .eq("user_id", authUserId)
+    .maybeSingle();
+  if(error){
+    renderAuthStatus("error", `Ошибка загрузки из облака: ${error.message}`);
+    return;
+  }
+  if(data?.data){
+    applyState(data.data);
+    renderAll();
+    refreshIntegrationForm();
+  } else {
+    await saveCloudState();
+  }
+}
+function save(){
+  localStorage.setItem(KEY, JSON.stringify(serializeState()));
+  scheduleCloudSave();
+}
 function load(){
   try{
     const raw = JSON.parse(localStorage.getItem(KEY));
-    if(raw){
-      state.clients=raw.clients||[]; state.equipment=raw.equipment||[]; state.operators=raw.operators||[];
-      state.orders=raw.orders||[]; state.operations=raw.operations||[]; state.repairs=raw.repairs||[];
-      state.chartMode=raw.chartMode||"bars"; state.calendarMode=raw.calendarMode||"month";
-      state.integrations={
-        googleFormsUrl: raw.integrations?.googleFormsUrl || "",
-        autoSync: Boolean(raw.integrations?.autoSync),
-        importedResponseIds: Array.isArray(raw.integrations?.importedResponseIds) ? raw.integrations.importedResponseIds : [],
-        lastSyncAt: raw.integrations?.lastSyncAt || "",
-        lastSyncStatus: raw.integrations?.lastSyncStatus || ""
-      };
-    }
+    if(raw) applyState(raw);
   }catch(e){}
 }
 function esc(v){
@@ -36,7 +88,7 @@ function money(v){ return "₴" + Number(v||0).toLocaleString("uk-UA"); }
 function fmtDate(v){ if(!v) return "—"; return new Date(v+"T00:00:00").toLocaleDateString("uk-UA"); }
 function daysInclusive(s,e){ return Math.max(1, Math.floor((new Date(e+"T00:00:00")-new Date(s+"T00:00:00"))/86400000)+1); }
 function badge(cls, text){ return `<span class="badge ${cls}">${text}</span>`; }
-function statusBadge(s){ return {new:badge("new","Новая"),confirmed:badge("confirmed","Подтверждена"),active:badge("active","В работе"),completed:badge("completed","Завершена"),cancelled:badge("cancelled","Отменена")}[s] || badge("new","Новая"); }
+function statusBadge(s){ return {new:badge("new","Новое"),confirmed:badge("confirmed","Подтверждена"),active:badge("active","В работе"),completed:badge("completed","Завершена"),cancelled:badge("cancelled","Отменена")}[s] || badge("new","Новое"); }
 function repairStatusBadge(s){ return {planned:badge("repairplan","Запланирован"),active:badge("repairstatus","В ремонте"),completed:badge("completed","Завершён"),cancelled:badge("cancelled","Отменён")}[s] || badge("repairplan","Запланирован"); }
 function typeBadge(t){ return t==="income" ? badge("income","Приход") : badge("expense","Расход"); }
 function eqBadge(s){ return {free:badge("free","Свободна"),busy:badge("busy","В работе"),repair:badge("repairstatus","Ремонт")}[s] || badge("free","Свободна"); }
@@ -446,6 +498,41 @@ function renderIntegrationStatus(kind, text){
   if(!box) return;
   box.innerHTML = text ? `<div class="${kind === "error" ? "alert" : "ok"}">${esc(text)}</div>` : "";
 }
+function renderAuthStatus(kind, text){
+  const box = $("authStatus");
+  if(!box) return;
+  box.innerHTML = text ? `<div class="${kind === "error" ? "alert" : "ok"}">${esc(text)}</div>` : "";
+}
+function updateAuthUi(session){
+  const user = session?.user || null;
+  authUserId = user?.id || "";
+  if($("authEmail")) $("authEmail").disabled = Boolean(user);
+  if($("authPassword")) $("authPassword").disabled = Boolean(user);
+  if($("authLoginBtn")) $("authLoginBtn").disabled = Boolean(user);
+  if($("authSignupBtn")) $("authSignupBtn").disabled = Boolean(user);
+  if(user){
+    renderAuthStatus("ok", `Вход выполнен: ${user.email}`);
+  } else {
+    renderAuthStatus("error", "Не авторизован. Данные сохраняются только локально.");
+  }
+}
+async function initAuth(){
+  if(!supabaseClient){
+    renderAuthStatus("error", "Supabase SDK не загружен.");
+    return;
+  }
+  const { data } = await supabaseClient.auth.getSession();
+  updateAuthUi(data.session);
+  if(data.session?.user){
+    await loadCloudState();
+  }
+  supabaseClient.auth.onAuthStateChange(async (_, session) => {
+    updateAuthUi(session);
+    if(session?.user){
+      await loadCloudState();
+    }
+  });
+}
 function refreshIntegrationForm(){
   if(!$("integrationUrl")) return;
   $("integrationUrl").value = state.integrations.googleFormsUrl || "";
@@ -726,7 +813,8 @@ function bindForms(){
 }
 function activateSection(sec){
   document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
-  $("section-"+sec).classList.add("active");
+  const section = $("section-"+sec);
+  if(section) section.classList.add("active");
   document.querySelectorAll(".nav-btn").forEach(x=>x.classList.toggle("active", x.dataset.sec===sec));
   const map={
     dashboard:["Дашборд","Контроль выручки, расходов, прибыли, ремонтов и загрузки"],
@@ -739,7 +827,9 @@ function activateSection(sec){
     operators:["Операторы","Люди, смены и начисления"],
     settings:["Настройки","Описание возможностей и сервисные функции"]
   };
-  $("pageTitle").textContent=map[sec][0]; $("pageSubtitle").textContent=map[sec][1];
+  const page = map[sec] || map.dashboard;
+  if($("pageTitle")) $("pageTitle").textContent = page[0];
+  if($("pageSubtitle")) $("pageSubtitle").textContent = page[1];
 }
 function bindNav(){ document.querySelectorAll(".nav-btn").forEach(b=>b.addEventListener("click",()=>activateSection(b.dataset.sec))); }
 function bindFilters(){
@@ -751,18 +841,18 @@ function bindFilters(){
   $("opFilterType").addEventListener("change", renderFinance);
 }
 function bindGeneral(){
-  $("prevMonth").addEventListener("click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()-1, 1); renderCalendar(); save(); });
-  $("nextMonth").addEventListener("click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()+1, 1); renderCalendar(); save(); });
-  $("currentMonth").addEventListener("click",()=>{ state.calendarDate = new Date(); renderCalendar(); save(); });
-  $("calendarMode").addEventListener("change",()=>{ state.calendarMode = $("calendarMode").value; renderCalendar(); save(); });
-  $("chartMode").addEventListener("change",()=>{ state.chartMode = $("chartMode").value; renderDashboardChart(); save(); });
+  on("prevMonth","click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()-1, 1); renderCalendar(); save(); });
+  on("nextMonth","click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()+1, 1); renderCalendar(); save(); });
+  on("currentMonth","click",()=>{ state.calendarDate = new Date(); renderCalendar(); save(); });
+  on("calendarMode","change",()=>{ state.calendarMode = $("calendarMode").value; renderCalendar(); save(); });
+  on("chartMode","change",()=>{ state.chartMode = $("chartMode").value; renderDashboardChart(); save(); });
 
-  $("resetBtn").addEventListener("click",()=>{ if(confirm("Удалить все данные CRM?")){ localStorage.removeItem(KEY); state.clients=[]; state.equipment=[]; state.operators=[]; state.orders=[]; state.operations=[]; state.repairs=[]; clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); } });
-  $("exportBtn").addEventListener("click",()=>{
+  on("resetBtn","click",()=>{ if(confirm("Удалить все данные CRM?")){ localStorage.removeItem(KEY); state.clients=[]; state.equipment=[]; state.operators=[]; state.orders=[]; state.operations=[]; state.repairs=[]; clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); } });
+  on("exportBtn","click",()=>{
     const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode},null,2)],{type:"application/json"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="RBT_CRM_v41_export.json"; a.click(); URL.revokeObjectURL(a.href);
   });
-  $("importFile").addEventListener("change",e=>{
+  on("importFile","change",e=>{
     const file=e.target.files[0]; if(!file) return;
     const r=new FileReader(); r.onload=()=>{
       try{
@@ -786,8 +876,42 @@ function bindGeneral(){
       }catch(err){ alert("Не удалось импортировать файл."); }
     }; r.readAsText(file); e.target.value="";
   });
-  $("seedBtn").addEventListener("click",seedDemo);
-  $("integrationForm").addEventListener("submit",e=>{
+  on("seedBtn","click",seedDemo);
+  on("authForm","submit", async e => {
+    e.preventDefault();
+    if(!supabaseClient) return;
+    const email = $("authEmail").value.trim();
+    const password = $("authPassword").value;
+    if(!email || !password) return;
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if(error){
+      renderAuthStatus("error", `Ошибка входа: ${error.message}`);
+      return;
+    }
+    renderAuthStatus("ok", "Вход выполнен.");
+  });
+  on("authSignupBtn","click", async () => {
+    if(!supabaseClient) return;
+    const email = $("authEmail").value.trim();
+    const password = $("authPassword").value;
+    if(!email || !password) return alert("Заполни email и пароль.");
+    const { error } = await supabaseClient.auth.signUp({ email, password });
+    if(error){
+      renderAuthStatus("error", `Ошибка регистрации: ${error.message}`);
+      return;
+    }
+    renderAuthStatus("ok", "Регистрация успешна. Проверь email, если включено подтверждение.");
+  });
+  on("authLogoutBtn","click", async () => {
+    if(!supabaseClient) return;
+    const { error } = await supabaseClient.auth.signOut();
+    if(error){
+      renderAuthStatus("error", `Ошибка выхода: ${error.message}`);
+      return;
+    }
+    renderAuthStatus("ok", "Выход выполнен.");
+  });
+  on("integrationForm","submit",e=>{
     e.preventDefault();
     state.integrations.googleFormsUrl = $("integrationUrl").value.trim();
     state.integrations.autoSync = $("integrationAutoSync").checked;
@@ -795,7 +919,7 @@ function bindGeneral(){
     save();
     refreshIntegrationForm();
   });
-  $("syncGoogleFormsBtn").addEventListener("click",()=>syncGoogleForms(true));
+  on("syncGoogleFormsBtn","click",()=>syncGoogleForms(true));
 }
 function seedDemo(){
   if(state.clients.length || state.orders.length || state.operations.length || state.repairs.length){ if(!confirm("Демо-данные добавятся к текущим. Продолжить?")) return; }
@@ -830,10 +954,11 @@ function seedDemo(){
   );
   renderAll();
 }
-function init(){
+async function init(){
   load(); bindNav(); bindForms(); bindFilters(); bindGeneral();
   $("chartMode").value = state.chartMode; $("calendarMode").value = state.calendarMode;
   clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); refreshIntegrationForm();
+  await initAuth();
   if(state.integrations.autoSync && state.integrations.googleFormsUrl) syncGoogleForms(false);
 }
 init();
