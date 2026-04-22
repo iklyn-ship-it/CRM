@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBT Group — Mini CRM v4.1</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#111827; --panel2:#172033; --line:#2b3a55; --txt:#e5e7eb; --muted:#9ca3af;
+      --green:#22c55e; --blue:#38bdf8; --amber:#f59e0b; --red:#ef4444; --violet:#8b5cf6; --repair:#f97316;
+      --shadow:0 14px 40px rgba(0,0,0,.28); --r:18px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:linear-gradient(180deg,#09111f,#101827);color:var(--txt)}
+    .app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+    .sidebar{background:rgba(9,17,31,.96);border-right:1px solid var(--line);padding:18px;position:sticky;top:0;height:100vh;overflow:auto}
+    .brand{display:flex;gap:12px;align-items:center;padding:14px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.03);margin-bottom:14px}
+    .logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--green),#16a34a);display:grid;place-items:center;font-weight:800;color:#052e16}
+    .brand h1{margin:0;font-size:16px}
+    .brand p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+    .nav{display:flex;flex-direction:column;gap:8px}
+    .nav button{padding:12px 14px;border-radius:14px;border:1px solid transparent;background:transparent;color:var(--txt);text-align:left;cursor:pointer}
+    .nav button:hover,.nav button.active{background:rgba(56,189,248,.10);border-color:#21497d}
+    .sidebar-foot{margin-top:16px;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.03);color:var(--muted);font-size:12px;line-height:1.45}
+    .main{padding:20px}
+    .top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+    .title h2{margin:0;font-size:28px}
+    .title p{margin:6px 0 0;color:var(--muted)}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .btn,input,select,textarea{font:inherit}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#182235;color:var(--txt);cursor:pointer}
+    .btn.primary{background:var(--green);border-color:#15803d;color:#052e16;font-weight:700}
+    .btn.info{background:#0f766e;border-color:#115e59;color:#ecfeff}
+    .btn.warn{background:#7c2d12;border-color:#9a3412;color:#ffedd5}
+    .btn.ghost{background:transparent}
+    .card{background:rgba(17,24,39,.92);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+    .panel{padding:16px}
+    .grid{display:grid;gap:16px}
+    .metrics{grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:16px}
+    .metric{padding:18px}
+    .metric .label{font-size:13px;color:var(--muted)}
+    .metric .val{font-size:26px;font-weight:800;margin-top:8px}
+    .metric .sub{font-size:12px;color:var(--muted);margin-top:8px}
+    .split{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+    .row{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px}
+    .col-12{grid-column:span 12}.col-8{grid-column:span 8}.col-7{grid-column:span 7}.col-6{grid-column:span 6}.col-5{grid-column:span 5}.col-4{grid-column:span 4}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    label{font-size:13px;color:var(--muted)}
+    input,select,textarea{padding:10px 12px;border-radius:12px;background:#0a1324;border:1px solid var(--line);color:var(--txt);outline:none}
+    textarea{min-height:86px;resize:vertical}
+    .section{display:none}.section.active{display:block}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 8px;border-bottom:1px solid rgba(156,163,175,.14);text-align:left;vertical-align:top;font-size:14px}
+    th{font-size:12px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.05em}
+    .small{font-size:12px;color:var(--muted)}
+    .table-wrap{overflow:auto}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid transparent}
+    .new{background:rgba(56,189,248,.12);color:#7dd3fc;border-color:rgba(56,189,248,.25)}
+    .confirmed{background:rgba(34,197,94,.12);color:#86efac;border-color:rgba(34,197,94,.25)}
+    .active{background:rgba(245,158,11,.12);color:#fcd34d;border-color:rgba(245,158,11,.25)}
+    .completed{background:rgba(148,163,184,.12);color:#e5e7eb;border-color:rgba(148,163,184,.25)}
+    .cancelled{background:rgba(239,68,68,.12);color:#fca5a5;border-color:rgba(239,68,68,.25)}
+    .income{background:rgba(34,197,94,.12);color:#86efac;border-color:rgba(34,197,94,.25)}
+    .expense{background:rgba(239,68,68,.12);color:#fca5a5;border-color:rgba(239,68,68,.25)}
+    .free{background:rgba(34,197,94,.12);color:#86efac}.busy{background:rgba(239,68,68,.12);color:#fca5a5}.repairstatus{background:rgba(249,115,22,.12);color:#fdba74;border-color:rgba(249,115,22,.25)}
+    .repairplan{background:rgba(249,115,22,.12);color:#fdba74;border-color:rgba(249,115,22,.25)}
+    .ok,.alert{padding:12px;border-radius:14px;margin-bottom:10px}
+    .ok{background:rgba(20,83,45,.24);border:1px solid rgba(34,197,94,.25);color:#bbf7d0}
+    .alert{background:rgba(127,29,29,.22);border:1px solid rgba(239,68,68,.25);color:#fecaca}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{display:flex;justify-content:space-between;gap:10px;padding:12px;border-radius:14px;background:#0a1324;border:1px solid var(--line)}
+    .empty{padding:14px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .hidden{display:none !important}
+    .chart-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    .chip{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:#0a1324;font-size:12px;color:#d1d5db}
+    .legend{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+    .dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+
+    .chart-area{background:#0a1324;border:1px solid var(--line);border-radius:14px;padding:16px;min-height:320px}
+    .chart-bar-wrap{height:250px;display:flex;align-items:flex-end;gap:16px;padding:10px 6px 34px;overflow:auto}
+    .bar-col{min-width:90px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+    .bar-stack{width:52px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;gap:4px}
+    .bar-seg{border-radius:8px 8px 0 0;position:relative}
+    .bar-income{background:linear-gradient(180deg,#4ade80,#22c55e)}
+    .bar-expense{background:linear-gradient(180deg,#fb923c,#f97316)}
+    .bar-profit{background:linear-gradient(180deg,#60a5fa,#38bdf8)}
+    .bar-label{margin-top:8px;font-size:12px;color:var(--muted);text-align:center;max-width:90px}
+    .bar-value{position:absolute;top:-22px;font-size:11px;color:#cbd5e1;white-space:nowrap}
+
+    .hchart-list{display:flex;flex-direction:column;gap:12px}
+    .hchart-row{display:grid;grid-template-columns:180px 1fr 80px;gap:12px;align-items:center}
+    .hchart-name{font-size:13px;color:#e5e7eb}
+    .hchart-track{height:18px;background:#0f172a;border:1px solid var(--line);border-radius:999px;overflow:hidden;position:relative}
+    .hchart-fill{height:100%;border-radius:999px}
+    .hchart-fill.profit{background:linear-gradient(90deg,#60a5fa,#38bdf8)}
+    .hchart-fill.income{background:linear-gradient(90deg,#4ade80,#22c55e)}
+    .hchart-fill.expense{background:linear-gradient(90deg,#fb923c,#f97316)}
+    .hchart-val{text-align:right;font-size:12px;color:#cbd5e1}
+
+    .donut-wrap{display:grid;grid-template-columns:240px 1fr;gap:20px;align-items:center}
+    .donut{
+      width:220px;height:220px;border-radius:50%;
+      margin:auto;position:relative;border:1px solid var(--line);
+    }
+    .donut-hole{
+      position:absolute;inset:28px;background:#0a1324;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center
+    }
+    .donut-hole strong{font-size:28px}
+    .donut-legend{display:flex;flex-direction:column;gap:10px}
+    .donut-item{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;background:#0f172a;border:1px solid var(--line);border-radius:12px}
+
+    .calendar-controls{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+    .cal{display:grid;grid-template-columns:repeat(7,minmax(140px,1fr));gap:0;overflow:auto;border:1px solid var(--line);border-radius:16px}
+    .cal-h,.cal-c{min-height:110px;padding:8px;border-right:1px solid rgba(156,163,175,.14);border-bottom:1px solid rgba(156,163,175,.14);background:#0a1324}
+    .cal-h{min-height:auto;background:#111827;font-weight:700}
+    .event{margin-top:6px;padding:6px 8px;border-radius:10px;font-size:12px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.24)}
+    .event.conflict{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.28)}
+    .event.repair{background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.35);box-shadow:inset 0 0 0 1px rgba(249,115,22,.2)}
+
+    .timeline-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
+    .timeline-head,.timeline-row{
+      display:grid;
+      grid-template-columns:240px repeat(31, minmax(34px, 34px));
+      min-width:max-content;
+    }
+    .timeline-head{position:sticky;top:0;z-index:2}
+    .timeline-left, .timeline-day, .timeline-cell{
+      border-right:1px solid rgba(156,163,175,.14);
+      border-bottom:1px solid rgba(156,163,175,.14);
+    }
+    .timeline-left{
+      position:sticky;left:0;z-index:1;background:#111827;padding:10px 12px
+    }
+    .timeline-day{background:#111827;padding:8px;text-align:center;font-size:12px;color:#cbd5e1}
+    .timeline-day .small{display:block}
+    .timeline-track{
+      position:relative;height:52px;background:#0a1324;
+    }
+    .timeline-cell{background:#0a1324;height:52px}
+    .reserve-bar{
+      position:absolute;top:9px;height:34px;border-radius:999px;padding:6px 10px;font-size:12px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+      display:flex;align-items:center;border:1px solid transparent
+    }
+    .reserve-bar.rent{background:rgba(56,189,248,.18);border-color:rgba(56,189,248,.32);color:#dbeafe}
+    .reserve-bar.repair{background:rgba(249,115,22,.22);border-color:rgba(249,115,22,.4);color:#ffedd5}
+    .reserve-bar.conflict{box-shadow:0 0 0 2px rgba(239,68,68,.65) inset}
+    .timeline-note{font-size:12px;color:var(--muted)}
+
+    @media (max-width:1200px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.split{grid-template-columns:1fr}.donut-wrap{grid-template-columns:1fr}}
+    @media (max-width:960px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto}}
+    @media (max-width:720px){.row{grid-template-columns:1fr}.col-12,.col-8,.col-7,.col-6,.col-5,.col-4{grid-column:span 1}.metrics{grid-template-columns:1fr}.hchart-row{grid-template-columns:1fr}.timeline-head,.timeline-row{grid-template-columns:180px repeat(31, minmax(30px, 30px))}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">RBT</div>
+      <div><h1>CRM v4.1 аренды</h1><p>Графики лучше • 2 вида календаря</p></div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" data-sec="dashboard">Дашборд</button>
+      <button class="nav-btn" data-sec="orders">Заявки</button>
+      <button class="nav-btn" data-sec="repairs">Ремонты</button>
+      <button class="nav-btn" data-sec="calendar">Календарь</button>
+      <button class="nav-btn" data-sec="finance">Финансы</button>
+      <button class="nav-btn" data-sec="equipment">Техника</button>
+      <button class="nav-btn" data-sec="clients">Клиенты</button>
+      <button class="nav-btn" data-sec="operators">Операторы</button>
+      <button class="nav-btn" data-sec="settings">Настройки</button>
+    </div>
+    <div class="sidebar-foot">
+      В этой версии улучшены графики дашборда и добавлен второй режим календаря: список техники слева и горизонтальные резервы по дням справа.
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div class="title">
+        <h2 id="pageTitle">Дашборд</h2>
+        <p id="pageSubtitle">Контроль выручки, расходов, прибыли, ремонтов и загрузки</p>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="seedBtn">Заполнить демо</button>
+        <button class="btn info" id="exportBtn">Экспорт JSON</button>
+        <label class="btn" for="importFile">Импорт JSON</label>
+        <input id="importFile" class="hidden" type="file" accept=".json" />
+        <button class="btn warn" id="resetBtn">Сбросить всё</button>
+      </div>
+    </div>
+
+    <section class="section active" id="section-dashboard">
+      <div class="grid metrics">
+        <div class="card metric"><div class="label">Выручка</div><div class="val" id="mRevenue">₴0</div><div class="sub">по доходным операциям</div></div>
+        <div class="card metric"><div class="label">Расходы</div><div class="val" id="mExpense">₴0</div><div class="sub">включая ремонты и содержание</div></div>
+        <div class="card metric"><div class="label">Чистая прибыль</div><div class="val" id="mProfit">₴0</div><div class="sub">доходы минус расходы</div></div>
+        <div class="card metric"><div class="label">Активные заявки</div><div class="val" id="mOrders">0</div><div class="sub">новые, подтверждённые, в работе</div></div>
+        <div class="card metric"><div class="label">Плановые ремонты</div><div class="val" id="mRepairs">0</div><div class="sub">активные и запланированные</div></div>
+        <div class="card metric"><div class="label">Загрузка техники</div><div class="val" id="mUtil">0%</div><div class="sub">средняя по текущему месяцу</div></div>
+      </div>
+
+      <div class="split">
+        <div class="card panel">
+          <div class="chart-controls">
+            <h3 style="margin:0;flex:1">Аналитика по технике</h3>
+            <select id="chartMode">
+              <option value="bars">Столбцы: прибыль</option>
+              <option value="stacked">Столбцы: доход/расход/прибыль</option>
+              <option value="horizontal">Горизонтальные полосы</option>
+              <option value="donut">Кольцевая диаграмма прибыли</option>
+            </select>
+          </div>
+          <div id="dashboardChart" class="chart-area"></div>
+        </div>
+        <div class="card panel">
+          <h3 style="margin-top:0">Сигналы руководителя</h3>
+          <div id="alerts"></div>
+          <div class="list" id="topList"></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <div class="col-7">
+          <div class="card panel">
+            <h3 style="margin-top:0">Ближайшие события</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Период</th><th>Тип</th><th>Объект</th><th>Техника</th><th>Статус</th><th>Финрезультат</th></tr></thead>
+                <tbody id="upcomingBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-5">
+          <div class="card panel">
+            <h3 style="margin-top:0">Финансовая сводка</h3>
+            <div class="list" id="dashFinanceList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-orders">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="orderFormTitle" style="margin-top:0">Новая заявка</h3>
+            <form id="orderForm">
+              <input type="hidden" id="orderId" />
+              <div class="field"><label>Клиент</label><select id="orderClient"></select></div>
+              <div class="field"><label>Техника</label><select id="orderEquipment"></select></div>
+              <div class="field"><label>Оператор</label><select id="orderOperator"></select></div>
+              <div class="field"><label>Дата начала</label><input type="date" id="orderStart" required /></div>
+              <div class="field"><label>Дата окончания</label><input type="date" id="orderEnd" required /></div>
+              <div class="field"><label>Локация</label><input type="text" id="orderLocation" placeholder="Объект / город" /></div>
+              <div class="field"><label>Тариф, ₴/день</label><input type="number" id="orderRate" min="0" /></div>
+              <div class="field"><label>Статус</label>
+                <select id="orderStatus">
+                  <option value="new">Новая</option>
+                  <option value="confirmed">Подтверждена</option>
+                  <option value="active">В работе</option>
+                  <option value="completed">Завершена</option>
+                  <option value="cancelled">Отменена</option>
+                </select>
+              </div>
+              <div class="field"><label>Комментарий</label><textarea id="orderNotes"></textarea></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="orderSaveBtn">Сохранить заявку</button>
+                <button type="button" class="btn ghost hidden" id="orderCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-8">
+          <div class="card panel">
+            <div class="toolbar">
+              <input id="orderSearch" type="text" placeholder="Поиск: клиент, техника, объект..." />
+              <select id="orderFilterStatus">
+                <option value="">Все статусы</option>
+                <option value="new">Новые</option>
+                <option value="confirmed">Подтверждённые</option>
+                <option value="active">В работе</option>
+                <option value="completed">Завершённые</option>
+                <option value="cancelled">Отменённые</option>
+              </select>
+            </div>
+            <div id="conflictBox"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Период</th><th>Клиент</th><th>Техника</th><th>План</th><th>Доход</th><th>Расход</th><th>Прибыль</th><th>Статус</th><th></th></tr></thead>
+                <tbody id="ordersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-repairs">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="repairFormTitle" style="margin-top:0">Запланировать ремонт</h3>
+            <form id="repairForm">
+              <input type="hidden" id="repairId" />
+              <div class="field"><label>Техника</label><select id="repairEquipment"></select></div>
+              <div class="field"><label>Дата начала</label><input type="date" id="repairStart" required /></div>
+              <div class="field"><label>Дата окончания</label><input type="date" id="repairEnd" required /></div>
+              <div class="field"><label>Статус ремонта</label>
+                <select id="repairStatus">
+                  <option value="planned">Запланирован</option>
+                  <option value="active">В ремонте</option>
+                  <option value="completed">Завершён</option>
+                  <option value="cancelled">Отменён</option>
+                </select>
+              </div>
+              <div class="field"><label>Что необходимо сделать</label><textarea id="repairTasks"></textarea></div>
+              <div class="field"><label>Комментарий</label><textarea id="repairNotes"></textarea></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="repairSaveBtn">Сохранить ремонт</button>
+                <button type="button" class="btn ghost hidden" id="repairCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-8">
+          <div class="card panel">
+            <div class="toolbar">
+              <input id="repairSearch" type="text" placeholder="Поиск: техника, работы, комментарий..." />
+              <select id="repairFilterStatus">
+                <option value="">Все статусы</option>
+                <option value="planned">Запланирован</option>
+                <option value="active">В ремонте</option>
+                <option value="completed">Завершён</option>
+                <option value="cancelled">Отменён</option>
+              </select>
+            </div>
+            <div id="repairConflictBox"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Период</th><th>Техника</th><th>Работы</th><th>Комментарий</th><th>Статус</th><th></th></tr></thead>
+                <tbody id="repairsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-calendar">
+      <div class="card panel">
+        <div class="calendar-controls">
+          <div><h3 style="margin:0 0 6px">Календарь занятости техники</h3><div class="small">Выбери удобный режим просмотра.</div></div>
+          <div class="actions">
+            <select id="calendarMode">
+              <option value="month">1) Месячный календарь</option>
+              <option value="timeline">2) Техника слева + полосы резерва</option>
+            </select>
+            <button class="btn" id="prevMonth">← Месяц назад</button>
+            <div class="chip" id="monthLabel"></div>
+            <button class="btn" id="nextMonth">Месяц вперёд →</button>
+            <button class="btn ghost" id="currentMonth">Текущий месяц</button>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="chip"><span class="dot" style="background:rgba(56,189,248,.8)"></span> аренда</div>
+          <div class="chip"><span class="dot" style="background:rgba(249,115,22,.85)"></span> ремонт</div>
+          <div class="chip"><span class="dot" style="background:rgba(239,68,68,.85)"></span> конфликт</div>
+        </div>
+        <div id="calendarWrap"></div>
+      </div>
+    </section>
+
+    <section class="section" id="section-finance">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="opFormTitle" style="margin-top:0">Новая финансовая операция</h3>
+            <form id="operationForm">
+              <input type="hidden" id="operationId" />
+              <div class="field"><label>Дата</label><input type="date" id="opDate" required /></div>
+              <div class="field"><label>Тип</label>
+                <select id="opType">
+                  <option value="income">Приход</option>
+                  <option value="expense">Расход</option>
+                </select>
+              </div>
+              <div class="field"><label>Категория</label>
+                <select id="opCategory">
+                  <option value="Оплата клиента">Оплата клиента</option>
+                  <option value="Топливо">Топливо</option>
+                  <option value="Зарплата оператора">Зарплата оператора</option>
+                  <option value="Ремонт">Ремонт</option>
+                  <option value="Логистика">Логистика</option>
+                  <option value="Запчасти">Запчасти</option>
+                  <option value="Прочее">Прочее</option>
+                </select>
+              </div>
+              <div class="field"><label>Сумма, ₴</label><input type="number" id="opAmount" min="0" required /></div>
+              <div class="field"><label>Привязать к заявке аренды</label><select id="opOrder"></select></div>
+              <div class="field"><label>Привязать к ремонту</label><select id="opRepair"></select></div>
+              <div class="field"><label>Комментарий</label><textarea id="opComment"></textarea></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="opSaveBtn">Сохранить операцию</button>
+                <button type="button" class="btn ghost hidden" id="opCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <div class="toolbar">
+              <input id="opSearch" type="text" placeholder="Поиск: категория, комментарий..." />
+              <select id="opFilterType">
+                <option value="">Все типы</option>
+                <option value="income">Приход</option>
+                <option value="expense">Расход</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Привязка</th><th>Комментарий</th><th></th></tr></thead>
+                <tbody id="operationsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card panel" style="margin-top:16px">
+            <h3 style="margin-top:0">Финансы по аренде</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Заявка</th><th>Клиент</th><th>План</th><th>Доход</th><th>Расход</th><th>Прибыль</th><th>Остаток до оплаты</th></tr></thead>
+                <tbody id="financeByOrderBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card panel" style="margin-top:16px">
+            <h3 style="margin-top:0">Финансы по ремонтам</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Ремонт</th><th>Техника</th><th>Расход</th><th>Комментарий</th><th>Статус</th></tr></thead>
+                <tbody id="financeByRepairBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-equipment">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 style="margin-top:0">Добавить технику</h3>
+            <form id="equipmentForm">
+              <div class="field"><label>Название</label><input id="eqName" type="text" required /></div>
+              <div class="field"><label>Тип</label><input id="eqType" type="text" /></div>
+              <div class="field"><label>Госномер / ID</label><input id="eqCode" type="text" /></div>
+              <div class="field"><label>Тариф по умолчанию, ₴/день</label><input id="eqRate" type="number" min="0" /></div>
+              <div class="field"><label>Базовый статус</label>
+                <select id="eqStatus"><option value="free">Свободна</option><option value="busy">В работе</option><option value="repair">Ремонт</option></select>
+              </div>
+              <button type="submit" class="btn primary">Сохранить технику</button>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <h3 style="margin-top:0">Парк техники</h3>
+            <div class="table-wrap"><table><thead><tr><th>Название</th><th>Тип</th><th>ID</th><th>Тариф</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead><tbody id="equipmentBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-clients">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 style="margin-top:0">Добавить клиента</h3>
+            <form id="clientForm">
+              <div class="field"><label>Имя / Компания</label><input id="clientName" type="text" required /></div>
+              <div class="field"><label>Телефон</label><input id="clientPhone" type="text" /></div>
+              <div class="field"><label>Источник</label><input id="clientSource" type="text" /></div>
+              <div class="field"><label>Тип клиента</label><select id="clientType"><option>Разовый</option><option>Постоянный</option></select></div>
+              <div class="field"><label>Комментарий</label><textarea id="clientNotes"></textarea></div>
+              <button type="submit" class="btn primary">Сохранить клиента</button>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <h3 style="margin-top:0">Клиенты</h3>
+            <div class="table-wrap"><table><thead><tr><th>Клиент</th><th>Телефон</th><th>Источник</th><th>Заказы</th><th>Выручка</th><th>Прибыль</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-operators">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 style="margin-top:0">Добавить оператора</h3>
+            <form id="operatorForm">
+              <div class="field"><label>ФИО</label><input id="operatorName" type="text" required /></div>
+              <div class="field"><label>Телефон</label><input id="operatorPhone" type="text" /></div>
+              <div class="field"><label>Специализация</label><input id="operatorSkill" type="text" /></div>
+              <div class="field"><label>Ставка, ₴/день</label><input id="operatorRate" type="number" min="0" value="0" /></div>
+              <button type="submit" class="btn primary">Сохранить оператора</button>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <h3 style="margin-top:0">Операторы</h3>
+            <div class="table-wrap"><table><thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Смены</th><th>Начислено</th><th></th></tr></thead><tbody id="operatorsBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-settings">
+      <div class="card panel">
+        <h3 style="margin-top:0">Что обновлено в v4.1</h3>
+        <div class="list">
+          <div class="item"><div><strong>Графики дашборда стали читабельнее</strong><div class="small">Добавлены 4 режима просмотра аналитики по технике.</div></div></div>
+          <div class="item"><div><strong>2 режима календаря</strong><div class="small">1) обычный месячный, 2) техника слева и горизонтальные полосы резерва справа.</div></div></div>
+          <div class="item"><div><strong>Полосы резерва по дням</strong><div class="small">В линейном режиме видно бронь техники по всей длине периода.</div></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const KEY = "rbt_crm_v41_all_in_one";
+const state = {
+  clients: [], equipment: [], operators: [], orders: [], operations: [], repairs: [],
+  calendarDate: new Date(), chartMode: "bars", calendarMode: "month"
+};
+function $(id){ return document.getElementById(id); }
+function uid(p){ return p + "_" + Math.random().toString(36).slice(2,9); }
+function save(){ localStorage.setItem(KEY, JSON.stringify({clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode})); }
+function load(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(KEY));
+    if(raw){
+      state.clients=raw.clients||[]; state.equipment=raw.equipment||[]; state.operators=raw.operators||[];
+      state.orders=raw.orders||[]; state.operations=raw.operations||[]; state.repairs=raw.repairs||[];
+      state.chartMode=raw.chartMode||"bars"; state.calendarMode=raw.calendarMode||"month";
+    }
+  }catch(e){}
+}
+function esc(v){
+  return String(v ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+function money(v){ return "₴" + Number(v||0).toLocaleString("uk-UA"); }
+function fmtDate(v){ if(!v) return "—"; return new Date(v+"T00:00:00").toLocaleDateString("uk-UA"); }
+function daysInclusive(s,e){ return Math.max(1, Math.floor((new Date(e+"T00:00:00")-new Date(s+"T00:00:00"))/86400000)+1); }
+function badge(cls, text){ return `<span class="badge ${cls}">${text}</span>`; }
+function statusBadge(s){ return {new:badge("new","Новая"),confirmed:badge("confirmed","Подтверждена"),active:badge("active","В работе"),completed:badge("completed","Завершена"),cancelled:badge("cancelled","Отменена")}[s] || badge("new","Новая"); }
+function repairStatusBadge(s){ return {planned:badge("repairplan","Запланирован"),active:badge("repairstatus","В ремонте"),completed:badge("completed","Завершён"),cancelled:badge("cancelled","Отменён")}[s] || badge("repairplan","Запланирован"); }
+function typeBadge(t){ return t==="income" ? badge("income","Приход") : badge("expense","Расход"); }
+function eqBadge(s){ return {free:badge("free","Свободна"),busy:badge("busy","В работе"),repair:badge("repairstatus","Ремонт")}[s] || badge("free","Свободна"); }
+function overlap(a1,a2,b1,b2){ return new Date(a1)<=new Date(b2) && new Date(b1)<=new Date(a2); }
+function byId(arr,id){ return arr.find(x=>x.id===id); }
+function orderPlan(order){ return daysInclusive(order.startDate, order.endDate) * Number(order.rate||0); }
+function orderOps(orderId){ return state.operations.filter(o => o.orderId === orderId); }
+function orderIncome(orderId){ return orderOps(orderId).filter(o=>o.type==="income").reduce((s,o)=>s+Number(o.amount||0),0); }
+function orderExpense(orderId){ return orderOps(orderId).filter(o=>o.type==="expense").reduce((s,o)=>s+Number(o.amount||0),0); }
+function orderProfit(orderId){ return orderIncome(orderId) - orderExpense(orderId); }
+function orderRemaining(order){ return Math.max(0, orderPlan(order) - orderIncome(order.id)); }
+function repairOps(repairId){ return state.operations.filter(o => o.repairId === repairId); }
+function repairExpense(repairId){ return repairOps(repairId).filter(o=>o.type==="expense").reduce((s,o)=>s+Number(o.amount||0),0); }
+function allIncome(){ return state.operations.filter(o=>o.type==="income").reduce((s,o)=>s+Number(o.amount||0),0); }
+function allExpense(){ return state.operations.filter(o=>o.type==="expense").reduce((s,o)=>s+Number(o.amount||0),0); }
+
+function runtimeEqStatus(eq){
+  const now = new Date().toISOString().slice(0,10);
+  const activeRepair = state.repairs.some(r => r.equipmentId===eq.id && r.status!=="cancelled" && r.status!=="completed" && r.startDate<=now && r.endDate>=now);
+  if(activeRepair || eq.status==="repair") return "repair";
+  const used = state.orders.some(o => o.equipmentId===eq.id && o.status!=="cancelled" && o.startDate<=now && o.endDate>=now);
+  return used ? "busy" : "free";
+}
+function utilForEq(eqId, date){
+  const year=date.getFullYear(), month=date.getMonth(), monthStart=new Date(year,month,1), monthEnd=new Date(year,month+1,0);
+  const dim=monthEnd.getDate();
+  const busyDays = new Set();
+  const periods = [
+    ...state.orders.filter(o=>o.equipmentId===eqId && o.status!=="cancelled").map(o=>({s:o.startDate,e:o.endDate})),
+    ...state.repairs.filter(r=>r.equipmentId===eqId && r.status!=="cancelled").map(r=>({s:r.startDate,e:r.endDate}))
+  ];
+  periods.forEach(p=>{
+    const s=new Date(p.s+"T00:00:00"), e=new Date(p.e+"T00:00:00");
+    const from=new Date(Math.max(s, monthStart)), to=new Date(Math.min(e, monthEnd));
+    if(from<=to){
+      for(let day=new Date(from); day<=to; day.setDate(day.getDate()+1)){
+        busyDays.add(day.toISOString().slice(0,10));
+      }
+    }
+  });
+  return Math.round((busyDays.size/dim)*100);
+}
+function orderConflicts(){
+  const list=[]; const orders=state.orders.filter(o=>o.status!=="cancelled");
+  for(let i=0;i<orders.length;i++) for(let j=i+1;j<orders.length;j++){
+    const a=orders[i], b=orders[j];
+    if(a.equipmentId && a.equipmentId===b.equipmentId && overlap(a.startDate,a.endDate,b.startDate,b.endDate)) list.push([a.id,b.id,a.equipmentId]);
+  }
+  return list;
+}
+function repairConflicts(){
+  const list=[];
+  const activeRepairs=state.repairs.filter(r=>r.status!=="cancelled" && r.status!=="completed");
+  activeRepairs.forEach(r=>{
+    state.orders.filter(o=>o.status!=="cancelled" && o.equipmentId===r.equipmentId && overlap(o.startDate,o.endDate,r.startDate,r.endDate)).forEach(o=>{
+      list.push([r.id,o.id,r.equipmentId]);
+    });
+  });
+  return list;
+}
+
+function refreshSelects(){
+  $("orderClient").innerHTML = '<option value="">— выбрать —</option>' + state.clients.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join("");
+  const eqOptions = '<option value="">— выбрать —</option>' + state.equipment.map(e=>`<option value="${e.id}" data-rate="${e.defaultRate||0}">${esc(e.name)}</option>`).join("");
+  $("orderEquipment").innerHTML = eqOptions;
+  $("repairEquipment").innerHTML = eqOptions;
+  $("orderOperator").innerHTML = '<option value="">— без оператора —</option>' + state.operators.map(o=>`<option value="${o.id}">${esc(o.name)}</option>`).join("");
+  $("opOrder").innerHTML = '<option value="">— без привязки —</option>' + state.orders.map(o=>{
+    const cl=esc(byId(state.clients,o.clientId)?.name || "Клиент");
+    const eq=esc(byId(state.equipment,o.equipmentId)?.name || "Техника");
+    return `<option value="${o.id}">${o.id.slice(-5)} • ${cl} • ${eq}</option>`;
+  }).join("");
+  $("opRepair").innerHTML = '<option value="">— без привязки —</option>' + state.repairs.map(r=>{
+    const eq=esc(byId(state.equipment,r.equipmentId)?.name || "Техника");
+    return `<option value="${r.id}">${r.id.slice(-5)} • ${eq}</option>`;
+  }).join("");
+}
+
+function equipmentAnalytics(){
+  return state.equipment.map(eq=>{
+    const related=state.orders.filter(o=>o.equipmentId===eq.id);
+    const repairRelated=state.repairs.filter(r=>r.equipmentId===eq.id);
+    const income=related.reduce((s,o)=>s+orderIncome(o.id),0);
+    const orderExp=related.reduce((s,o)=>s+orderExpense(o.id),0);
+    const repairExp=repairRelated.reduce((s,r)=>s+repairExpense(r.id),0);
+    const expense=orderExp+repairExp;
+    return {name:eq.name, income, expense, profit:income-expense};
+  }).sort((a,b)=>b.profit-a.profit).slice(0,8);
+}
+function renderDashboardChart(){
+  const data = equipmentAnalytics();
+  const wrap = $("dashboardChart");
+  if(!data.length){ wrap.innerHTML = '<div class="empty">Добавь технику, заявки, ремонты и операции — графики появятся здесь.</div>'; return; }
+  const maxProfit = Math.max(1, ...data.map(x=>Math.abs(x.profit)));
+  const maxIncome = Math.max(1, ...data.map(x=>x.income));
+  const maxExpense = Math.max(1, ...data.map(x=>x.expense));
+
+  if(state.chartMode === "bars"){
+    wrap.innerHTML = `<div class="chart-bar-wrap">` + data.map(x=>{
+      const h = Math.max(12, Math.abs(x.profit)/maxProfit*100);
+      return `<div class="bar-col">
+        <div class="bar-stack">
+          <div class="bar-seg bar-profit" style="height:${h}%"><div class="bar-value">${money(x.profit)}</div></div>
+        </div>
+        <div class="bar-label">${esc(x.name)}</div>
+      </div>`;
+    }).join("") + `</div>`;
+  } else if(state.chartMode === "stacked"){
+    wrap.innerHTML = `<div class="chart-bar-wrap">` + data.map(x=>{
+      const hi = Math.max(8, x.income/maxIncome*100);
+      const he = x.expense ? Math.max(8, x.expense/maxExpense*70) : 0;
+      const hp = Math.max(8, Math.abs(x.profit)/maxProfit*35);
+      return `<div class="bar-col">
+        <div class="bar-stack">
+          <div class="bar-seg bar-expense" style="height:${he}%"></div>
+          <div class="bar-seg bar-income" style="height:${hi}%"></div>
+          <div class="bar-seg bar-profit" style="height:${hp}%"><div class="bar-value">${money(x.profit)}</div></div>
+        </div>
+        <div class="bar-label">${esc(x.name)}</div>
+      </div>`;
+    }).join("") + `</div>
+    <div class="legend">
+      <div class="chip"><span class="dot" style="background:#22c55e"></span> доход</div>
+      <div class="chip"><span class="dot" style="background:#f97316"></span> расход</div>
+      <div class="chip"><span class="dot" style="background:#38bdf8"></span> прибыль</div>
+    </div>`;
+  } else if(state.chartMode === "horizontal"){
+    wrap.innerHTML = `<div class="hchart-list">` + data.map(x=>{
+      const w = Math.max(4, Math.abs(x.profit)/maxProfit*100);
+      return `<div class="hchart-row">
+        <div class="hchart-name">${esc(x.name)}</div>
+        <div class="hchart-track"><div class="hchart-fill profit" style="width:${w}%"></div></div>
+        <div class="hchart-val">${money(x.profit)}</div>
+      </div>`;
+    }).join("") + `</div>`;
+  } else if(state.chartMode === "donut"){
+    const total = data.reduce((s,x)=>s+Math.max(0,x.profit),0) || 1;
+    let acc = 0;
+    const colors = ["#38bdf8","#22c55e","#8b5cf6","#f59e0b","#f97316","#60a5fa","#4ade80","#a78bfa"];
+    const stops = [];
+    data.forEach((x,i)=>{
+      const part = Math.max(0,x.profit)/total*100;
+      const start = acc; const end = acc + part;
+      stops.push(`${colors[i%colors.length]} ${start}% ${end}%`);
+      acc = end;
+    });
+    wrap.innerHTML = `<div class="donut-wrap">
+      <div class="donut" style="background:conic-gradient(${stops.join(",")})">
+        <div class="donut-hole"><div class="small">Общая прибыль</div><strong>${money(data.reduce((s,x)=>s+x.profit,0))}</strong></div>
+      </div>
+      <div class="donut-legend">` + data.map((x,i)=>`<div class="donut-item"><div><span class="dot" style="background:${colors[i%colors.length]}"></span> ${esc(x.name)}</div><div>${money(x.profit)}</div></div>`).join("") + `</div>
+    </div>`;
+  }
+}
+
+function renderDashboard(){
+  const income=allIncome(), expense=allExpense(), profit=income-expense;
+  $("mRevenue").textContent = money(income);
+  $("mExpense").textContent = money(expense);
+  $("mProfit").textContent = money(profit);
+  $("mOrders").textContent = state.orders.filter(o=>["new","confirmed","active"].includes(o.status)).length;
+  $("mRepairs").textContent = state.repairs.filter(r=>["planned","active"].includes(r.status)).length;
+  const avgUtil = state.equipment.length ? Math.round(state.equipment.reduce((s,e)=>s+utilForEq(e.id,new Date()),0)/state.equipment.length) : 0;
+  $("mUtil").textContent = avgUtil + "%";
+
+  const conf = orderConflicts();
+  const repConf = repairConflicts();
+  const alerts = [];
+  if(conf.length) alerts.push(`<div class="alert">Есть ${conf.length} конфликт(ов) по пересечению заявок на одну технику.</div>`);
+  else alerts.push(`<div class="ok">Конфликтов по аренде сейчас нет.</div>`);
+  if(repConf.length) alerts.push(`<div class="alert">Есть ${repConf.length} конфликт(ов) между арендой и ремонтом.</div>`);
+  else alerts.push(`<div class="ok">Конфликтов между ремонтом и арендой нет.</div>`);
+  $("alerts").innerHTML = alerts.join("");
+
+  const eqStats = equipmentAnalytics();
+  $("topList").innerHTML = eqStats.length ? eqStats.map((x,i)=>`<div class="item"><div><strong>${i+1}. ${esc(x.name)}</strong><div class="small">Факт прибыли с учётом ремонтов</div></div><div><strong>${money(x.profit)}</strong></div></div>`).join("") : `<div class="empty">Пока нет данных по технике.</div>`;
+  renderDashboardChart();
+
+  const today = new Date().toISOString().slice(0,10);
+  const events = [
+    ...state.orders.map(o=>({kind:"Аренда", startDate:o.startDate, endDate:o.endDate, label:esc(byId(state.clients,o.clientId)?.name||"—"), equipment:esc(byId(state.equipment,o.equipmentId)?.name||"—"), status:statusBadge(o.status), value:money(orderProfit(o.id))})),
+    ...state.repairs.map(r=>({kind:"Ремонт", startDate:r.startDate, endDate:r.endDate, label:esc(r.tasks||"—"), equipment:esc(byId(state.equipment,r.equipmentId)?.name||"—"), status:repairStatusBadge(r.status), value:money(-repairExpense(r.id))}))
+  ].filter(e=>e.endDate >= today)
+   .sort((a,b)=>a.startDate.localeCompare(b.startDate))
+   .slice(0,8);
+
+  $("upcomingBody").innerHTML = events.length ? events.map(e=>`<tr><td>${fmtDate(e.startDate)} — ${fmtDate(e.endDate)}</td><td>${e.kind}</td><td>${e.label}</td><td>${e.equipment}</td><td>${e.status}</td><td>${e.value}</td></tr>`).join("") : `<tr><td colspan="6"><div class="empty">Пока нет событий.</div></td></tr>`;
+
+  const linkedIncome = state.operations.filter(o=>o.type==="income" && o.orderId).reduce((s,o)=>s+Number(o.amount||0),0);
+  const repairSpend = state.operations.filter(o=>o.type==="expense" && o.repairId).reduce((s,o)=>s+Number(o.amount||0),0);
+  const linkedExpense = state.operations.filter(o=>o.type==="expense" && o.orderId).reduce((s,o)=>s+Number(o.amount||0),0);
+  $("dashFinanceList").innerHTML = [
+    ["Доход по аренде", money(linkedIncome)],
+    ["Расходы по аренде", money(linkedExpense)],
+    ["Расходы на ремонты", money(repairSpend)],
+    ["Общий cashflow", money(profit)]
+  ].map(x=>`<div class="item"><div>${x[0]}</div><div><strong>${x[1]}</strong></div></div>`).join("");
+}
+function renderOrders(){
+  const q = $("orderSearch").value.trim().toLowerCase();
+  const fs = $("orderFilterStatus").value;
+  const conf=orderConflicts();
+  const confSet=new Set(conf.flatMap(x=>[x[0],x[1]]));
+  $("conflictBox").innerHTML = conf.length ? `<div class="alert">Найдены пересечения по аренде.</div>` : `<div class="ok">Пересечений по аренде не найдено.</div>`;
+
+  let list=[...state.orders];
+  if(fs) list=list.filter(o=>o.status===fs);
+  if(q){
+    list=list.filter(o=>{
+      const cl=(byId(state.clients,o.clientId)?.name||"").toLowerCase();
+      const eq=(byId(state.equipment,o.equipmentId)?.name||"").toLowerCase();
+      const loc=(o.location||"").toLowerCase();
+      return cl.includes(q)||eq.includes(q)||loc.includes(q)||o.id.toLowerCase().includes(q);
+    });
+  }
+  list.sort((a,b)=>b.startDate.localeCompare(a.startDate));
+  $("ordersBody").innerHTML = list.length ? list.map(o=>{
+    const cl=esc(byId(state.clients,o.clientId)?.name||"—"); const eq=esc(byId(state.equipment,o.equipmentId)?.name||"—");
+    const confMark = confSet.has(o.id) ? `<div class="small" style="color:#fca5a5">Конфликт по технике</div>` : "";
+    return `<tr>
+      <td>${o.id.slice(-5)}</td>
+      <td>${fmtDate(o.startDate)}<div class="small">${fmtDate(o.endDate)} • ${daysInclusive(o.startDate,o.endDate)} дн.</div>${confMark}</td>
+      <td>${cl}</td>
+      <td>${eq}</td>
+      <td>${money(orderPlan(o))}</td>
+      <td>${money(orderIncome(o.id))}</td>
+      <td>${money(orderExpense(o.id))}</td>
+      <td>${money(orderProfit(o.id))}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td><button class="btn ghost" onclick="editOrder('${o.id}')">Редактировать</button><button class="btn ghost" onclick="removeOrder('${o.id}')">Удалить</button></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="10"><div class="empty">Ничего не найдено.</div></td></tr>`;
+}
+function renderRepairs(){
+  const q = $("repairSearch").value.trim().toLowerCase();
+  const fs = $("repairFilterStatus").value;
+  const conf=repairConflicts();
+  const confSet=new Set(conf.flatMap(x=>[x[0],x[1]]));
+  $("repairConflictBox").innerHTML = conf.length ? `<div class="alert">Найдены конфликты между арендой и ремонтом.</div>` : `<div class="ok">Конфликтов между арендой и ремонтом не найдено.</div>`;
+
+  let list=[...state.repairs];
+  if(fs) list=list.filter(r=>r.status===fs);
+  if(q){
+    list=list.filter(r=>{
+      const eq=(byId(state.equipment,r.equipmentId)?.name||"").toLowerCase();
+      return eq.includes(q)||(r.tasks||"").toLowerCase().includes(q)||(r.notes||"").toLowerCase().includes(q)||r.id.toLowerCase().includes(q);
+    });
+  }
+  list.sort((a,b)=>b.startDate.localeCompare(a.startDate));
+  $("repairsBody").innerHTML = list.length ? list.map(r=>{
+    const eq=esc(byId(state.equipment,r.equipmentId)?.name||"—");
+    const confMark = confSet.has(r.id) ? `<div class="small" style="color:#fca5a5">Пересекается с арендой</div>` : "";
+    return `<tr>
+      <td>${r.id.slice(-5)}</td>
+      <td>${fmtDate(r.startDate)}<div class="small">${fmtDate(r.endDate)} • ${daysInclusive(r.startDate,r.endDate)} дн.</div>${confMark}</td>
+      <td>${eq}</td>
+      <td>${esc(r.tasks||"—")}</td>
+      <td>${esc(r.notes||"—")}</td>
+      <td>${repairStatusBadge(r.status)}</td>
+      <td><button class="btn ghost" onclick="editRepair('${r.id}')">Редактировать</button><button class="btn ghost" onclick="removeRepair('${r.id}')">Удалить</button></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="7"><div class="empty">Ремонтов пока нет.</div></td></tr>`;
+}
+function renderCalendarMonth(){
+  const d=state.calendarDate, y=d.getFullYear(), m=d.getMonth();
+  const start=new Date(y,m,1), end=new Date(y,m+1,0), startWeek=(start.getDay()+6)%7, dim=end.getDate();
+  const names=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+  let html=`<div class="cal">` + names.map(n=>`<div class="cal-h">${n}</div>`).join("");
+  let cell=1-startWeek, weeks=Math.ceil((startWeek+dim)/7);
+  for(let w=0;w<weeks;w++){
+    for(let i=0;i<7;i++,cell++){
+      const cur=new Date(y,m,cell);
+      const inMonth=cur.getMonth()===m;
+      const ds=cur.toISOString().slice(0,10);
+      const rentEntries=state.orders.filter(o=>o.status!=="cancelled" && o.startDate<=ds && o.endDate>=ds).map(o=>{
+        const eq=esc(byId(state.equipment,o.equipmentId)?.name || "Техника");
+        const cl=esc(byId(state.clients,o.clientId)?.name || "Клиент");
+        return {...o,eq,cl,type:"rent"};
+      });
+      const repairEntries=state.repairs.filter(r=>r.status!=="cancelled" && r.startDate<=ds && r.endDate>=ds).map(r=>{
+        const eq=esc(byId(state.equipment,r.equipmentId)?.name || "Техника");
+        return {...r,eq,cl:esc(r.tasks||"Ремонт"),type:"repair"};
+      });
+      const entries=[...rentEntries,...repairEntries];
+      const cnt={}; entries.forEach(e=>cnt[e.equipmentId]=(cnt[e.equipmentId]||0)+1);
+      html += `<div class="cal-c" style="${inMonth?'':'opacity:.45'}"><div><strong>${cur.getDate()}</strong> <span class="small">${cur.toLocaleDateString('ru-RU',{month:'short'})}</span></div>` +
+        entries.slice(0,5).map(e=>`<div class="event ${e.type==='repair'?'repair':''} ${cnt[e.equipmentId]>1?'conflict':''}">${e.eq}<br><span class="small">${e.type==='repair'?'Ремонт: ':'Аренда: '}${e.cl}</span></div>`).join("") +
+        (entries.length>5?`<div class="small" style="margin-top:6px">ещё ${entries.length-5}</div>`:"") + `</div>`;
+    }
+  }
+  html += `</div>`;
+  return html;
+}
+function renderCalendarTimeline(){
+  const d=state.calendarDate, y=d.getFullYear(), m=d.getMonth();
+  const start=new Date(y,m,1), end=new Date(y,m+1,0), dim=end.getDate();
+  let html = `<div class="timeline-wrap">`;
+  html += `<div class="timeline-head"><div class="timeline-left"><strong>Техника</strong><div class="timeline-note">Полоса = резерв</div></div>`;
+  for(let day=1; day<=31; day++){
+    if(day<=dim){
+      const date = new Date(y,m,day);
+      html += `<div class="timeline-day">${day}<span class="small">${date.toLocaleDateString('ru-RU',{weekday:'short'})}</span></div>`;
+    } else {
+      html += `<div class="timeline-day" style="opacity:.25">${day}</div>`;
+    }
+  }
+  html += `</div>`;
+
+  const allConflicts = new Set([
+    ...orderConflicts().map(x=>x[0]), ...orderConflicts().map(x=>x[1]),
+    ...repairConflicts().map(x=>x[0]), ...repairConflicts().map(x=>x[1])
+  ]);
+
+  state.equipment.forEach(eq=>{
+    html += `<div class="timeline-row">`;
+    html += `<div class="timeline-left"><strong>${esc(eq.name)}</strong><div class="timeline-note">${esc(eq.type || "—")}</div></div>`;
+    for(let day=1; day<=31; day++){
+      html += `<div class="timeline-cell"></div>`;
+    }
+    html += `</div>`;
+
+    const rowEvents = [
+      ...state.orders.filter(o=>o.equipmentId===eq.id && o.status!=="cancelled").map(o=>({id:o.id,type:"rent",title:esc(byId(state.clients,o.clientId)?.name || "Аренда"),startDate:o.startDate,endDate:o.endDate,conflict:allConflicts.has(o.id)})),
+      ...state.repairs.filter(r=>r.equipmentId===eq.id && r.status!=="cancelled").map(r=>({id:r.id,type:"repair",title:esc(r.tasks || "Ремонт"),startDate:r.startDate,endDate:r.endDate,conflict:allConflicts.has(r.id)}))
+    ];
+    const rowIndex = state.equipment.findIndex(e => e.id === eq.id);
+    const containerTop = 53 * (rowIndex + 1) + 1;
+    rowEvents.forEach(ev=>{
+      const s = new Date(ev.startDate+"T00:00:00");
+      const e = new Date(ev.endDate+"T00:00:00");
+      const from = new Date(Math.max(s, start));
+      const to = new Date(Math.min(e, end));
+      if(from > to) return;
+      const startDay = from.getDate();
+      const endDay = to.getDate();
+      const left = 240 + (startDay - 1) * 34 + 2;
+      const width = ((endDay - startDay + 1) * 34) - 4;
+      html += `<div class="reserve-bar ${ev.type} ${ev.conflict ? 'conflict' : ''}" style="left:${left}px; top:${containerTop + 9}px; width:${width}px; position:absolute">${ev.type==='repair' ? 'Ремонт' : 'Аренда'} • ${ev.title}</div>`;
+    });
+  });
+  html += `</div>`;
+  return `<div style="position:relative">${html}</div>`;
+}
+function renderCalendar(){
+  const d=state.calendarDate;
+  $("monthLabel").textContent = d.toLocaleDateString("ru-RU",{month:"long",year:"numeric"});
+  $("calendarMode").value = state.calendarMode;
+  if(state.calendarMode === "timeline"){
+    $("calendarWrap").innerHTML = renderCalendarTimeline();
+  } else {
+    $("calendarWrap").innerHTML = renderCalendarMonth();
+  }
+}
+function renderFinance(){
+  const q=$("opSearch").value.trim().toLowerCase(), ft=$("opFilterType").value;
+  let ops=[...state.operations].sort((a,b)=>b.date.localeCompare(a.date));
+  if(ft) ops=ops.filter(o=>o.type===ft);
+  if(q) ops=ops.filter(o=>(o.category||"").toLowerCase().includes(q) || (o.comment||"").toLowerCase().includes(q) || o.id.toLowerCase().includes(q));
+  $("operationsBody").innerHTML = ops.length ? ops.map(o=>{
+    let linkText = "—";
+    if(o.orderId){
+      const ord = byId(state.orders,o.orderId);
+      if(ord) linkText = `Аренда ${ord.id.slice(-5)} • ${byId(state.clients,ord.clientId)?.name || ""}`;
+    } else if(o.repairId){
+      const rep = byId(state.repairs,o.repairId);
+      if(rep) linkText = `Ремонт ${rep.id.slice(-5)} • ${byId(state.equipment,rep.equipmentId)?.name || ""}`;
+    }
+    return `<tr>
+      <td>${fmtDate(o.date)}</td><td>${typeBadge(o.type)}</td><td>${esc(o.category||"—")}</td><td>${money(o.amount)}</td><td>${esc(linkText)}</td><td>${esc(o.comment||"—")}</td>
+      <td><button class="btn ghost" onclick="editOperation('${o.id}')">Редактировать</button><button class="btn ghost" onclick="removeOperation('${o.id}')">Удалить</button></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="7"><div class="empty">Финансовых операций пока нет.</div></td></tr>`;
+
+  $("financeByOrderBody").innerHTML = state.orders.length ? state.orders.map(o=>{
+    const cl=esc(byId(state.clients,o.clientId)?.name||"—");
+    return `<tr><td>${o.id.slice(-5)}</td><td>${cl}</td><td>${money(orderPlan(o))}</td><td>${money(orderIncome(o.id))}</td><td>${money(orderExpense(o.id))}</td><td>${money(orderProfit(o.id))}</td><td>${money(orderRemaining(o))}</td></tr>`;
+  }).join("") : `<tr><td colspan="7"><div class="empty">Нет заявок.</div></td></tr>`;
+
+  $("financeByRepairBody").innerHTML = state.repairs.length ? state.repairs.map(r=>{
+    const eq=esc(byId(state.equipment,r.equipmentId)?.name||"—");
+    return `<tr><td>${r.id.slice(-5)}</td><td>${eq}</td><td>${money(repairExpense(r.id))}</td><td>${esc(r.tasks||"—")}</td><td>${repairStatusBadge(r.status)}</td></tr>`;
+  }).join("") : `<tr><td colspan="5"><div class="empty">Нет ремонтов.</div></td></tr>`;
+}
+function renderEquipment(){
+  $("equipmentBody").innerHTML = state.equipment.length ? state.equipment.map(eq=>{
+    const repairs = state.repairs.filter(r=>r.equipmentId===eq.id && r.status!=="cancelled").length;
+    return `<tr><td>${esc(eq.name)}</td><td>${esc(eq.type||"—")}</td><td>${esc(eq.code||"—")}</td><td>${money(eq.defaultRate||0)}</td><td>${eqBadge(runtimeEqStatus(eq))}</td><td>${utilForEq(eq.id,new Date())}%</td><td>${repairs}</td><td><button class="btn ghost" onclick="removeEquipment('${eq.id}')">Удалить</button></td></tr>`;
+  }).join("") : `<tr><td colspan="8"><div class="empty">Нет техники.</div></td></tr>`;
+}
+function renderClients(){
+  $("clientsBody").innerHTML = state.clients.length ? state.clients.map(c=>{
+    const ords=state.orders.filter(o=>o.clientId===c.id); const income=ords.reduce((s,o)=>s+orderIncome(o.id),0); const prof=ords.reduce((s,o)=>s+orderProfit(o.id),0);
+    return `<tr><td>${esc(c.name)}<div class="small">${esc(c.notes||"")}</div></td><td>${esc(c.phone||"—")}</td><td>${esc(c.source||"—")}</td><td>${ords.length}</td><td>${money(income)}</td><td>${money(prof)}</td><td><button class="btn ghost" onclick="removeClient('${c.id}')">Удалить</button></td></tr>`;
+  }).join("") : `<tr><td colspan="7"><div class="empty">Нет клиентов.</div></td></tr>`;
+}
+function renderOperators(){
+  $("operatorsBody").innerHTML = state.operators.length ? state.operators.map(op=>{
+    const ords=state.orders.filter(o=>o.operatorId===op.id && o.status!=="cancelled");
+    const shifts=ords.reduce((s,o)=>s+daysInclusive(o.startDate,o.endDate),0);
+    return `<tr><td>${esc(op.name)}</td><td>${esc(op.phone||"—")}</td><td>${esc(op.skill||"—")}</td><td>${shifts}</td><td>${money(shifts*Number(op.rate||0))}</td><td><button class="btn ghost" onclick="removeOperator('${op.id}')">Удалить</button></td></tr>`;
+  }).join("") : `<tr><td colspan="6"><div class="empty">Нет операторов.</div></td></tr>`;
+}
+function renderAll(){ refreshSelects(); renderDashboard(); renderOrders(); renderRepairs(); renderCalendar(); renderFinance(); renderEquipment(); renderClients(); renderOperators(); save(); }
+
+function clearOrderForm(){
+  $("orderId").value=""; $("orderForm").reset(); $("orderStatus").value="new";
+  $("orderFormTitle").textContent="Новая заявка"; $("orderSaveBtn").textContent="Сохранить заявку"; $("orderCancelEditBtn").classList.add("hidden");
+}
+function editOrder(id){
+  const o=byId(state.orders,id); if(!o) return;
+  $("orderId").value=o.id; $("orderClient").value=o.clientId||""; $("orderEquipment").value=o.equipmentId||""; $("orderOperator").value=o.operatorId||"";
+  $("orderStart").value=o.startDate; $("orderEnd").value=o.endDate; $("orderLocation").value=o.location||""; $("orderRate").value=o.rate||0; $("orderStatus").value=o.status||"new"; $("orderNotes").value=o.notes||"";
+  $("orderFormTitle").textContent="Редактирование заявки"; $("orderSaveBtn").textContent="Сохранить изменения"; $("orderCancelEditBtn").classList.remove("hidden");
+  activateSection("orders");
+}
+function clearRepairForm(){
+  $("repairId").value=""; $("repairForm").reset(); $("repairStatus").value="planned";
+  $("repairFormTitle").textContent="Запланировать ремонт"; $("repairSaveBtn").textContent="Сохранить ремонт"; $("repairCancelEditBtn").classList.add("hidden");
+}
+function editRepair(id){
+  const r=byId(state.repairs,id); if(!r) return;
+  $("repairId").value=r.id; $("repairEquipment").value=r.equipmentId||""; $("repairStart").value=r.startDate; $("repairEnd").value=r.endDate; $("repairStatus").value=r.status||"planned"; $("repairTasks").value=r.tasks||""; $("repairNotes").value=r.notes||"";
+  $("repairFormTitle").textContent="Редактирование ремонта"; $("repairSaveBtn").textContent="Сохранить изменения"; $("repairCancelEditBtn").classList.remove("hidden");
+  activateSection("repairs");
+}
+function clearOperationForm(){
+  $("operationId").value=""; $("operationForm").reset(); $("opType").value="income"; $("opCategory").value="Оплата клиента"; $("opOrder").value=""; $("opRepair").value="";
+  $("opFormTitle").textContent="Новая финансовая операция"; $("opSaveBtn").textContent="Сохранить операцию"; $("opCancelEditBtn").classList.add("hidden");
+}
+function editOperation(id){
+  const o=byId(state.operations,id); if(!o) return;
+  $("operationId").value=o.id; $("opDate").value=o.date; $("opType").value=o.type; $("opCategory").value=o.category||"Прочее"; $("opAmount").value=o.amount; $("opOrder").value=o.orderId||""; $("opRepair").value=o.repairId||""; $("opComment").value=o.comment||"";
+  $("opFormTitle").textContent="Редактирование операции"; $("opSaveBtn").textContent="Сохранить изменения"; $("opCancelEditBtn").classList.remove("hidden");
+  activateSection("finance");
+}
+window.editOrder = editOrder; window.editRepair = editRepair; window.editOperation = editOperation;
+
+function removeOrder(id){
+  if(!confirm("Удалить заявку? Все привязанные к ней операции останутся, но связь будет снята.")) return;
+  state.operations = state.operations.map(op => op.orderId===id ? {...op, orderId:""} : op);
+  state.orders = state.orders.filter(o=>o.id!==id);
+  clearOrderForm(); renderAll();
+}
+function removeRepair(id){
+  if(!confirm("Удалить ремонт? Все привязанные к нему операции останутся, но связь будет снята.")) return;
+  state.operations = state.operations.map(op => op.repairId===id ? {...op, repairId:""} : op);
+  state.repairs = state.repairs.filter(r=>r.id!==id);
+  clearRepairForm(); renderAll();
+}
+function removeOperation(id){ if(confirm("Удалить операцию?")){ state.operations=state.operations.filter(o=>o.id!==id); clearOperationForm(); renderAll(); } }
+function removeClient(id){ if(confirm("Удалить клиента и связанные заявки?")){ const orderIds=state.orders.filter(o=>o.clientId===id).map(o=>o.id); state.operations=state.operations.map(op=>orderIds.includes(op.orderId)?{...op,orderId:""}:op); state.orders=state.orders.filter(o=>o.clientId!==id); state.clients=state.clients.filter(c=>c.id!==id); renderAll(); } }
+function removeEquipment(id){
+  if(!confirm("Удалить технику и связанные заявки/ремонты?")) return;
+  const orderIds=state.orders.filter(o=>o.equipmentId===id).map(o=>o.id);
+  const repairIds=state.repairs.filter(r=>r.equipmentId===id).map(r=>r.id);
+  state.operations=state.operations.map(op=>({
+    ...op,
+    orderId: orderIds.includes(op.orderId) ? "" : op.orderId,
+    repairId: repairIds.includes(op.repairId) ? "" : op.repairId
+  }));
+  state.orders=state.orders.filter(o=>o.equipmentId!==id);
+  state.repairs=state.repairs.filter(r=>r.equipmentId!==id);
+  state.equipment=state.equipment.filter(e=>e.id!==id);
+  renderAll();
+}
+function removeOperator(id){ if(confirm("Удалить оператора?")){ state.orders=state.orders.map(o=>o.operatorId===id?{...o,operatorId:""}:o); state.operators=state.operators.filter(o=>o.id!==id); renderAll(); } }
+window.removeOrder=removeOrder; window.removeRepair=removeRepair; window.removeOperation=removeOperation; window.removeClient=removeClient; window.removeEquipment=removeEquipment; window.removeOperator=removeOperator;
+
+function bindForms(){
+  $("clientForm").addEventListener("submit",e=>{
+    e.preventDefault(); state.clients.push({id:uid("cl"),name:$("clientName").value.trim(),phone:$("clientPhone").value.trim(),source:$("clientSource").value.trim(),type:$("clientType").value,notes:$("clientNotes").value.trim()}); e.target.reset(); renderAll();
+  });
+  $("equipmentForm").addEventListener("submit",e=>{
+    e.preventDefault(); state.equipment.push({id:uid("eq"),name:$("eqName").value.trim(),type:$("eqType").value.trim(),code:$("eqCode").value.trim(),defaultRate:Number($("eqRate").value||0),status:$("eqStatus").value}); e.target.reset(); $("eqStatus").value="free"; renderAll();
+  });
+  $("operatorForm").addEventListener("submit",e=>{
+    e.preventDefault(); state.operators.push({id:uid("op"),name:$("operatorName").value.trim(),phone:$("operatorPhone").value.trim(),skill:$("operatorSkill").value.trim(),rate:Number($("operatorRate").value||0)}); e.target.reset(); $("operatorRate").value=0; renderAll();
+  });
+  $("orderEquipment").addEventListener("change",e=>{
+    const eq=byId(state.equipment,e.target.value); if(eq && !$("orderRate").value) $("orderRate").value=eq.defaultRate||0;
+  });
+  $("orderForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const id=$("orderId").value.trim(), clientId=$("orderClient").value, equipmentId=$("orderEquipment").value, startDate=$("orderStart").value, endDate=$("orderEnd").value;
+    if(!clientId||!equipmentId||!startDate||!endDate) return alert("Заполни клиента, технику и даты.");
+    if(startDate > endDate) return alert("Дата окончания не может быть раньше даты начала.");
+    const payload={clientId,equipmentId,operatorId:$("orderOperator").value,startDate,endDate,location:$("orderLocation").value.trim(),rate:Number($("orderRate").value||0),status:$("orderStatus").value,notes:$("orderNotes").value.trim()};
+    if(id){ const idx=state.orders.findIndex(x=>x.id===id); if(idx>-1) state.orders[idx]={...state.orders[idx],...payload}; }
+    else state.orders.push({id:uid("ord"),...payload});
+    clearOrderForm(); renderAll();
+  });
+  $("orderCancelEditBtn").addEventListener("click", clearOrderForm);
+
+  $("repairForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const id=$("repairId").value.trim(), equipmentId=$("repairEquipment").value, startDate=$("repairStart").value, endDate=$("repairEnd").value;
+    if(!equipmentId || !startDate || !endDate) return alert("Заполни технику и даты ремонта.");
+    if(startDate > endDate) return alert("Дата окончания не может быть раньше даты начала.");
+    const payload={equipmentId,startDate,endDate,status:$("repairStatus").value,tasks:$("repairTasks").value.trim(),notes:$("repairNotes").value.trim()};
+    if(id){ const idx=state.repairs.findIndex(x=>x.id===id); if(idx>-1) state.repairs[idx]={...state.repairs[idx],...payload}; }
+    else state.repairs.push({id:uid("rep"),...payload});
+    clearRepairForm(); renderAll();
+  });
+  $("repairCancelEditBtn").addEventListener("click", clearRepairForm);
+
+  $("operationForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    const id=$("operationId").value.trim(), date=$("opDate").value, type=$("opType").value, category=$("opCategory").value, amount=Number($("opAmount").value||0), orderId=$("opOrder").value, repairId=$("opRepair").value, comment=$("opComment").value.trim();
+    if(!date || !amount) return alert("Заполни дату и сумму.");
+    const payload={date,type,category,amount,orderId: repairId ? "" : orderId, repairId, comment};
+    if(id){ const idx=state.operations.findIndex(x=>x.id===id); if(idx>-1) state.operations[idx]={...state.operations[idx],...payload}; }
+    else state.operations.push({id:uid("fin"),...payload});
+    clearOperationForm(); renderAll();
+  });
+  $("opCancelEditBtn").addEventListener("click", clearOperationForm);
+
+  $("opOrder").addEventListener("change", ()=>{ if($("opOrder").value) $("opRepair").value=""; });
+  $("opRepair").addEventListener("change", ()=>{ if($("opRepair").value) $("opOrder").value=""; });
+}
+function activateSection(sec){
+  document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));
+  $("section-"+sec).classList.add("active");
+  document.querySelectorAll(".nav-btn").forEach(x=>x.classList.toggle("active", x.dataset.sec===sec));
+  const map={
+    dashboard:["Дашборд","Контроль выручки, расходов, прибыли, ремонтов и загрузки"],
+    orders:["Заявки","Создание и редактирование заявок по аренде"],
+    repairs:["Ремонты","Планирование ремонта техники и резерв времени"],
+    calendar:["Календарь","Месячный и линейный режимы календаря"],
+    finance:["Финансы","Приходы, расходы и привязка к аренде или ремонту"],
+    equipment:["Техника","Парк техники, статусы и ремонты"],
+    clients:["Клиенты","Клиентская база и показатели"],
+    operators:["Операторы","Люди, смены и начисления"],
+    settings:["Настройки","Описание возможностей и сервисные функции"]
+  };
+  $("pageTitle").textContent=map[sec][0]; $("pageSubtitle").textContent=map[sec][1];
+}
+function bindNav(){ document.querySelectorAll(".nav-btn").forEach(b=>b.addEventListener("click",()=>activateSection(b.dataset.sec))); }
+function bindFilters(){
+  $("orderSearch").addEventListener("input", renderOrders);
+  $("orderFilterStatus").addEventListener("change", renderOrders);
+  $("repairSearch").addEventListener("input", renderRepairs);
+  $("repairFilterStatus").addEventListener("change", renderRepairs);
+  $("opSearch").addEventListener("input", renderFinance);
+  $("opFilterType").addEventListener("change", renderFinance);
+}
+function bindGeneral(){
+  $("prevMonth").addEventListener("click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()-1, 1); renderCalendar(); save(); });
+  $("nextMonth").addEventListener("click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()+1, 1); renderCalendar(); save(); });
+  $("currentMonth").addEventListener("click",()=>{ state.calendarDate = new Date(); renderCalendar(); save(); });
+  $("calendarMode").addEventListener("change",()=>{ state.calendarMode = $("calendarMode").value; renderCalendar(); save(); });
+  $("chartMode").addEventListener("change",()=>{ state.chartMode = $("chartMode").value; renderDashboardChart(); save(); });
+
+  $("resetBtn").addEventListener("click",()=>{ if(confirm("Удалить все данные CRM?")){ localStorage.removeItem(KEY); state.clients=[]; state.equipment=[]; state.operators=[]; state.orders=[]; state.operations=[]; state.repairs=[]; clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); } });
+  $("exportBtn").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode},null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="RBT_CRM_v41_export.json"; a.click(); URL.revokeObjectURL(a.href);
+  });
+  $("importFile").addEventListener("change",e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader(); r.onload=()=>{
+      try{
+        const data=JSON.parse(r.result);
+        state.clients=Array.isArray(data.clients)?data.clients:[];
+        state.equipment=Array.isArray(data.equipment)?data.equipment:[];
+        state.operators=Array.isArray(data.operators)?data.operators:[];
+        state.orders=Array.isArray(data.orders)?data.orders:[];
+        state.operations=Array.isArray(data.operations)?data.operations:[];
+        state.repairs=Array.isArray(data.repairs)?data.repairs:[];
+        state.chartMode=data.chartMode||"bars";
+        state.calendarMode=data.calendarMode||"month";
+        clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); alert("Импорт выполнен.");
+      }catch(err){ alert("Не удалось импортировать файл."); }
+    }; r.readAsText(file); e.target.value="";
+  });
+  $("seedBtn").addEventListener("click",seedDemo);
+}
+function seedDemo(){
+  if(state.clients.length || state.orders.length || state.operations.length || state.repairs.length){ if(!confirm("Демо-данные добавятся к текущим. Продолжить?")) return; }
+  const c1={id:uid("cl"),name:"ТОВ Будмонтаж",phone:"+380671112233",source:"Сайт",type:"Постоянный",notes:"Часто арендует экскаватор"};
+  const c2={id:uid("cl"),name:"ФОП Коваленко",phone:"+380501234567",source:"OLX",type:"Разовый",notes:"Объекты по Киевской области"};
+  const c3={id:uid("cl"),name:"RDS Construction",phone:"+380931234567",source:"Рекомендация",type:"Постоянный",notes:"Работают по безналу"};
+  state.clients.push(c1,c2,c3);
+  const e1={id:uid("eq"),name:"CAT 320",type:"Экскаватор",code:"EX-001",defaultRate:18000,status:"free"};
+  const e2={id:uid("eq"),name:"XCMG QY25K",type:"Автокран",code:"CR-002",defaultRate:26000,status:"free"};
+  const e3={id:uid("eq"),name:"MAN TGS",type:"Самосвал",code:"TR-003",defaultRate:15000,status:"free"};
+  state.equipment.push(e1,e2,e3);
+  const o1={id:uid("op"),name:"Иван Петренко",phone:"+380671234567",skill:"Экскаваторщик",rate:2500};
+  const o2={id:uid("op"),name:"Сергей Бойко",phone:"+380501998877",skill:"Крановщик",rate:3000};
+  state.operators.push(o1,o2);
+  const base=new Date(); const d=n=>{ const x=new Date(base); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+  const ord1={id:uid("ord"),clientId:c1.id,equipmentId:e1.id,operatorId:o1.id,startDate:d(-3),endDate:d(2),location:"Киевская обл.",rate:18000,status:"active",notes:"Котлован"};
+  const ord2={id:uid("ord"),clientId:c2.id,equipmentId:e2.id,operatorId:o2.id,startDate:d(4),endDate:d(6),location:"Бровары",rate:26000,status:"confirmed",notes:"Монтаж плит"};
+  const ord3={id:uid("ord"),clientId:c3.id,equipmentId:e3.id,operatorId:"",startDate:d(1),endDate:d(4),location:"Вишнёвое",rate:15000,status:"new",notes:"Вывоз грунта"};
+  const ord4={id:uid("ord"),clientId:c1.id,equipmentId:e1.id,operatorId:o1.id,startDate:d(1),endDate:d(5),location:"Ирпень",rate:18000,status:"confirmed",notes:"Конфликтный пример"};
+  state.orders.push(ord1,ord2,ord3,ord4);
+  const rep1={id:uid("rep"),equipmentId:e2.id,startDate:d(5),endDate:d(7),status:"planned",tasks:"Замена троса и проверка стрелы",notes:"Нужны запчасти"};
+  const rep2={id:uid("rep"),equipmentId:e3.id,startDate:d(-1),endDate:d(1),status:"active",tasks:"ТО и замена масла",notes:"Сервис по месту"};
+  state.repairs.push(rep1,rep2);
+  state.operations.push(
+    {id:uid("fin"),date:d(-2),type:"income",category:"Оплата клиента",amount:50000,orderId:ord1.id,repairId:"",comment:"Аванс"},
+    {id:uid("fin"),date:d(-1),type:"expense",category:"Топливо",amount:7000,orderId:ord1.id,repairId:"",comment:"Заправка"},
+    {id:uid("fin"),date:d(-1),type:"expense",category:"Зарплата оператора",amount:10000,orderId:ord1.id,repairId:"",comment:"Частичная выплата"},
+    {id:uid("fin"),date:d(0),type:"income",category:"Оплата клиента",amount:30000,orderId:ord2.id,repairId:"",comment:"Предоплата"},
+    {id:uid("fin"),date:d(1),type:"expense",category:"Логистика",amount:6000,orderId:ord2.id,repairId:"",comment:"Доставка крана"},
+    {id:uid("fin"),date:d(5),type:"expense",category:"Запчасти",amount:12000,orderId:"",repairId:rep1.id,comment:"Трос и расходники"},
+    {id:uid("fin"),date:d(0),type:"expense",category:"Ремонт",amount:4500,orderId:"",repairId:rep2.id,comment:"Сервисные работы"}
+  );
+  renderAll();
+}
+function init(){
+  load(); bindNav(); bindForms(); bindFilters(); bindGeneral();
+  $("chartMode").value = state.chartMode; $("calendarMode").value = state.calendarMode;
+  clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll();
+}
+init();
+</script>
+</body>
+</html>
