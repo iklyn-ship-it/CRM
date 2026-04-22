@@ -391,7 +391,43 @@
     </section>
 
     <section class="section" id="section-settings">
-      <div class="card panel">
+      <div class="row">
+        <div class="col-6">
+          <div class="card panel">
+            <h3 style="margin-top:0">Google Forms</h3>
+            <div class="small" style="margin-bottom:12px">Подключи Google Apps Script Web App, и новые ответы формы будут загружаться как заявки со статусом "Новая".</div>
+            <form id="integrationForm">
+              <div class="field">
+                <label>URL Web App</label>
+                <input id="integrationUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+              </div>
+              <div class="field">
+                <label style="display:flex;align-items:center;gap:10px;color:var(--txt)">
+                  <input id="integrationAutoSync" type="checkbox" style="width:auto;padding:0" />
+                  Автозагрузка при открытии CRM
+                </label>
+              </div>
+              <div class="actions">
+                <button type="submit" class="btn primary">Сохранить интеграцию</button>
+                <button type="button" class="btn info" id="syncGoogleFormsBtn">Синхронизировать сейчас</button>
+              </div>
+            </form>
+            <div id="integrationStatus" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card panel">
+            <h3 style="margin-top:0">Поля формы</h3>
+            <div class="list">
+              <div class="item"><div><strong>Обязательные</strong><div class="small">clientName, clientPhone, startDate, endDate</div></div></div>
+              <div class="item"><div><strong>Желательные</strong><div class="small">equipmentCode или equipmentName, location, rate, notes</div></div></div>
+              <div class="item"><div><strong>Дополнительно</strong><div class="small">clientSource, operatorName, clientNotes, sourceLabel</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card panel" style="margin-top:16px">
         <h3 style="margin-top:0">Что обновлено в v4.1</h3>
         <div class="list">
           <div class="item"><div><strong>Графики дашборда стали читабельнее</strong><div class="small">Добавлены 4 режима просмотра аналитики по технике.</div></div></div>

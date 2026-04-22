@@ -1,11 +1,12 @@
 const KEY = "rbt_crm_v41_all_in_one";
 const state = {
   clients: [], equipment: [], operators: [], orders: [], operations: [], repairs: [],
-  calendarDate: new Date(), chartMode: "bars", calendarMode: "month"
+  calendarDate: new Date(), chartMode: "bars", calendarMode: "month",
+  integrations: { googleFormsUrl: "", autoSync: false, importedResponseIds: [], lastSyncAt: "", lastSyncStatus: "" }
 };
 function $(id){ return document.getElementById(id); }
 function uid(p){ return p + "_" + Math.random().toString(36).slice(2,9); }
-function save(){ localStorage.setItem(KEY, JSON.stringify({clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode})); }
+function save(){ localStorage.setItem(KEY, JSON.stringify({clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode,integrations:state.integrations})); }
 function load(){
   try{
     const raw = JSON.parse(localStorage.getItem(KEY));
@@ -13,6 +14,13 @@ function load(){
       state.clients=raw.clients||[]; state.equipment=raw.equipment||[]; state.operators=raw.operators||[];
       state.orders=raw.orders||[]; state.operations=raw.operations||[]; state.repairs=raw.repairs||[];
       state.chartMode=raw.chartMode||"bars"; state.calendarMode=raw.calendarMode||"month";
+      state.integrations={
+        googleFormsUrl: raw.integrations?.googleFormsUrl || "",
+        autoSync: Boolean(raw.integrations?.autoSync),
+        importedResponseIds: Array.isArray(raw.integrations?.importedResponseIds) ? raw.integrations.importedResponseIds : [],
+        lastSyncAt: raw.integrations?.lastSyncAt || "",
+        lastSyncStatus: raw.integrations?.lastSyncStatus || ""
+      };
     }
   }catch(e){}
 }
@@ -34,6 +42,7 @@ function typeBadge(t){ return t==="income" ? badge("income","Приход") : ba
 function eqBadge(s){ return {free:badge("free","Свободна"),busy:badge("busy","В работе"),repair:badge("repairstatus","Ремонт")}[s] || badge("free","Свободна"); }
 function overlap(a1,a2,b1,b2){ return new Date(a1)<=new Date(b2) && new Date(b1)<=new Date(a2); }
 function byId(arr,id){ return arr.find(x=>x.id===id); }
+function normalizeText(v){ return String(v || "").trim().toLowerCase(); }
 function orderPlan(order){ return daysInclusive(order.startDate, order.endDate) * Number(order.rate||0); }
 function orderOps(orderId){ return state.operations.filter(o => o.orderId === orderId); }
 function orderIncome(orderId){ return orderOps(orderId).filter(o=>o.type==="income").reduce((s,o)=>s+Number(o.amount||0),0); }
@@ -432,6 +441,125 @@ function renderOperators(){
   }).join("") : `<tr><td colspan="6"><div class="empty">Нет операторов.</div></td></tr>`;
 }
 function renderAll(){ refreshSelects(); renderDashboard(); renderOrders(); renderRepairs(); renderCalendar(); renderFinance(); renderEquipment(); renderClients(); renderOperators(); save(); }
+function renderIntegrationStatus(kind, text){
+  const box = $("integrationStatus");
+  if(!box) return;
+  box.innerHTML = text ? `<div class="${kind === "error" ? "alert" : "ok"}">${esc(text)}</div>` : "";
+}
+function refreshIntegrationForm(){
+  if(!$("integrationUrl")) return;
+  $("integrationUrl").value = state.integrations.googleFormsUrl || "";
+  $("integrationAutoSync").checked = Boolean(state.integrations.autoSync);
+  const details = state.integrations.lastSyncAt ? `${state.integrations.lastSyncStatus} Последняя синхронизация: ${new Date(state.integrations.lastSyncAt).toLocaleString("uk-UA")}.` : state.integrations.lastSyncStatus;
+  if(details){
+    renderIntegrationStatus(state.integrations.lastSyncStatus.startsWith("Ошибка") ? "error" : "ok", details);
+  } else {
+    renderIntegrationStatus("ok", "");
+  }
+}
+function findEquipmentId(record){
+  const code = normalizeText(record.equipmentCode);
+  const name = normalizeText(record.equipmentName);
+  const eq = state.equipment.find(item => (code && normalizeText(item.code) === code) || (name && normalizeText(item.name) === name));
+  return eq?.id || "";
+}
+function findOperatorId(record){
+  const name = normalizeText(record.operatorName);
+  return name ? (state.operators.find(item => normalizeText(item.name) === name)?.id || "") : "";
+}
+function ensureClient(record){
+  const phone = normalizeText(record.clientPhone);
+  const name = String(record.clientName || "").trim();
+  let client = state.clients.find(item => (phone && normalizeText(item.phone) === phone) || (name && normalizeText(item.name) === normalizeText(name)));
+  if(client) return client.id;
+  client = {
+    id: uid("cl"),
+    name: name || "Новый клиент",
+    phone: String(record.clientPhone || "").trim(),
+    source: String(record.clientSource || record.sourceLabel || "Google Form").trim(),
+    type: "Разовый",
+    notes: String(record.clientNotes || "").trim()
+  };
+  state.clients.push(client);
+  return client.id;
+}
+function buildImportedOrder(record){
+  const equipmentId = findEquipmentId(record);
+  const notes = [
+    String(record.notes || "").trim(),
+    !equipmentId && (record.equipmentCode || record.equipmentName) ? `Техника из формы: ${record.equipmentCode || record.equipmentName}` : "",
+    record.responseId ? `Google Form ID: ${record.responseId}` : "Google Form import"
+  ].filter(Boolean).join("\n");
+  return {
+    id: uid("ord"),
+    clientId: ensureClient(record),
+    equipmentId,
+    operatorId: findOperatorId(record),
+    startDate: String(record.startDate || "").slice(0,10),
+    endDate: String(record.endDate || "").slice(0,10),
+    location: String(record.location || "").trim(),
+    rate: Number(record.rate || 0),
+    status: "new",
+    notes
+  };
+}
+function importGoogleFormResponses(records){
+  let imported = 0;
+  let skipped = 0;
+  records.forEach(record => {
+    const responseId = String(record.responseId || "").trim();
+    const startDate = String(record.startDate || "").slice(0,10);
+    const endDate = String(record.endDate || "").slice(0,10);
+    if((responseId && state.integrations.importedResponseIds.includes(responseId)) || !record.clientName || !startDate || !endDate){
+      skipped += 1;
+      return;
+    }
+    state.orders.push(buildImportedOrder(record));
+    if(responseId) state.integrations.importedResponseIds.push(responseId);
+    imported += 1;
+  });
+  state.integrations.lastSyncAt = new Date().toISOString();
+  state.integrations.lastSyncStatus = imported ? `Импортировано заявок: ${imported}. Пропущено: ${skipped}.` : `Новых заявок не найдено. Пропущено: ${skipped}.`;
+  renderAll();
+  refreshIntegrationForm();
+}
+let googleFormsSyncInFlight = false;
+function syncGoogleForms(manual){
+  const url = (state.integrations.googleFormsUrl || "").trim();
+  if(!url){
+    renderIntegrationStatus("error", "Сначала укажи URL Google Apps Script Web App.");
+    return;
+  }
+  if(googleFormsSyncInFlight) return;
+  googleFormsSyncInFlight = true;
+  renderIntegrationStatus("ok", "Идёт загрузка заявок из Google Forms...");
+  const callbackName = `crmGoogleFormsCallback_${Date.now()}`;
+  window[callbackName] = payload => {
+    try{
+      if(payload?.error) throw new Error(payload.error);
+      importGoogleFormResponses(Array.isArray(payload?.items) ? payload.items : []);
+    }catch(err){
+      state.integrations.lastSyncAt = new Date().toISOString();
+      state.integrations.lastSyncStatus = `Ошибка синхронизации: ${err.message}`;
+      refreshIntegrationForm();
+    }finally{
+      googleFormsSyncInFlight = false;
+      delete window[callbackName];
+    }
+  };
+  const script = document.createElement("script");
+  const separator = url.includes("?") ? "&" : "?";
+  script.src = `${url}${separator}callback=${callbackName}&t=${Date.now()}${manual ? "&manual=1" : ""}`;
+  script.async = true;
+  script.onerror = () => {
+    googleFormsSyncInFlight = false;
+    delete window[callbackName];
+    state.integrations.lastSyncAt = new Date().toISOString();
+    state.integrations.lastSyncStatus = "Ошибка синхронизации: не удалось загрузить данные из Google Apps Script.";
+    refreshIntegrationForm();
+  };
+  document.body.appendChild(script);
+}
 
 function clearEquipmentForm(){
   $("equipmentId").value=""; $("equipmentForm").reset(); $("eqStatus").value="free";
@@ -647,11 +775,27 @@ function bindGeneral(){
         state.repairs=Array.isArray(data.repairs)?data.repairs:[];
         state.chartMode=data.chartMode||"bars";
         state.calendarMode=data.calendarMode||"month";
+        state.integrations={
+          googleFormsUrl: data.integrations?.googleFormsUrl || "",
+          autoSync: Boolean(data.integrations?.autoSync),
+          importedResponseIds: Array.isArray(data.integrations?.importedResponseIds) ? data.integrations.importedResponseIds : [],
+          lastSyncAt: data.integrations?.lastSyncAt || "",
+          lastSyncStatus: data.integrations?.lastSyncStatus || ""
+        };
         clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); alert("Импорт выполнен.");
       }catch(err){ alert("Не удалось импортировать файл."); }
     }; r.readAsText(file); e.target.value="";
   });
   $("seedBtn").addEventListener("click",seedDemo);
+  $("integrationForm").addEventListener("submit",e=>{
+    e.preventDefault();
+    state.integrations.googleFormsUrl = $("integrationUrl").value.trim();
+    state.integrations.autoSync = $("integrationAutoSync").checked;
+    state.integrations.lastSyncStatus = "Настройки интеграции сохранены.";
+    save();
+    refreshIntegrationForm();
+  });
+  $("syncGoogleFormsBtn").addEventListener("click",()=>syncGoogleForms(true));
 }
 function seedDemo(){
   if(state.clients.length || state.orders.length || state.operations.length || state.repairs.length){ if(!confirm("Демо-данные добавятся к текущим. Продолжить?")) return; }
@@ -689,6 +833,7 @@ function seedDemo(){
 function init(){
   load(); bindNav(); bindForms(); bindFilters(); bindGeneral();
   $("chartMode").value = state.chartMode; $("calendarMode").value = state.calendarMode;
-  clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll();
+  clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); refreshIntegrationForm();
+  if(state.integrations.autoSync && state.integrations.googleFormsUrl) syncGoogleForms(false);
 }
 init();
