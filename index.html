@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBT Group — Mini CRM v4.1</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">RBT</div>
+      <div><h1>CRM v4.1 аренды</h1><p>Графики лучше • 2 вида календаря</p></div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" data-sec="dashboard">Дашборд</button>
+      <button class="nav-btn" data-sec="orders">Заявки</button>
+      <button class="nav-btn" data-sec="repairs">Ремонты</button>
+      <button class="nav-btn" data-sec="calendar">Календарь</button>
+      <button class="nav-btn" data-sec="finance">Финансы</button>
+      <button class="nav-btn" data-sec="equipment">Техника</button>
+      <button class="nav-btn" data-sec="clients">Клиенты</button>
+      <button class="nav-btn" data-sec="operators">Операторы</button>
+      <button class="nav-btn" data-sec="settings">Настройки</button>
+    </div>
+    <div class="sidebar-foot">
+      В этой версии улучшены графики дашборда и добавлен второй режим календаря: список техники слева и горизонтальные резервы по дням справа.
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <div class="title">
+        <h2 id="pageTitle">Дашборд</h2>
+        <p id="pageSubtitle">Контроль выручки, расходов, прибыли, ремонтов и загрузки</p>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="seedBtn">Заполнить демо</button>
+        <button class="btn info" id="exportBtn">Экспорт JSON</button>
+        <label class="btn" for="importFile">Импорт JSON</label>
+        <input id="importFile" class="hidden" type="file" accept=".json" />
+        <button class="btn warn" id="resetBtn">Сбросить всё</button>
+      </div>
+    </div>
+
+    <section class="section active" id="section-dashboard">
+      <div class="grid metrics">
+        <div class="card metric"><div class="label">Выручка</div><div class="val" id="mRevenue">₴0</div><div class="sub">по доходным операциям</div></div>
+        <div class="card metric"><div class="label">Расходы</div><div class="val" id="mExpense">₴0</div><div class="sub">включая ремонты и содержание</div></div>
+        <div class="card metric"><div class="label">Чистая прибыль</div><div class="val" id="mProfit">₴0</div><div class="sub">доходы минус расходы</div></div>
+        <div class="card metric"><div class="label">Активные заявки</div><div class="val" id="mOrders">0</div><div class="sub">новые, подтверждённые, в работе</div></div>
+        <div class="card metric"><div class="label">Плановые ремонты</div><div class="val" id="mRepairs">0</div><div class="sub">активные и запланированные</div></div>
+        <div class="card metric"><div class="label">Загрузка техники</div><div class="val" id="mUtil">0%</div><div class="sub">средняя по текущему месяцу</div></div>
+      </div>
+
+      <div class="split">
+        <div class="card panel">
+          <div class="chart-controls">
+            <h3 style="margin:0;flex:1">Аналитика по технике</h3>
+            <select id="chartMode">
+              <option value="bars">Столбцы: прибыль</option>
+              <option value="stacked">Столбцы: доход/расход/прибыль</option>
+              <option value="horizontal">Горизонтальные полосы</option>
+              <option value="donut">Кольцевая диаграмма прибыли</option>
+            </select>
+          </div>
+          <div id="dashboardChart" class="chart-area"></div>
+        </div>
+        <div class="card panel">
+          <h3 style="margin-top:0">Сигналы руководителя</h3>
+          <div id="alerts"></div>
+          <div class="list" id="topList"></div>
+        </div>
+      </div>
+
+      <div class="row" style="margin-top:16px">
+        <div class="col-7">
+          <div class="card panel">
+            <h3 style="margin-top:0">Ближайшие события</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Период</th><th>Тип</th><th>Объект</th><th>Техника</th><th>Статус</th><th>Финрезультат</th></tr></thead>
+                <tbody id="upcomingBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-5">
+          <div class="card panel">
+            <h3 style="margin-top:0">Финансовая сводка</h3>
+            <div class="list" id="dashFinanceList"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-orders">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="orderFormTitle" style="margin-top:0">Новая заявка</h3>
+            <form id="orderForm">
+              <input type="hidden" id="orderId" />
+              <div class="field"><label>Клиент</label><select id="orderClient"></select></div>
+              <div class="field"><label>Техника</label><select id="orderEquipment"></select></div>
+              <div class="field"><label>Оператор</label><select id="orderOperator"></select></div>
+              <div class="field"><label>Дата начала</label><input type="date" id="orderStart" required /></div>
+              <div class="field"><label>Дата окончания</label><input type="date" id="orderEnd" required /></div>
+              <div class="field"><label>Локация</label><input type="text" id="orderLocation" placeholder="Объект / город" /></div>
+              <div class="field"><label>Тариф, ₴/день</label><input type="number" id="orderRate" min="0" /></div>
+              <div class="field"><label>Статус</label>
+                <select id="orderStatus">
+                  <option value="new">Новая</option>
+                  <option value="confirmed">Подтверждена</option>
+                  <option value="active">В работе</option>
+                  <option value="completed">Завершена</option>
+                  <option value="cancelled">Отменена</option>
+                </select>
+              </div>
+              <div class="field"><label>Комментарий</label><textarea id="orderNotes"></textarea></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="orderSaveBtn">Сохранить заявку</button>
+                <button type="button" class="btn ghost hidden" id="orderCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-8">
+          <div class="card panel">
+            <div class="toolbar">
+              <input id="orderSearch" type="text" placeholder="Поиск: клиент, техника, объект..." />
+              <select id="orderFilterStatus">
+                <option value="">Все статусы</option>
+                <option value="new">Новые</option>
+                <option value="confirmed">Подтверждённые</option>
+                <option value="active">В работе</option>
+                <option value="completed">Завершённые</option>
+                <option value="cancelled">Отменённые</option>
+              </select>
+            </div>
+            <div id="conflictBox"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Период</th><th>Клиент</th><th>Техника</th><th>План</th><th>Доход</th><th>Расход</th><th>Прибыль</th><th>Статус</th><th></th></tr></thead>
+                <tbody id="ordersBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-repairs">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="repairFormTitle" style="margin-top:0">Запланировать ремонт</h3>
+            <form id="repairForm">
+              <input type="hidden" id="repairId" />
+              <div class="field"><label>Техника</label><select id="repairEquipment"></select></div>
+              <div class="field"><label>Дата начала</label><input type="date" id="repairStart" required /></div>
+              <div class="field"><label>Дата окончания</label><input type="date" id="repairEnd" required /></div>
+              <div class="field"><label>Статус ремонта</label>
+                <select id="repairStatus">
+                  <option value="planned">Запланирован</option>
+                  <option value="active">В ремонте</option>
+                  <option value="completed">Завершён</option>
+                  <option value="cancelled">Отменён</option>
+                </select>
+              </div>
+              <div class="field"><label>Что необходимо сделать</label><textarea id="repairTasks"></textarea></div>
+              <div class="field"><label>Комментарий</label><textarea id="repairNotes"></textarea></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="repairSaveBtn">Сохранить ремонт</button>
+                <button type="button" class="btn ghost hidden" id="repairCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="col-8">
+          <div class="card panel">
+            <div class="toolbar">
+              <input id="repairSearch" type="text" placeholder="Поиск: техника, работы, комментарий..." />
+              <select id="repairFilterStatus">
+                <option value="">Все статусы</option>
+                <option value="planned">Запланирован</option>
+                <option value="active">В ремонте</option>
+                <option value="completed">Завершён</option>
+                <option value="cancelled">Отменён</option>
+              </select>
+            </div>
+            <div id="repairConflictBox"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Период</th><th>Техника</th><th>Работы</th><th>Комментарий</th><th>Статус</th><th></th></tr></thead>
+                <tbody id="repairsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-calendar">
+      <div class="card panel">
+        <div class="calendar-controls">
+          <div><h3 style="margin:0 0 6px">Календарь занятости техники</h3><div class="small">Выбери удобный режим просмотра.</div></div>
+          <div class="actions">
+            <select id="calendarMode">
+              <option value="month">1) Месячный календарь</option>
+              <option value="timeline">2) Техника слева + полосы резерва</option>
+            </select>
+            <button class="btn" id="prevMonth">← Месяц назад</button>
+            <div class="chip" id="monthLabel"></div>
+            <button class="btn" id="nextMonth">Месяц вперёд →</button>
+            <button class="btn ghost" id="currentMonth">Текущий месяц</button>
+          </div>
+        </div>
+        <div class="legend">
+          <div class="chip"><span class="dot" style="background:rgba(56,189,248,.8)"></span> аренда</div>
+          <div class="chip"><span class="dot" style="background:rgba(249,115,22,.85)"></span> ремонт</div>
+          <div class="chip"><span class="dot" style="background:rgba(239,68,68,.85)"></span> конфликт</div>
+        </div>
+        <div id="calendarWrap"></div>
+      </div>
+    </section>
+
+    <section class="section" id="section-finance">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="opFormTitle" style="margin-top:0">Новая финансовая операция</h3>
+            <form id="operationForm">
+              <input type="hidden" id="operationId" />
+              <div class="field"><label>Дата</label><input type="date" id="opDate" required /></div>
+              <div class="field"><label>Тип</label>
+                <select id="opType">
+                  <option value="income">Приход</option>
+                  <option value="expense">Расход</option>
+                </select>
+              </div>
+              <div class="field"><label>Категория</label>
+                <select id="opCategory">
+                  <option value="Оплата клиента">Оплата клиента</option>
+                  <option value="Топливо">Топливо</option>
+                  <option value="Зарплата оператора">Зарплата оператора</option>
+                  <option value="Ремонт">Ремонт</option>
+                  <option value="Логистика">Логистика</option>
+                  <option value="Запчасти">Запчасти</option>
+                  <option value="Прочее">Прочее</option>
+                </select>
+              </div>
+              <div class="field"><label>Сумма, ₴</label><input type="number" id="opAmount" min="0" required /></div>
+              <div class="field"><label>Привязать к заявке аренды</label><select id="opOrder"></select></div>
+              <div class="field"><label>Привязать к ремонту</label><select id="opRepair"></select></div>
+              <div class="field"><label>Комментарий</label><textarea id="opComment"></textarea></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="opSaveBtn">Сохранить операцию</button>
+                <button type="button" class="btn ghost hidden" id="opCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <div class="toolbar">
+              <input id="opSearch" type="text" placeholder="Поиск: категория, комментарий..." />
+              <select id="opFilterType">
+                <option value="">Все типы</option>
+                <option value="income">Приход</option>
+                <option value="expense">Расход</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Привязка</th><th>Комментарий</th><th></th></tr></thead>
+                <tbody id="operationsBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card panel" style="margin-top:16px">
+            <h3 style="margin-top:0">Финансы по аренде</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Заявка</th><th>Клиент</th><th>План</th><th>Доход</th><th>Расход</th><th>Прибыль</th><th>Остаток до оплаты</th></tr></thead>
+                <tbody id="financeByOrderBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card panel" style="margin-top:16px">
+            <h3 style="margin-top:0">Финансы по ремонтам</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Ремонт</th><th>Техника</th><th>Расход</th><th>Комментарий</th><th>Статус</th></tr></thead>
+                <tbody id="financeByRepairBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-equipment">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="equipmentFormTitle" style="margin-top:0">Добавить технику</h3>
+            <form id="equipmentForm">
+              <input type="hidden" id="equipmentId" />
+              <div class="field"><label>Название</label><input id="eqName" type="text" required /></div>
+              <div class="field"><label>Тип</label><input id="eqType" type="text" /></div>
+              <div class="field"><label>Госномер / ID</label><input id="eqCode" type="text" /></div>
+              <div class="field"><label>Тариф по умолчанию, ₴/день</label><input id="eqRate" type="number" min="0" /></div>
+              <div class="field"><label>Базовый статус</label>
+                <select id="eqStatus"><option value="free">Свободна</option><option value="busy">В работе</option><option value="repair">Ремонт</option></select>
+              </div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="equipmentSaveBtn">Сохранить технику</button>
+                <button type="button" class="btn ghost hidden" id="equipmentCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <h3 style="margin-top:0">Парк техники</h3>
+            <div class="table-wrap"><table><thead><tr><th>Название</th><th>Тип</th><th>ID</th><th>Тариф</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead><tbody id="equipmentBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-clients">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="clientFormTitle" style="margin-top:0">Добавить клиента</h3>
+            <form id="clientForm">
+              <input type="hidden" id="clientId" />
+              <div class="field"><label>Имя / Компания</label><input id="clientName" type="text" required /></div>
+              <div class="field"><label>Телефон</label><input id="clientPhone" type="text" /></div>
+              <div class="field"><label>Источник</label><input id="clientSource" type="text" /></div>
+              <div class="field"><label>Тип клиента</label><select id="clientType"><option>Разовый</option><option>Постоянный</option></select></div>
+              <div class="field"><label>Комментарий</label><textarea id="clientNotes"></textarea></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="clientSaveBtn">Сохранить клиента</button>
+                <button type="button" class="btn ghost hidden" id="clientCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <h3 style="margin-top:0">Клиенты</h3>
+            <div class="table-wrap"><table><thead><tr><th>Клиент</th><th>Телефон</th><th>Источник</th><th>Заказы</th><th>Выручка</th><th>Прибыль</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-operators">
+      <div class="row">
+        <div class="col-4">
+          <div class="card panel">
+            <h3 id="operatorFormTitle" style="margin-top:0">Добавить оператора</h3>
+            <form id="operatorForm">
+              <input type="hidden" id="operatorId" />
+              <div class="field"><label>ФИО</label><input id="operatorName" type="text" required /></div>
+              <div class="field"><label>Телефон</label><input id="operatorPhone" type="text" /></div>
+              <div class="field"><label>Специализация</label><input id="operatorSkill" type="text" /></div>
+              <div class="field"><label>Ставка, ₴/день</label><input id="operatorRate" type="number" min="0" value="0" /></div>
+              <div class="actions">
+                <button type="submit" class="btn primary" id="operatorSaveBtn">Сохранить оператора</button>
+                <button type="button" class="btn ghost hidden" id="operatorCancelEditBtn">Отмена редактирования</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <div class="col-8">
+          <div class="card panel">
+            <h3 style="margin-top:0">Операторы</h3>
+            <div class="table-wrap"><table><thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Смены</th><th>Начислено</th><th></th></tr></thead><tbody id="operatorsBody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-settings">
+      <div class="card panel">
+        <h3 style="margin-top:0">Что обновлено в v4.1</h3>
+        <div class="list">
+          <div class="item"><div><strong>Графики дашборда стали читабельнее</strong><div class="small">Добавлены 4 режима просмотра аналитики по технике.</div></div></div>
+          <div class="item"><div><strong>2 режима календаря</strong><div class="small">1) обычный месячный, 2) техника слева и горизонтальные полосы резерва справа.</div></div></div>
+          <div class="item"><div><strong>Полосы резерва по дням</strong><div class="small">В линейном режиме видно бронь техники по всей длине периода.</div></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="./app.js"></script>
+</body>
+</html>
