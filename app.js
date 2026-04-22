@@ -954,7 +954,7 @@ function bindGeneral(){
     }
     renderAuthStatus("ok", "Письмо для сброса пароля отправлено.");
   });
-  on("authLogoutBtn","click", async () => {
+  const handleLogout = async () => {
     if(!supabaseClient) return;
     const { error } = await supabaseClient.auth.signOut();
     if(error){
@@ -962,7 +962,9 @@ function bindGeneral(){
       return;
     }
     renderAuthStatus("ok", "Выход выполнен.");
-  });
+  };
+  on("authLogoutBtn","click", handleLogout);
+  on("authLogoutTopBtn","click", handleLogout);
   on("integrationForm","submit",e=>{
     e.preventDefault();
     state.integrations.googleFormsUrl = $("integrationUrl").value.trim();
