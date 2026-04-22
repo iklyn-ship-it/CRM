@@ -519,9 +519,7 @@ function setAppAccess(isAuthorized){
     const isAuth = btn.dataset.sec === "auth";
     btn.disabled = !isAuthorized && !isAuth;
   });
-  ["seedBtn","exportBtn","importFile","resetBtn"].forEach(id => {
-    if($(id)) $(id).disabled = !isAuthorized;
-  });
+  if($("topActions")) $("topActions").style.display = isAuthorized ? "" : "none";
   if(!isAuthorized){
     activateSection("auth");
     if($("pageTitle")) $("pageTitle").textContent = "Авторизация";
@@ -865,6 +863,7 @@ function activateSection(sec){
     equipment:["Техника","Парк техники, статусы и ремонты"],
     clients:["Клиенты","Клиентская база и показатели"],
     operators:["Операторы","Люди, смены и начисления"],
+    integrations:["Google Forms","Подключение и синхронизация заявок из Google Forms"],
     settings:["Настройки","Описание возможностей и сервисные функции"]
   };
   const page = map[sec] || map.dashboard;

@@ -23,6 +23,7 @@
       <button class="nav-btn" data-sec="equipment">Техника</button>
       <button class="nav-btn" data-sec="clients">Клиенты</button>
       <button class="nav-btn" data-sec="operators">Операторы</button>
+      <button class="nav-btn" data-sec="integrations">Google Forms</button>
       <button class="nav-btn" data-sec="settings">Настройки</button>
     </div>
     <div class="sidebar-foot">
@@ -36,7 +37,7 @@
         <h2 id="pageTitle">Дашборд</h2>
         <p id="pageSubtitle">Контроль выручки, расходов, прибыли, ремонтов и загрузки</p>
       </div>
-      <div class="actions">
+      <div class="actions" id="topActions">
         <button class="btn ghost" id="seedBtn">Заполнить демо</button>
         <button class="btn info" id="exportBtn">Экспорт JSON</button>
         <label class="btn" for="importFile">Импорт JSON</label>
@@ -420,6 +421,20 @@
 
     <section class="section" id="section-settings">
       <div class="row">
+      </div>
+
+      <div class="card panel" style="margin-top:16px">
+        <h3 style="margin-top:0">Что обновлено в v4.1</h3>
+        <div class="list">
+          <div class="item"><div><strong>Графики дашборда стали читабельнее</strong><div class="small">Добавлены 4 режима просмотра аналитики по технике.</div></div></div>
+          <div class="item"><div><strong>2 режима календаря</strong><div class="small">1) обычный месячный, 2) техника слева и горизонтальные полосы резерва справа.</div></div></div>
+          <div class="item"><div><strong>Полосы резерва по дням</strong><div class="small">В линейном режиме видно бронь техники по всей длине периода.</div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="section-integrations">
+      <div class="row">
         <div class="col-6">
           <div class="card panel">
             <h3 style="margin-top:0">Google Forms</h3>
@@ -452,15 +467,6 @@
               <div class="item"><div><strong>Дополнительно</strong><div class="small">clientSource, operatorName, clientNotes, sourceLabel</div></div></div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="card panel" style="margin-top:16px">
-        <h3 style="margin-top:0">Что обновлено в v4.1</h3>
-        <div class="list">
-          <div class="item"><div><strong>Графики дашборда стали читабельнее</strong><div class="small">Добавлены 4 режима просмотра аналитики по технике.</div></div></div>
-          <div class="item"><div><strong>2 режима календаря</strong><div class="small">1) обычный месячный, 2) техника слева и горизонтальные полосы резерва справа.</div></div></div>
-          <div class="item"><div><strong>Полосы резерва по дням</strong><div class="small">В линейном режиме видно бронь техники по всей длине периода.</div></div></div>
         </div>
       </div>
     </section>
