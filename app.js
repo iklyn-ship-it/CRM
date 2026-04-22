@@ -1,4 +1,3 @@
-const KEY = "rbt_crm_v41_all_in_one";
 const SUPABASE_URL = "https://alxckrhyqtmejelhzbej.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_sVWiQsMYQb349INaIMh_Rw_8CwbOac5";
 const CRM_STATE_TABLE = "crm_state";
@@ -31,6 +30,16 @@ function applyState(raw){
     lastSyncStatus: raw.integrations?.lastSyncStatus || ""
   };
 }
+function resetState(){
+  state.clients=[]; state.equipment=[]; state.operators=[]; state.orders=[]; state.operations=[]; state.repairs=[];
+  state.chartMode="bars"; state.calendarMode="month";
+  state.integrations={ googleFormsUrl: "", autoSync: false, importedResponseIds: [], lastSyncAt: "", lastSyncStatus: "" };
+}
+function hasMeaningfulCloudState(payload){
+  if(!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  return ["clients","equipment","operators","orders","operations","repairs","integrations","chartMode","calendarMode"]
+    .some(key => Object.prototype.hasOwnProperty.call(payload, key));
+}
 function scheduleCloudSave(){
   if(!authUserId || !supabaseClient) return;
   if(saveTimer) clearTimeout(saveTimer);
@@ -49,6 +58,7 @@ async function saveCloudState(){
 }
 async function loadCloudState(){
   if(!authUserId || !supabaseClient) return;
+  const localSnapshot = serializeState();
   const { data, error } = await supabaseClient
     .from(CRM_STATE_TABLE)
     .select("data")
@@ -58,23 +68,20 @@ async function loadCloudState(){
     renderAuthStatus("error", `Ошибка загрузки из облака: ${error.message}`);
     return;
   }
-  if(data?.data){
+  if(data?.data && hasMeaningfulCloudState(data.data)){
     applyState(data.data);
     renderAll();
     refreshIntegrationForm();
-  } else {
-    await saveCloudState();
+    return;
   }
+  applyState(localSnapshot);
+  renderAll();
+  refreshIntegrationForm();
+  await saveCloudState();
 }
 function save(){
-  localStorage.setItem(KEY, JSON.stringify(serializeState()));
+  if(!authUserId) return;
   scheduleCloudSave();
-}
-function load(){
-  try{
-    const raw = JSON.parse(localStorage.getItem(KEY));
-    if(raw) applyState(raw);
-  }catch(e){}
 }
 function esc(v){
   return String(v ?? "")
@@ -503,6 +510,25 @@ function renderAuthStatus(kind, text){
   if(!box) return;
   box.innerHTML = text ? `<div class="${kind === "error" ? "alert" : "ok"}">${esc(text)}</div>` : "";
 }
+function setAppAccess(isAuthorized){
+  document.querySelectorAll(".section").forEach(section => {
+    if(section.id !== "section-settings"){
+      section.style.display = isAuthorized ? "" : "none";
+    }
+  });
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    const isSettings = btn.dataset.sec === "settings";
+    btn.disabled = !isAuthorized && !isSettings;
+  });
+  ["seedBtn","exportBtn","importFile","resetBtn"].forEach(id => {
+    if($(id)) $(id).disabled = !isAuthorized;
+  });
+  if(!isAuthorized){
+    activateSection("settings");
+    if($("pageTitle")) $("pageTitle").textContent = "Авторизация";
+    if($("pageSubtitle")) $("pageSubtitle").textContent = "Войди в аккаунт для доступа к данным CRM.";
+  }
+}
 function updateAuthUi(session){
   const user = session?.user || null;
   authUserId = user?.id || "";
@@ -510,10 +536,12 @@ function updateAuthUi(session){
   if($("authPassword")) $("authPassword").disabled = Boolean(user);
   if($("authLoginBtn")) $("authLoginBtn").disabled = Boolean(user);
   if($("authSignupBtn")) $("authSignupBtn").disabled = Boolean(user);
+  if($("authResetBtn")) $("authResetBtn").disabled = Boolean(user);
+  setAppAccess(Boolean(user));
   if(user){
     renderAuthStatus("ok", `Вход выполнен: ${user.email}`);
   } else {
-    renderAuthStatus("error", "Не авторизован. Данные сохраняются только локально.");
+    renderAuthStatus("error", "Не авторизован. Войди, чтобы открыть CRM и синхронизацию.");
   }
 }
 async function initAuth(){
@@ -525,11 +553,21 @@ async function initAuth(){
   updateAuthUi(data.session);
   if(data.session?.user){
     await loadCloudState();
+    activateSection("dashboard");
+  } else {
+    resetState();
+    renderAll();
+    refreshIntegrationForm();
   }
   supabaseClient.auth.onAuthStateChange(async (_, session) => {
     updateAuthUi(session);
     if(session?.user){
       await loadCloudState();
+      activateSection("dashboard");
+    } else {
+      resetState();
+      renderAll();
+      refreshIntegrationForm();
     }
   });
 }
@@ -847,7 +885,7 @@ function bindGeneral(){
   on("calendarMode","change",()=>{ state.calendarMode = $("calendarMode").value; renderCalendar(); save(); });
   on("chartMode","change",()=>{ state.chartMode = $("chartMode").value; renderDashboardChart(); save(); });
 
-  on("resetBtn","click",()=>{ if(confirm("Удалить все данные CRM?")){ localStorage.removeItem(KEY); state.clients=[]; state.equipment=[]; state.operators=[]; state.orders=[]; state.operations=[]; state.repairs=[]; clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); } });
+  on("resetBtn","click",()=>{ if(confirm("Удалить все данные CRM?")){ resetState(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); } });
   on("exportBtn","click",()=>{
     const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode},null,2)],{type:"application/json"});
     const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="RBT_CRM_v41_export.json"; a.click(); URL.revokeObjectURL(a.href);
@@ -902,6 +940,19 @@ function bindGeneral(){
     }
     renderAuthStatus("ok", "Регистрация успешна. Проверь email, если включено подтверждение.");
   });
+  on("authResetBtn","click", async () => {
+    if(!supabaseClient) return;
+    const email = $("authEmail").value.trim();
+    if(!email) return alert("Укажи email для восстановления пароля.");
+    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin
+    });
+    if(error){
+      renderAuthStatus("error", `Ошибка сброса пароля: ${error.message}`);
+      return;
+    }
+    renderAuthStatus("ok", "Письмо для сброса пароля отправлено.");
+  });
   on("authLogoutBtn","click", async () => {
     if(!supabaseClient) return;
     const { error } = await supabaseClient.auth.signOut();
@@ -955,9 +1006,9 @@ function seedDemo(){
   renderAll();
 }
 async function init(){
-  load(); bindNav(); bindForms(); bindFilters(); bindGeneral();
+  bindNav(); bindForms(); bindFilters(); bindGeneral();
   $("chartMode").value = state.chartMode; $("calendarMode").value = state.calendarMode;
-  clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); refreshIntegrationForm();
+  clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); refreshIntegrationForm(); setAppAccess(false);
   await initAuth();
   if(state.integrations.autoSync && state.integrations.googleFormsUrl) syncGoogleForms(false);
 }
