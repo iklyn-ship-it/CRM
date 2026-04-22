@@ -512,21 +512,22 @@ function renderAuthStatus(kind, text){
 }
 function setAppAccess(isAuthorized){
   document.querySelectorAll(".section").forEach(section => {
-    if(section.id !== "section-settings"){
-      section.style.display = isAuthorized ? "" : "none";
-    }
+    const isAuthSection = section.id === "section-auth";
+    section.style.display = isAuthorized ? (isAuthSection ? "none" : "") : (isAuthSection ? "" : "none");
   });
   document.querySelectorAll(".nav-btn").forEach(btn => {
-    const isSettings = btn.dataset.sec === "settings";
-    btn.disabled = !isAuthorized && !isSettings;
+    const isAuth = btn.dataset.sec === "auth";
+    btn.disabled = !isAuthorized && !isAuth;
   });
   ["seedBtn","exportBtn","importFile","resetBtn"].forEach(id => {
     if($(id)) $(id).disabled = !isAuthorized;
   });
   if(!isAuthorized){
-    activateSection("settings");
+    activateSection("auth");
     if($("pageTitle")) $("pageTitle").textContent = "Авторизация";
     if($("pageSubtitle")) $("pageSubtitle").textContent = "Войди в аккаунт для доступа к данным CRM.";
+  } else if($("section-auth") && $("section-auth").classList.contains("active")){
+    activateSection("dashboard");
   }
 }
 function updateAuthUi(session){
@@ -855,6 +856,7 @@ function activateSection(sec){
   if(section) section.classList.add("active");
   document.querySelectorAll(".nav-btn").forEach(x=>x.classList.toggle("active", x.dataset.sec===sec));
   const map={
+    auth:["Авторизация","Только вход в систему и управление доступом"],
     dashboard:["Дашборд","Контроль выручки, расходов, прибыли, ремонтов и загрузки"],
     orders:["Заявки","Создание и редактирование заявок по аренде"],
     repairs:["Ремонты","Планирование ремонта техники и резерв времени"],
