@@ -1,12 +1,30 @@
-# Cloudflare / Wrangler local files
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Angular cache
+.angular/
+
+# Cloudflare / Wrangler
 .wrangler/
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
+
+# Environment
 .env
 .env.*
 !.env.example
 
-# Local deployment artifacts
-deploy-static/
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
 *.tgz
+deploy-static/

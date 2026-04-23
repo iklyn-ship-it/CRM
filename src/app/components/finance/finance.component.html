@@ -1,0 +1,120 @@
+<div class="row">
+  <div class="col-4">
+    <div class="card panel">
+      <h3 style="margin-top:0">{{ editingId ? 'Редактирование операции' : 'Новая финансовая операция' }}</h3>
+      <form (ngSubmit)="save()">
+        <div class="field"><label>Дата</label><input type="date" [(ngModel)]="form.date" name="date" required></div>
+        <div class="field">
+          <label>Тип</label>
+          <select [(ngModel)]="form.type" name="type"><option value="income">Приход</option><option value="expense">Расход</option></select>
+        </div>
+        <div class="field">
+          <label>Категория</label>
+          <select [(ngModel)]="form.category" name="category">
+            @for (cat of categories; track cat) { <option [value]="cat">{{ cat }}</option> }
+          </select>
+        </div>
+        <div class="field"><label>Сумма, ₴</label><input type="number" [(ngModel)]="form.amount" name="amount" min="0" required></div>
+        <div class="field">
+          <label>Привязать к заявке</label>
+          <select [(ngModel)]="form.orderId" name="orderId">
+            <option value="">— без привязки —</option>
+            @for (o of state.orders(); track o.id) {
+              <option [value]="o.id">{{ o.id | slice:-5 }} • {{ state.byId(state.clients(), o.clientId)?.name || 'Клиент' }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label>Привязать к ремонту</label>
+          <select [(ngModel)]="form.repairId" name="repairId">
+            <option value="">— без привязки —</option>
+            @for (r of state.repairs(); track r.id) {
+              <option [value]="r.id">{{ r.id | slice:-5 }} • {{ state.byId(state.equipment(), r.equipmentId)?.name || 'Техника' }}</option>
+            }
+          </select>
+        </div>
+        <div class="field"><label>Комментарий</label><textarea [(ngModel)]="form.comment" name="comment"></textarea></div>
+        <div class="actions">
+          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить операцию' }}</button>
+          @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-8">
+    <div class="card panel">
+      <div class="toolbar">
+        <input type="text" [(ngModel)]="search" placeholder="Поиск: категория, комментарий...">
+        <div class="segmented-filter">
+          <button type="button" class="filter-chip" [class.active]="filterType === ''" (click)="filterType = ''">Все</button>
+          <button type="button" class="filter-chip finance-income" [class.active]="filterType === 'income'" (click)="filterType = 'income'">Приход</button>
+          <button type="button" class="filter-chip finance-expense" [class.active]="filterType === 'expense'" (click)="filterType = 'expense'">Расход</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Дата</th><th>Тип</th><th>Категория</th><th>Сумма</th><th>Привязка</th><th>Комментарий</th><th></th></tr></thead>
+          <tbody>
+            @for (o of filteredOps(); track o.id) {
+              <tr>
+                <td>{{ utils.fmtDate(o.date) }}</td>
+                <td><span class="badge" [ngClass]="o.type">{{ o.type === 'income' ? 'Приход' : 'Расход' }}</span></td>
+                <td>{{ o.category || '—' }}</td><td>{{ utils.money(o.amount) }}</td>
+                <td>{{ linkText(o) }}</td><td>{{ o.comment || '—' }}</td>
+                <td>
+                  <button class="btn ghost" (click)="edit(o)">Ред.</button>
+                  <button class="btn ghost" (click)="remove(o.id)">Удалить</button>
+                </td>
+              </tr>
+            }
+            @if (!filteredOps().length) { <tr><td colspan="7"><div class="empty">Финансовых операций пока нет.</div></td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card panel" style="margin-top:16px">
+      <h3 style="margin-top:0">Финансы по аренде</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Заявка</th><th>Клиент</th><th>План</th><th>Доход</th><th>Расход</th><th>Прибыль</th><th>Остаток</th></tr></thead>
+          <tbody>
+            @for (o of state.orders(); track o.id) {
+              <tr>
+                <td>{{ o.id | slice:-5 }}</td>
+                <td>{{ state.byId(state.clients(), o.clientId)?.name || '—' }}</td>
+                <td>{{ utils.money(state.orderPlan(o)) }}</td>
+                <td>{{ utils.money(state.orderIncome(o.id)) }}</td>
+                <td>{{ utils.money(state.orderExpense(o.id)) }}</td>
+                <td>{{ utils.money(state.orderProfit(o.id)) }}</td>
+                <td>{{ utils.money(state.orderRemaining(o)) }}</td>
+              </tr>
+            }
+            @if (!state.orders().length) { <tr><td colspan="7"><div class="empty">Нет заявок.</div></td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card panel" style="margin-top:16px">
+      <h3 style="margin-top:0">Финансы по ремонтам</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ремонт</th><th>Техника</th><th>Расход</th><th>Комментарий</th><th>Статус</th></tr></thead>
+          <tbody>
+            @for (r of state.repairs(); track r.id) {
+              <tr>
+                <td>{{ r.id | slice:-5 }}</td>
+                <td>{{ state.byId(state.equipment(), r.equipmentId)?.name || '—' }}</td>
+                <td>{{ utils.money(state.repairExpense(r.id)) }}</td>
+                <td>{{ r.tasks || '—' }}</td>
+                <td><span class="badge repairplan">{{ r.status }}</span></td>
+              </tr>
+            }
+            @if (!state.repairs().length) { <tr><td colspan="5"><div class="empty">Нет ремонтов.</div></td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

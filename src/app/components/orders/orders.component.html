@@ -1,0 +1,108 @@
+<div class="row">
+  <div class="col-4">
+    <div class="card panel">
+      <h3 style="margin-top:0">{{ editingId ? 'Редактирование заявки' : 'Новая заявка' }}</h3>
+      <form (ngSubmit)="save()">
+        <div class="field">
+          <label>Клиент</label>
+          <select [(ngModel)]="form.clientId" name="clientId">
+            <option value="">— выбрать —</option>
+            @for (c of state.clients(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label>Техника</label>
+          <select [(ngModel)]="form.equipmentId" name="equipmentId" (ngModelChange)="onEquipmentChange()">
+            <option value="">— выбрать —</option>
+            @for (e of state.equipment(); track e.id) {
+              <option [value]="e.id">{{ e.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label>Оператор</label>
+          <select [(ngModel)]="form.operatorId" name="operatorId">
+            <option value="">— без оператора —</option>
+            @for (o of state.operators(); track o.id) {
+              <option [value]="o.id">{{ o.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="field"><label>Дата начала</label><input type="date" [(ngModel)]="form.startDate" name="startDate" required></div>
+        <div class="field"><label>Дата окончания</label><input type="date" [(ngModel)]="form.endDate" name="endDate" required></div>
+        <div class="field"><label>Локация</label><input type="text" [(ngModel)]="form.location" name="location" placeholder="Объект / город"></div>
+        <div class="field"><label>Тариф, ₴/день</label><input type="number" [(ngModel)]="form.rate" name="rate" min="0"></div>
+        <div class="field">
+          <label>Статус</label>
+          <div class="segmented-filter order-status-picker">
+            @for (s of statuses; track s.value) {
+              <button type="button" class="filter-chip" [class.active]="form.status === s.value"
+                [ngClass]="'status-' + s.value" (click)="form.status = s.value">{{ s.label }}</button>
+            }
+          </div>
+        </div>
+        <div class="field"><label>Комментарий</label><textarea [(ngModel)]="form.notes" name="notes"></textarea></div>
+        <div class="actions">
+          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить заявку' }}</button>
+          @if (editingId) {
+            <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button>
+          }
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-8">
+    <div class="card panel">
+      <div class="toolbar">
+        <input type="text" [(ngModel)]="search" placeholder="Поиск: клиент, техника, объект...">
+        <div class="segmented-filter">
+          @for (f of filterStatuses; track f.value) {
+            <button type="button" class="filter-chip" [class.active]="filterStatus === f.value"
+              [ngClass]="f.value ? 'status-' + f.value : ''" (click)="filterStatus = f.value">{{ f.label }}</button>
+          }
+        </div>
+      </div>
+      @if (state.orderConflicts().length) {
+        <div class="alert">Найдены пересечения по аренде.</div>
+      } @else {
+        <div class="ok">Пересечений по аренде не найдено.</div>
+      }
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Период</th><th>Клиент</th><th>Техника</th><th>План</th><th>Доход</th><th>Расход</th><th>Прибыль</th><th>Статус</th><th></th></tr></thead>
+          <tbody>
+            @for (o of filteredOrders(); track o.id) {
+              <tr>
+                <td>{{ o.id | slice:-5 }}</td>
+                <td>
+                  {{ utils.fmtDate(o.startDate) }}
+                  <div class="small">{{ utils.fmtDate(o.endDate) }} • {{ utils.daysInclusive(o.startDate, o.endDate) }} дн.</div>
+                  @if (conflictSet().has(o.id)) {
+                    <div class="small" style="color:#fca5a5">Конфликт по технике</div>
+                  }
+                </td>
+                <td>{{ clientName(o.clientId) }}</td>
+                <td>{{ eqName(o.equipmentId) }}</td>
+                <td>{{ utils.money(state.orderPlan(o)) }}</td>
+                <td>{{ utils.money(state.orderIncome(o.id)) }}</td>
+                <td>{{ utils.money(state.orderExpense(o.id)) }}</td>
+                <td>{{ utils.money(state.orderProfit(o.id)) }}</td>
+                <td><span class="badge" [ngClass]="o.status">{{ statusLabel(o.status) }}</span></td>
+                <td>
+                  <button class="btn ghost" (click)="edit(o)">Ред.</button>
+                  <button class="btn ghost" (click)="remove(o.id)">Удалить</button>
+                </td>
+              </tr>
+            }
+            @if (!filteredOrders().length) {
+              <tr><td colspan="10"><div class="empty">Ничего не найдено.</div></td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

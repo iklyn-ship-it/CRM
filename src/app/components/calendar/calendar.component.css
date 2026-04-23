@@ -1,0 +1,195 @@
+:host {
+  display: block;
+}
+
+.calendar-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #0a1324;
+  font-size: 12px;
+  color: #d1d5db;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.chip-muted {
+  color: var(--muted);
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+/* Month grid */
+.cal {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(140px, 1fr));
+  gap: 0;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.cal-h,
+.cal-c {
+  min-height: 110px;
+  padding: 8px;
+  border-right: 1px solid rgba(156, 163, 175, 0.14);
+  border-bottom: 1px solid rgba(156, 163, 175, 0.14);
+  background: #0a1324;
+}
+.cal-h {
+  min-height: auto;
+  background: #111827;
+  font-weight: 700;
+}
+
+.event {
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.24);
+}
+.event.conflict {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+.event.repair {
+  background: rgba(249, 115, 22, 0.16);
+  border-color: rgba(249, 115, 22, 0.35);
+}
+.event.status-new {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.34);
+  color: #dbeafe;
+}
+.event.status-confirmed {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.34);
+  color: #dcfce7;
+}
+.event.status-active {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.38);
+  color: #fef3c7;
+}
+.event.status-completed {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #f1f5f9;
+}
+
+/* Timeline */
+.timeline-wrap {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+.timeline-head,
+.timeline-row {
+  display: grid;
+  grid-template-columns: 240px repeat(31, minmax(34px, 34px));
+  min-width: max-content;
+}
+.timeline-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.timeline-left,
+.timeline-day,
+.timeline-cell {
+  border-right: 1px solid rgba(156, 163, 175, 0.14);
+  border-bottom: 1px solid rgba(156, 163, 175, 0.14);
+}
+.timeline-left {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #111827;
+  padding: 10px 12px;
+}
+.timeline-day {
+  background: #111827;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.timeline-day .small {
+  display: block;
+}
+.timeline-cell {
+  background: #0a1324;
+  height: 52px;
+}
+.timeline-note {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.reserve-bar {
+  position: absolute;
+  top: 9px;
+  height: 34px;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  border: 1px solid transparent;
+}
+.reserve-bar.rent {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.32);
+  color: #dbeafe;
+}
+.reserve-bar.status-new {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: rgba(56, 189, 248, 0.38);
+  color: #dbeafe;
+}
+.reserve-bar.status-confirmed {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.38);
+  color: #dcfce7;
+}
+.reserve-bar.status-active {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.44);
+  color: #fef3c7;
+}
+.reserve-bar.status-completed {
+  background: rgba(148, 163, 184, 0.2);
+  border-color: rgba(148, 163, 184, 0.42);
+  color: #f1f5f9;
+}
+.reserve-bar.repair {
+  background: rgba(249, 115, 22, 0.22);
+  border-color: rgba(249, 115, 22, 0.4);
+  color: #ffedd5;
+}
+.reserve-bar.conflict {
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.65) inset;
+}

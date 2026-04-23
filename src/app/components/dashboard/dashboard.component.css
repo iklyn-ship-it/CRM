@@ -1,0 +1,99 @@
+:host {
+  display: block;
+}
+
+.dash-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.expense-val {
+  color: #fca5a5;
+}
+.profit-val {
+  color: #86efac;
+}
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 16px;
+  margin-top: 12px;
+}
+.dash-left,
+.dash-right {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.metric {
+  padding: 18px;
+}
+.metric .label {
+  font-size: 13px;
+  color: var(--muted);
+}
+.metric .val {
+  font-size: 26px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+.metric .sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+.hchart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hchart-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 80px;
+  gap: 12px;
+  align-items: center;
+}
+.hchart-name {
+  font-size: 13px;
+  color: #e5e7eb;
+}
+.hchart-track {
+  height: 18px;
+  background: #0f172a;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.hchart-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+.hchart-fill.profit {
+  background: linear-gradient(90deg, #60a5fa, #38bdf8);
+}
+.hchart-val {
+  text-align: right;
+  font-size: 12px;
+  color: #cbd5e1;
+}
+
+@media (max-width: 1100px) {
+  .dash-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+  .hchart-row {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .dash-metrics {
+    grid-template-columns: 1fr;
+  }
+}

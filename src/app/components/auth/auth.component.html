@@ -1,0 +1,66 @@
+<div class="login-page">
+  <div class="login-card card panel">
+    <div class="login-header">
+      <div class="logo">RBT</div>
+      <div>
+        <h2 style="margin: 0">CRM аренды техники</h2>
+        <p class="small">Войди в аккаунт для доступа</p>
+      </div>
+    </div>
+
+    <form (ngSubmit)="login()">
+      <div class="field">
+        <label>Email</label>
+        <input
+          type="email"
+          [(ngModel)]="email"
+          name="email"
+          placeholder="you@example.com"
+          required
+          autofocus
+        />
+      </div>
+      <div class="field">
+        <label>Пароль</label>
+        <input
+          type="password"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Минимум 6 символов"
+          required
+        />
+      </div>
+      <div class="login-actions">
+        <button
+          type="submit"
+          class="btn primary login-btn"
+          [disabled]="loading"
+        >
+          {{ loading ? "Вход..." : "Войти" }}
+        </button>
+        <div class="login-links">
+          <button
+            type="button"
+            class="btn ghost"
+            (click)="signup()"
+            [disabled]="loading"
+          >
+            Регистрация
+          </button>
+          <button type="button" class="btn ghost" (click)="resetPw()">
+            Забыл пароль
+          </button>
+        </div>
+      </div>
+    </form>
+
+    @if (supa.authStatus().text) {
+      <div
+        style="margin-top: 16px"
+        [class]="supa.authStatus().kind === 'error' ? 'alert' : 'ok'"
+      >
+        {{ supa.authStatus().text }}
+      </div>
+    }
+  </div>
+</div>

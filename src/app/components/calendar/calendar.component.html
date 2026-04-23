@@ -1,0 +1,72 @@
+<div class="card panel">
+  <div class="calendar-controls">
+    <div>
+      <h3 style="margin:0 0 6px">Календарь занятости техники</h3>
+      <div class="small">Выбери удобный режим просмотра.</div>
+    </div>
+    <div class="actions">
+      <select [ngModel]="state.calendarMode()" (ngModelChange)="onModeChange($event)">
+        <option value="month">1) Месячный календарь</option>
+        <option value="timeline">2) Техника слева + полосы резерва</option>
+      </select>
+      <button class="btn" (click)="prevMonth()">← Месяц назад</button>
+      <div class="chip">{{ monthLabel }}</div>
+      <button class="btn" (click)="nextMonth()">Месяц вперёд →</button>
+      <button class="btn ghost" (click)="currentMonth()">Текущий месяц</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="chip"><span class="dot" style="background:rgba(56,189,248,.8)"></span> аренда</div>
+    <div class="chip"><span class="dot" style="background:rgba(249,115,22,.85)"></span> ремонт</div>
+    <div class="chip"><span class="dot" style="background:rgba(239,68,68,.85)"></span> конфликт</div>
+    <div class="chip chip-muted">отменённые заявки не показываются</div>
+  </div>
+
+  @if (state.calendarMode() === 'month') {
+    <div class="cal">
+      @for (day of weekDays; track day) {
+        <div class="cal-h">{{ day }}</div>
+      }
+      @for (cell of calendarCells(); track cell.ds) {
+        <div class="cal-c" [style.opacity]="cell.inMonth ? 1 : 0.45">
+          <div><strong>{{ cell.date.getDate() }}</strong> <span class="small">{{ cell.date.toLocaleDateString('ru-RU', { month: 'short' }) }}</span></div>
+          @for (e of cell.entries; track $index) {
+            <div class="event" [ngClass]="[e.type === 'repair' ? 'repair' : e.statusClass, e.conflict ? 'conflict' : '']">
+              {{ e.eq }}<br><span class="small">{{ e.type === 'repair' ? 'Ремонт: ' : 'Аренда: ' }}{{ e.cl }}</span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="timeline-wrap">
+      <div class="timeline-head">
+        <div class="timeline-left"><strong>Техника</strong></div>
+        @for (d of timelineDays(); track d.day) {
+          <div class="timeline-day" [style.opacity]="d.inMonth ? 1 : 0.25">
+            {{ d.day }}<span class="small">{{ d.weekday }}</span>
+          </div>
+        }
+      </div>
+      @for (row of timelineEquipment(); track row.eq.id) {
+        <div class="timeline-row" style="position:relative">
+          <div class="timeline-left"><strong>{{ row.eq.name }}</strong><div class="timeline-note">{{ row.eq.type || '—' }}</div></div>
+          @for (d of timelineDays(); track d.day) {
+            <div class="timeline-cell"></div>
+          }
+          @for (ev of row.events; track $index) {
+            @if (ev) {
+              <div class="reserve-bar" [ngClass]="[ev.type, ev.type === 'rent' ? 'status-' + ev.status : '']"
+                [style.left.px]="240 + (ev.startDay - 1) * 34 + 2"
+                [style.width.px]="ev.span * 34 - 4"
+                style="position:absolute; top:9px">
+                {{ ev.type === 'repair' ? 'Ремонт' : 'Аренда' }} • {{ ev.title }}
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

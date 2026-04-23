@@ -1,0 +1,72 @@
+<div class="row">
+  <div class="col-6">
+    <div class="card panel">
+      <h3 style="margin-top: 0">Информация</h3>
+      <div class="list">
+        <div class="item">
+          <div>Аккаунт</div>
+          <div>
+            <strong>{{ supa.user()?.email }}</strong>
+          </div>
+        </div>
+        <div class="item">
+          <div>Клиентов</div>
+          <div>
+            <strong>{{ state.clients().length }}</strong>
+          </div>
+        </div>
+        <div class="item">
+          <div>Техники</div>
+          <div>
+            <strong>{{ state.equipment().length }}</strong>
+          </div>
+        </div>
+        <div class="item">
+          <div>Заявок</div>
+          <div>
+            <strong>{{ state.orders().length }}</strong>
+          </div>
+        </div>
+        <div class="item">
+          <div>Ремонтов</div>
+          <div>
+            <strong>{{ state.repairs().length }}</strong>
+          </div>
+        </div>
+        <div class="item">
+          <div>Финансовых операций</div>
+          <div>
+            <strong>{{ state.operations().length }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6">
+    <div class="card panel">
+      <h3 style="margin-top: 0">Чеклист запуска</h3>
+      <div class="list">
+        <div class="item">
+          <div>
+            <strong>1. Авторизация</strong>
+            <div class="small">
+              Каждый сотрудник входит под своим аккаунтом.
+            </div>
+          </div>
+        </div>
+        <div class="item">
+          <div>
+            <strong>2. Справочники</strong>
+            <div class="small">Внеси технику, клиентов и операторов.</div>
+          </div>
+        </div>
+        <div class="item">
+          <div>
+            <strong>3. Интеграция</strong>
+            <div class="small">Настрой Google Таблицы если используешь.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

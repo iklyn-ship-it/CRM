@@ -1,0 +1,41 @@
+<div class="row">
+  <div class="col-4">
+    <div class="card panel">
+      <h3 style="margin-top:0">{{ editingId ? 'Редактирование оператора' : 'Добавить оператора' }}</h3>
+      <form (ngSubmit)="save()">
+        <div class="field"><label>ФИО</label><input type="text" [(ngModel)]="form.name" name="name" required></div>
+        <div class="field"><label>Телефон</label><input type="text" [(ngModel)]="form.phone" name="phone"></div>
+        <div class="field"><label>Специализация</label><input type="text" [(ngModel)]="form.skill" name="skill"></div>
+        <div class="field"><label>Ставка, ₴/день</label><input type="number" [(ngModel)]="form.rate" name="rate" min="0"></div>
+        <div class="actions">
+          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить оператора' }}</button>
+          @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-8">
+    <div class="card panel">
+      <h3 style="margin-top:0">Операторы</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
+          <tbody>
+            @for (op of state.operators(); track op.id) {
+              <tr>
+                <td>{{ op.name }}</td><td>{{ op.phone || '—' }}</td><td>{{ op.skill || '—' }}</td>
+                <td>{{ opShifts(op.id) }}</td>
+                <td>{{ utils.money(opShifts(op.id) * (op.rate || 0)) }}</td>
+                <td>
+                  <button class="btn ghost" (click)="edit(op)">Ред.</button>
+                  <button class="btn ghost" (click)="remove(op.id)">Удалить</button>
+                </td>
+              </tr>
+            }
+            @if (!state.operators().length) { <tr><td colspan="6"><div class="empty">Нет операторов.</div></td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

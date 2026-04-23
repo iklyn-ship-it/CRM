@@ -1,0 +1,47 @@
+<div class="row">
+  <div class="col-4">
+    <div class="card panel">
+      <h3 style="margin-top:0">{{ editingId ? 'Редактирование клиента' : 'Добавить клиента' }}</h3>
+      <form (ngSubmit)="save()">
+        <div class="field"><label>Имя / Компания</label><input type="text" [(ngModel)]="form.name" name="name" required></div>
+        <div class="field"><label>Телефон</label><input type="text" [(ngModel)]="form.phone" name="phone"></div>
+        <div class="field"><label>Источник</label><input type="text" [(ngModel)]="form.source" name="source"></div>
+        <div class="field">
+          <label>Тип клиента</label>
+          <select [(ngModel)]="form.type" name="type"><option>Разовый</option><option>Постоянный</option></select>
+        </div>
+        <div class="field"><label>Комментарий</label><textarea [(ngModel)]="form.notes" name="notes"></textarea></div>
+        <div class="actions">
+          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить клиента' }}</button>
+          @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-8">
+    <div class="card panel">
+      <h3 style="margin-top:0">Клиенты</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Клиент</th><th>Телефон</th><th>Источник</th><th>Заказы</th><th>Выручка</th><th>Прибыль</th><th></th></tr></thead>
+          <tbody>
+            @for (c of state.clients(); track c.id) {
+              <tr>
+                <td>{{ c.name }}<div class="small">{{ c.notes }}</div></td>
+                <td>{{ c.phone || '—' }}</td><td>{{ c.source || '—' }}</td>
+                <td>{{ clientOrders(c.id).length }}</td>
+                <td>{{ utils.money(clientIncome(c.id)) }}</td>
+                <td>{{ utils.money(clientProfit(c.id)) }}</td>
+                <td>
+                  <button class="btn ghost" (click)="edit(c)">Ред.</button>
+                  <button class="btn ghost" (click)="remove(c.id)">Удалить</button>
+                </td>
+              </tr>
+            }
+            @if (!state.clients().length) { <tr><td colspan="7"><div class="empty">Нет клиентов.</div></td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

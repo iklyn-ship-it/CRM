@@ -1,0 +1,32 @@
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">RBT</div>
+      <div>
+        <h1>CRM v4.1 аренды</h1>
+        <p>Управление арендой техники</p>
+      </div>
+    </div>
+    <div class="nav">
+      @for (item of navItems; track item.path) {
+        <a class="nav-btn" [routerLink]="item.path" routerLinkActive="active">
+          {{ item.label }}
+        </a>
+      }
+    </div>
+    <div class="sidebar-foot">
+      <div>{{ supa.user()?.email }}</div>
+      <button
+        class="btn ghost"
+        style="margin-top: 8px; width: 100%"
+        (click)="logout()"
+      >
+        Выйти
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <router-outlet />
+  </main>
+</div>

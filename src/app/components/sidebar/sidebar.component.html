@@ -1,0 +1,23 @@
+<aside class="sidebar">
+  <div class="brand">
+    <div class="logo">RBT</div>
+    <div>
+      <h1>CRM v4.1 аренды</h1>
+      <p>Angular Edition</p>
+    </div>
+  </div>
+  <div class="nav">
+    @for (s of sections; track s.key) {
+      <button
+        class="nav-btn"
+        [class.active]="activeSection === s.key"
+        (click)="go(s.key)"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+  <div class="sidebar-foot">
+    Переписано на Angular 21 с signals и standalone-компонентами.
+  </div>
+</aside>

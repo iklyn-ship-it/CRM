@@ -1,0 +1,115 @@
+<div class="row">
+  <div class="col-6">
+    <div class="card panel">
+      <h3 style="margin-top: 0">Google Таблицы → CRM</h3>
+      <div class="small" style="margin-bottom: 12px">
+        Данные из Google Sheets загружаются через Apps Script Web App и создают
+        заявки со статусом «Новая». Схема: Google Sheets → Apps Script → CRM.
+      </div>
+      <form (ngSubmit)="saveSettings()">
+        <div class="field">
+          <label>URL Apps Script Web App</label>
+          <input
+            type="url"
+            [(ngModel)]="url"
+            name="url"
+            placeholder="https://script.google.com/macros/s/.../exec"
+          />
+        </div>
+        <div class="field">
+          <label
+            style="
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              color: var(--txt);
+            "
+          >
+            <input
+              type="checkbox"
+              [(ngModel)]="autoSync"
+              name="autoSync"
+              style="width: auto; padding: 0"
+            />
+            Автозагрузка при открытии CRM
+          </label>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn primary">Сохранить настройки</button>
+          <button type="button" class="btn info" (click)="syncNow()">
+            Синхронизировать сейчас
+          </button>
+        </div>
+      </form>
+      @if (gf.syncStatus().text) {
+        <div
+          style="margin-top: 12px"
+          [class]="gf.syncStatus().kind === 'error' ? 'alert' : 'ok'"
+        >
+          {{ gf.syncStatus().text }}
+        </div>
+      }
+    </div>
+  </div>
+  <div class="col-6">
+    <div class="card panel">
+      <h3 style="margin-top: 0">Как это работает</h3>
+      <div class="list">
+        <div class="item">
+          <div>
+            <strong>1. Google Sheets</strong>
+            <div class="small">
+              Заявки заполняются в таблице (вручную или через Google Form →
+              Sheets).
+            </div>
+          </div>
+        </div>
+        <div class="item">
+          <div>
+            <strong>2. Apps Script</strong>
+            <div class="small">
+              Скрипт читает строки таблицы и отдаёт их как JSON по URL.
+            </div>
+          </div>
+        </div>
+        <div class="item">
+          <div>
+            <strong>3. CRM импорт</strong>
+            <div class="small">
+              CRM загружает JSON, создаёт клиентов и заявки, не дублирует уже
+              импортированные.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card panel" style="margin-top: 16px">
+      <h3 style="margin-top: 0">Ожидаемые колонки таблицы</h3>
+      <div class="list">
+        <div class="item">
+          <div>
+            <strong>Обязательные</strong>
+            <div class="small">
+              Імя клієнта, Телефон, Дата початку, Дата кінця
+            </div>
+          </div>
+        </div>
+        <div class="item">
+          <div>
+            <strong>Желательные</strong>
+            <div class="small">
+              Найменування спецтехніки, Місце розташування, Тариф грн/день
+            </div>
+          </div>
+        </div>
+        <div class="item">
+          <div>
+            <strong>Дополнительно</strong>
+            <div class="small">Коментар, Оператор, Код техніки</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

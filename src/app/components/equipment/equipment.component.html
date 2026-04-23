@@ -1,0 +1,49 @@
+<div class="row">
+  <div class="col-4">
+    <div class="card panel">
+      <h3 style="margin-top:0">{{ editingId ? 'Редактирование техники' : 'Добавить технику' }}</h3>
+      <form (ngSubmit)="save()">
+        <div class="field"><label>Название</label><input type="text" [(ngModel)]="form.name" name="name" required></div>
+        <div class="field"><label>Тип</label><input type="text" [(ngModel)]="form.type" name="type"></div>
+        <div class="field"><label>Госномер / ID</label><input type="text" [(ngModel)]="form.code" name="code"></div>
+        <div class="field"><label>Тариф по умолчанию, ₴/день</label><input type="number" [(ngModel)]="form.defaultRate" name="defaultRate" min="0"></div>
+        <div class="field">
+          <label>Базовый статус</label>
+          <select [(ngModel)]="form.status" name="status">
+            <option value="free">Свободна</option><option value="busy">В работе</option><option value="repair">Ремонт</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить технику' }}</button>
+          @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
+        </div>
+      </form>
+    </div>
+  </div>
+  <div class="col-8">
+    <div class="card panel">
+      <h3 style="margin-top:0">Парк техники</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Название</th><th>Тип</th><th>ID</th><th>Тариф</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead>
+          <tbody>
+            @for (eq of state.equipment(); track eq.id) {
+              <tr>
+                <td>{{ eq.name }}</td><td>{{ eq.type || '—' }}</td><td>{{ eq.code || '—' }}</td>
+                <td>{{ utils.money(eq.defaultRate || 0) }}</td>
+                <td><span class="badge" [ngClass]="eqBadgeClass(state.runtimeEqStatus(eq))">{{ eqBadgeLabel(state.runtimeEqStatus(eq)) }}</span></td>
+                <td>{{ state.utilForEq(eq.id, state.calendarDate()) }}%</td>
+                <td>{{ repairCount(eq.id) }}</td>
+                <td>
+                  <button class="btn ghost" (click)="edit(eq)">Ред.</button>
+                  <button class="btn ghost" (click)="remove(eq.id)">Удалить</button>
+                </td>
+              </tr>
+            }
+            @if (!state.equipment().length) { <tr><td colspan="8"><div class="empty">Нет техники.</div></td></tr> }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
