@@ -944,13 +944,13 @@ function editOperator(id){
   activateSection("operators");
 }
 function clearOrderForm(){
-  $("orderId").value=""; $("orderForm").reset(); $("orderStatus").value="new";
+  $("orderId").value=""; $("orderForm").reset(); setOrderStatusPicker("new");
   $("orderFormTitle").textContent="Новая заявка"; $("orderSaveBtn").textContent="Сохранить заявку"; $("orderCancelEditBtn").classList.add("hidden");
 }
 function editOrder(id){
   const o=byId(state.orders,id); if(!o) return;
   $("orderId").value=o.id; $("orderClient").value=o.clientId||""; $("orderEquipment").value=o.equipmentId||""; $("orderOperator").value=o.operatorId||"";
-  $("orderStart").value=o.startDate; $("orderEnd").value=o.endDate; $("orderLocation").value=o.location||""; $("orderRate").value=o.rate||0; $("orderStatus").value=o.status||"new"; $("orderNotes").value=o.notes||"";
+  $("orderStart").value=o.startDate; $("orderEnd").value=o.endDate; $("orderLocation").value=o.location||""; $("orderRate").value=o.rate||0; setOrderStatusPicker(o.status||"new"); $("orderNotes").value=o.notes||"";
   $("orderFormTitle").textContent="Редактирование заявки"; $("orderSaveBtn").textContent="Сохранить изменения"; $("orderCancelEditBtn").classList.remove("hidden");
   activateSection("orders");
 }
@@ -1118,6 +1118,22 @@ function bindSegmentedFilter(id, onChange){
     onChange();
   });
 }
+function setOrderStatusPicker(value){
+  const nextValue = value || "new";
+  if($("orderStatus")) $("orderStatus").value = nextValue;
+  const wrap = $("orderStatusPicker");
+  if(!wrap) return;
+  wrap.querySelectorAll(".filter-chip").forEach(item => item.classList.toggle("active", item.dataset.value === nextValue));
+}
+function bindOrderStatusPicker(){
+  const wrap = $("orderStatusPicker");
+  if(!wrap) return;
+  wrap.addEventListener("click", event => {
+    const button = event.target.closest(".filter-chip");
+    if(!button) return;
+    setOrderStatusPicker(button.dataset.value);
+  });
+}
 function bindGeneral(){
   const flushLocalState = ()=>saveLocalState();
   const flushPendingChanges = ()=>{
@@ -1264,7 +1280,7 @@ function seedDemo(){
   renderAll();
 }
 async function init(){
-  bindNav(); bindForms(); bindFilters(); bindGeneral();
+  bindNav(); bindForms(); bindFilters(); bindOrderStatusPicker(); bindGeneral();
   $("chartMode").value = state.chartMode; $("calendarMode").value = state.calendarMode;
   clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll({ skipSave: true }); refreshIntegrationForm(); setAppAccess(false); refreshBackupPanel();
   await initAuth();

@@ -137,13 +137,14 @@
               <div class="field"><label>Локация</label><input type="text" id="orderLocation" placeholder="Объект / город" /></div>
               <div class="field"><label>Тариф, ₴/день</label><input type="number" id="orderRate" min="0" /></div>
               <div class="field"><label>Статус</label>
-                <select id="orderStatus">
-                  <option value="new">Новая</option>
-                  <option value="confirmed">Подтверждена</option>
-                  <option value="active">В работе</option>
-                  <option value="completed">Завершена</option>
-                  <option value="cancelled">Отменена</option>
-                </select>
+                <input type="hidden" id="orderStatus" value="new" />
+                <div class="segmented-filter order-status-picker" id="orderStatusPicker" role="group" aria-label="Статус заявки">
+                  <button type="button" class="filter-chip status-new active" data-value="new">Новая</button>
+                  <button type="button" class="filter-chip status-confirmed" data-value="confirmed">Подтверждена</button>
+                  <button type="button" class="filter-chip status-active" data-value="active">В работе</button>
+                  <button type="button" class="filter-chip status-completed" data-value="completed">Завершена</button>
+                  <button type="button" class="filter-chip status-cancelled" data-value="cancelled">Отменена</button>
+                </div>
               </div>
               <div class="field"><label>Комментарий</label><textarea id="orderNotes"></textarea></div>
               <div class="actions">
@@ -250,6 +251,11 @@
           <div class="chip"><span class="dot" style="background:rgba(56,189,248,.8)"></span> аренда</div>
           <div class="chip"><span class="dot" style="background:rgba(249,115,22,.85)"></span> ремонт</div>
           <div class="chip"><span class="dot" style="background:rgba(239,68,68,.85)"></span> конфликт</div>
+          <div class="chip"><span class="dot status-new-dot"></span> новая заявка</div>
+          <div class="chip"><span class="dot status-confirmed-dot"></span> подтверждена</div>
+          <div class="chip"><span class="dot status-active-dot"></span> в работе</div>
+          <div class="chip"><span class="dot status-completed-dot"></span> завершена</div>
+          <div class="chip chip-muted">отменённые заявки в календаре не показываются</div>
         </div>
         <div id="calendarWrap"></div>
       </div>
