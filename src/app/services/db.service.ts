@@ -32,6 +32,14 @@ function toCamel(obj: Record<string, any>): Record<string, any> {
 export class DbService {
   private supa = inject(SupabaseService);
   private channels: RealtimeChannel[] = [];
+  private readonly sharedTables = [
+    "clients",
+    "equipment",
+    "operators",
+    "orders",
+    "repairs",
+    "operations",
+  ] as const;
 
   readonly clients = signal<Client[]>([]);
   readonly equipment = signal<Equipment[]>([]);
@@ -58,7 +66,7 @@ export class DbService {
 
   readonly loading = signal(false);
 
-  /** Load all data for current user */
+  /** Load shared CRM data for all authenticated users. */
   async loadAll(): Promise<void> {
     this.loading.set(true);
     const uid = this.supa.userId;
@@ -77,16 +85,17 @@ export class DbService {
       integ,
       settings,
     ] = await Promise.all([
-      this.supa.client.from("clients").select("*").eq("user_id", uid),
-      this.supa.client.from("equipment").select("*").eq("user_id", uid),
-      this.supa.client.from("operators").select("*").eq("user_id", uid),
-      this.supa.client.from("orders").select("*").eq("user_id", uid),
-      this.supa.client.from("repairs").select("*").eq("user_id", uid),
-      this.supa.client.from("operations").select("*").eq("user_id", uid),
+      this.supa.client.from("clients").select("*"),
+      this.supa.client.from("equipment").select("*"),
+      this.supa.client.from("operators").select("*"),
+      this.supa.client.from("orders").select("*"),
+      this.supa.client.from("repairs").select("*"),
+      this.supa.client.from("operations").select("*"),
       this.supa.client
         .from("integrations")
         .select("*")
-        .eq("user_id", uid)
+        .order("updated_at", { ascending: false })
+        .limit(1)
         .maybeSingle(),
       this.supa.client
         .from("user_settings")
@@ -133,24 +142,15 @@ export class DbService {
     const uid = this.supa.userId;
     if (!uid) return;
 
-    const tables = [
-      "clients",
-      "equipment",
-      "operators",
-      "orders",
-      "repairs",
-      "operations",
-    ] as const;
-    tables.forEach((table) => {
+    this.sharedTables.forEach((table) => {
       const ch = this.supa.client
-        .channel(`${table}_${uid}`)
+        .channel(`${table}_shared`)
         .on(
           "postgres_changes",
           {
             event: "*",
             schema: "public",
             table,
-            filter: `user_id=eq.${uid}`,
           },
           () => this.reloadTable(table),
         )
@@ -167,10 +167,7 @@ export class DbService {
   private async reloadTable(table: string): Promise<void> {
     const uid = this.supa.userId;
     if (!uid) return;
-    const { data } = await this.supa.client
-      .from(table)
-      .select("*")
-      .eq("user_id", uid);
+    const { data } = await this.supa.client.from(table).select("*");
     const rows = (data || []).map((r) => toCamel(r) as any);
     const signalMap: Record<string, WritableSignal<any[]>> = {
       clients: this.clients,
