@@ -283,6 +283,8 @@ function statusBadge(s){ return {new:badge("new","Новое"),confirmed:badge("
 function repairStatusBadge(s){ return {planned:badge("repairplan","Запланирован"),active:badge("repairstatus","В ремонте"),completed:badge("completed","Завершён"),cancelled:badge("cancelled","Отменён")}[s] || badge("repairplan","Запланирован"); }
 function typeBadge(t){ return t==="income" ? badge("income","Приход") : badge("expense","Расход"); }
 function eqBadge(s){ return {free:badge("free","Свободна"),busy:badge("busy","В работе"),repair:badge("repairstatus","Ремонт")}[s] || badge("free","Свободна"); }
+function statusClass(status){ return `status-${String(status || "new").replace(/[^a-z]/g, "")}`; }
+function getFilterValue(id){ return document.querySelector(`#${id} .filter-chip.active`)?.dataset.value || ""; }
 function overlap(a1,a2,b1,b2){ return new Date(a1)<=new Date(b2) && new Date(b1)<=new Date(a2); }
 function byId(arr,id){ return arr.find(x=>x.id===id); }
 function normalizeText(v){ return String(v || "").trim().toLowerCase(); }
@@ -487,7 +489,7 @@ function renderDashboard(){
 }
 function renderOrders(){
   const q = $("orderSearch").value.trim().toLowerCase();
-  const fs = $("orderFilterStatus").value;
+  const fs = getFilterValue("orderFilterStatus");
   const conf=orderConflicts();
   const confSet=new Set(conf.flatMap(x=>[x[0],x[1]]));
   $("conflictBox").innerHTML = conf.length ? `<div class="alert">Найдены пересечения по аренде.</div>` : `<div class="ok">Пересечений по аренде не найдено.</div>`;
@@ -564,7 +566,7 @@ function renderCalendarMonth(){
       const rentEntries=state.orders.filter(o=>o.status!=="cancelled" && o.startDate<=ds && o.endDate>=ds).map(o=>{
         const eq=esc(byId(state.equipment,o.equipmentId)?.name || "Техника");
         const cl=esc(byId(state.clients,o.clientId)?.name || "Клиент");
-        return {...o,eq,cl,type:"rent"};
+        return {...o,eq,cl,type:"rent",statusClass:statusClass(o.status)};
       });
       const repairEntries=state.repairs.filter(r=>r.status!=="cancelled" && r.startDate<=ds && r.endDate>=ds).map(r=>{
         const eq=esc(byId(state.equipment,r.equipmentId)?.name || "Техника");
@@ -573,7 +575,7 @@ function renderCalendarMonth(){
       const entries=[...rentEntries,...repairEntries];
       const cnt={}; entries.forEach(e=>cnt[e.equipmentId]=(cnt[e.equipmentId]||0)+1);
       html += `<div class="cal-c" style="${inMonth?'':'opacity:.45'}"><div><strong>${cur.getDate()}</strong> <span class="small">${cur.toLocaleDateString('ru-RU',{month:'short'})}</span></div>` +
-        entries.slice(0,5).map(e=>`<div class="event ${e.type==='repair'?'repair':''} ${cnt[e.equipmentId]>1?'conflict':''}">${e.eq}<br><span class="small">${e.type==='repair'?'Ремонт: ':'Аренда: '}${e.cl}</span></div>`).join("") +
+        entries.slice(0,5).map(e=>`<div class="event ${e.type==='repair'?'repair':e.statusClass} ${cnt[e.equipmentId]>1?'conflict':''}">${e.eq}<br><span class="small">${e.type==='repair'?'Ремонт: ':'Аренда: '}${e.cl}</span></div>`).join("") +
         (entries.length>5?`<div class="small" style="margin-top:6px">ещё ${entries.length-5}</div>`:"") + `</div>`;
     }
   }
@@ -609,7 +611,7 @@ function renderCalendarTimeline(){
     html += `</div>`;
 
     const rowEvents = [
-      ...state.orders.filter(o=>o.equipmentId===eq.id && o.status!=="cancelled").map(o=>({id:o.id,type:"rent",title:esc(byId(state.clients,o.clientId)?.name || "Аренда"),startDate:o.startDate,endDate:o.endDate,conflict:allConflicts.has(o.id)})),
+      ...state.orders.filter(o=>o.equipmentId===eq.id && o.status!=="cancelled").map(o=>({id:o.id,type:"rent",status:o.status,title:esc(byId(state.clients,o.clientId)?.name || "Аренда"),startDate:o.startDate,endDate:o.endDate,conflict:allConflicts.has(o.id)})),
       ...state.repairs.filter(r=>r.equipmentId===eq.id && r.status!=="cancelled").map(r=>({id:r.id,type:"repair",title:esc(r.tasks || "Ремонт"),startDate:r.startDate,endDate:r.endDate,conflict:allConflicts.has(r.id)}))
     ];
     const rowIndex = state.equipment.findIndex(e => e.id === eq.id);
@@ -624,7 +626,8 @@ function renderCalendarTimeline(){
       const endDay = to.getDate();
       const left = 240 + (startDay - 1) * 34 + 2;
       const width = ((endDay - startDay + 1) * 34) - 4;
-      html += `<div class="reserve-bar ${ev.type} ${ev.conflict ? 'conflict' : ''}" style="left:${left}px; top:${containerTop + 9}px; width:${width}px; position:absolute">${ev.type==='repair' ? 'Ремонт' : 'Аренда'} • ${ev.title}</div>`;
+      const statusMarker = ev.type === "rent" ? statusClass(ev.status) : "";
+      html += `<div class="reserve-bar ${ev.type} ${statusMarker} ${ev.conflict ? 'conflict' : ''}" style="left:${left}px; top:${containerTop + 9}px; width:${width}px; position:absolute">${ev.type==='repair' ? 'Ремонт' : 'Аренда'} • ${ev.title}</div>`;
     });
   });
   html += `</div>`;
@@ -641,7 +644,7 @@ function renderCalendar(){
   }
 }
 function renderFinance(){
-  const q=$("opSearch").value.trim().toLowerCase(), ft=$("opFilterType").value;
+  const q=$("opSearch").value.trim().toLowerCase(), ft=getFilterValue("opFilterType");
   let ops=[...state.operations].sort((a,b)=>b.date.localeCompare(a.date));
   if(ft) ops=ops.filter(o=>o.type===ft);
   if(q) ops=ops.filter(o=>(o.category||"").toLowerCase().includes(q) || (o.comment||"").toLowerCase().includes(q) || o.id.toLowerCase().includes(q));
@@ -1097,11 +1100,22 @@ function activateSection(sec){
 function bindNav(){ document.querySelectorAll(".nav-btn").forEach(b=>b.addEventListener("click",()=>activateSection(b.dataset.sec))); }
 function bindFilters(){
   $("orderSearch").addEventListener("input", renderOrders);
-  $("orderFilterStatus").addEventListener("change", renderOrders);
   $("repairSearch").addEventListener("input", renderRepairs);
   $("repairFilterStatus").addEventListener("change", renderRepairs);
   $("opSearch").addEventListener("input", renderFinance);
-  $("opFilterType").addEventListener("change", renderFinance);
+  bindSegmentedFilter("orderFilterStatus", renderOrders);
+  bindSegmentedFilter("opFilterType", renderFinance);
+}
+function bindSegmentedFilter(id, onChange){
+  const wrap = $(id);
+  if(!wrap) return;
+  wrap.addEventListener("click", event => {
+    const button = event.target.closest(".filter-chip");
+    if(!button) return;
+    wrap.querySelectorAll(".filter-chip").forEach(item => item.classList.remove("active"));
+    button.classList.add("active");
+    onChange();
+  });
 }
 function bindGeneral(){
   const flushLocalState = ()=>saveLocalState();

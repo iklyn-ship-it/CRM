@@ -158,14 +158,14 @@
           <div class="card panel">
             <div class="toolbar">
               <input id="orderSearch" type="text" placeholder="Поиск: клиент, техника, объект..." />
-              <select id="orderFilterStatus">
-                <option value="">Все статусы</option>
-                <option value="new">Новые</option>
-                <option value="confirmed">Подтверждённые</option>
-                <option value="active">В работе</option>
-                <option value="completed">Завершённые</option>
-                <option value="cancelled">Отменённые</option>
-              </select>
+              <div class="segmented-filter" id="orderFilterStatus" role="group" aria-label="Фильтр заявок по статусу">
+                <button type="button" class="filter-chip active" data-value="">Все</button>
+                <button type="button" class="filter-chip status-new" data-value="new">Новые</button>
+                <button type="button" class="filter-chip status-confirmed" data-value="confirmed">Подтверждённые</button>
+                <button type="button" class="filter-chip status-active" data-value="active">В работе</button>
+                <button type="button" class="filter-chip status-completed" data-value="completed">Завершённые</button>
+                <button type="button" class="filter-chip status-cancelled" data-value="cancelled">Отменённые</button>
+              </div>
             </div>
             <div id="conflictBox"></div>
             <div class="table-wrap">
@@ -295,11 +295,11 @@
           <div class="card panel">
             <div class="toolbar">
               <input id="opSearch" type="text" placeholder="Поиск: категория, комментарий..." />
-              <select id="opFilterType">
-                <option value="">Все типы</option>
-                <option value="income">Приход</option>
-                <option value="expense">Расход</option>
-              </select>
+              <div class="segmented-filter" id="opFilterType" role="group" aria-label="Фильтр финансов по типу">
+                <button type="button" class="filter-chip active" data-value="">Все</button>
+                <button type="button" class="filter-chip finance-income" data-value="income">Приход</button>
+                <button type="button" class="filter-chip finance-expense" data-value="expense">Расход</button>
+              </div>
             </div>
             <div class="table-wrap">
               <table>

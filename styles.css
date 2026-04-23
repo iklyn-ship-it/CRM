@@ -64,6 +64,19 @@ th{font-size:12px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.05em}
 .item{display:flex;justify-content:space-between;gap:10px;padding:12px;border-radius:14px;background:#0a1324;border:1px solid var(--line)}
 .empty{padding:14px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.segmented-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-chip{
+  padding:9px 12px;border-radius:999px;border:1px solid var(--line);background:#0a1324;color:var(--txt);cursor:pointer;font-weight:700;font-size:13px
+}
+.filter-chip:hover{border-color:rgba(56,189,248,.45)}
+.filter-chip.active{box-shadow:0 0 0 2px rgba(255,255,255,.08) inset}
+.filter-chip.status-new.active,.filter-chip.status-new{background:rgba(56,189,248,.12);border-color:rgba(56,189,248,.28);color:#7dd3fc}
+.filter-chip.status-confirmed.active,.filter-chip.status-confirmed{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.28);color:#86efac}
+.filter-chip.status-active.active,.filter-chip.status-active{background:rgba(245,158,11,.14);border-color:rgba(245,158,11,.34);color:#fcd34d}
+.filter-chip.status-completed.active,.filter-chip.status-completed{background:rgba(148,163,184,.14);border-color:rgba(148,163,184,.32);color:#e5e7eb}
+.filter-chip.status-cancelled.active,.filter-chip.status-cancelled{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5}
+.filter-chip.finance-income.active,.filter-chip.finance-income{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.28);color:#86efac}
+.filter-chip.finance-expense.active,.filter-chip.finance-expense{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#fca5a5}
 .hidden{display:none !important}
 .chart-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .chip{padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:#0a1324;font-size:12px;color:#d1d5db}
@@ -111,6 +124,11 @@ th{font-size:12px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.05em}
 .event{margin-top:6px;padding:6px 8px;border-radius:10px;font-size:12px;background:rgba(56,189,248,.12);border:1px solid rgba(56,189,248,.24)}
 .event.conflict{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.28)}
 .event.repair{background:rgba(249,115,22,.16);border-color:rgba(249,115,22,.35);box-shadow:inset 0 0 0 1px rgba(249,115,22,.2)}
+.event.status-new{background:rgba(56,189,248,.14);border-color:rgba(56,189,248,.34);color:#dbeafe}
+.event.status-confirmed{background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.34);color:#dcfce7}
+.event.status-active{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.38);color:#fef3c7}
+.event.status-completed{background:rgba(148,163,184,.15);border-color:rgba(148,163,184,.35);color:#f1f5f9}
+.event.status-cancelled{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.38);color:#fee2e2}
 
 .timeline-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px}
 .timeline-head,.timeline-row{
@@ -137,6 +155,11 @@ th{font-size:12px;color:#cbd5e1;text-transform:uppercase;letter-spacing:.05em}
   display:flex;align-items:center;border:1px solid transparent
 }
 .reserve-bar.rent{background:rgba(56,189,248,.18);border-color:rgba(56,189,248,.32);color:#dbeafe}
+.reserve-bar.status-new{background:rgba(56,189,248,.2);border-color:rgba(56,189,248,.38);color:#dbeafe}
+.reserve-bar.status-confirmed{background:rgba(34,197,94,.2);border-color:rgba(34,197,94,.38);color:#dcfce7}
+.reserve-bar.status-active{background:rgba(245,158,11,.22);border-color:rgba(245,158,11,.44);color:#fef3c7}
+.reserve-bar.status-completed{background:rgba(148,163,184,.2);border-color:rgba(148,163,184,.42);color:#f1f5f9}
+.reserve-bar.status-cancelled{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.42);color:#fee2e2}
 .reserve-bar.repair{background:rgba(249,115,22,.22);border-color:rgba(249,115,22,.4);color:#ffedd5}
 .reserve-bar.conflict{box-shadow:0 0 0 2px rgba(239,68,68,.65) inset}
 .timeline-note{font-size:12px;color:var(--muted)}
