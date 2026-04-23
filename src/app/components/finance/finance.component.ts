@@ -4,7 +4,20 @@ import { NgClass, SlicePipe } from "@angular/common";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { FinanceOperation } from "../../models/crm.models";
+import { FinanceOperation, Order } from "../../models/crm.models";
+
+interface OrderFinanceRow {
+  order: Order;
+  clientName: string;
+  equipmentName: string;
+  plan: number;
+  income: number;
+  expense: number;
+  profit: number;
+  remaining: number;
+  incomeOps: FinanceOperation[];
+  expenseOps: FinanceOperation[];
+}
 
 @Component({
   selector: "app-finance",
@@ -51,10 +64,86 @@ export class FinanceComponent {
       ops = ops.filter(
         (o) =>
           (o.category || "").toLowerCase().includes(q) ||
-          (o.comment || "").toLowerCase().includes(q),
+          (o.comment || "").toLowerCase().includes(q) ||
+          this.linkText(o).toLowerCase().includes(q),
       );
     return ops;
   });
+
+  readonly orderFinanceRows = computed((): OrderFinanceRow[] => {
+    const q = this.search().toLowerCase();
+    return [...this.state.orders()]
+      .sort((a, b) => b.startDate.localeCompare(a.startDate))
+      .map((order) => {
+        const clientName =
+          this.state.byId(this.state.clients(), order.clientId)?.name || "—";
+        const equipmentName =
+          this.state.byId(this.state.equipment(), order.equipmentId)?.name ||
+          "—";
+        const operations = this.state
+          .orderOps(order.id)
+          .sort((a, b) => b.date.localeCompare(a.date));
+        const incomeOps = operations.filter((op) => op.type === "income");
+        const expenseOps = operations.filter((op) => op.type === "expense");
+        const income = incomeOps.reduce(
+          (sum, op) => sum + Number(op.amount || 0),
+          0,
+        );
+        const expense = expenseOps.reduce(
+          (sum, op) => sum + Number(op.amount || 0),
+          0,
+        );
+        const plan = this.state.orderPlan(order);
+
+        return {
+          order,
+          clientName,
+          equipmentName,
+          plan,
+          income,
+          expense,
+          profit: income - expense,
+          remaining: Math.max(0, plan - income),
+          incomeOps,
+          expenseOps,
+        };
+      })
+      .filter((row) => {
+        if (!q) return true;
+        return (
+          row.order.id.toLowerCase().includes(q) ||
+          row.clientName.toLowerCase().includes(q) ||
+          row.equipmentName.toLowerCase().includes(q) ||
+          (row.order.location || "").toLowerCase().includes(q)
+        );
+      });
+  });
+
+  readonly unlinkedOps = computed(() =>
+    this.state
+      .operations()
+      .filter((op) => !op.orderId && !op.repairId)
+      .sort((a, b) => b.date.localeCompare(a.date)),
+  );
+
+  statusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      new: "Новая",
+      confirmed: "Подтверждена",
+      active: "В работе",
+      completed: "Завершена",
+      cancelled: "Отменена",
+    };
+    return labels[status] || status;
+  }
+
+  onOrderLinkChange(): void {
+    if (this.form.orderId) this.form.repairId = "";
+  }
+
+  onRepairLinkChange(): void {
+    if (this.form.repairId) this.form.orderId = "";
+  }
 
   linkText(op: FinanceOperation): string {
     if (op.orderId) {

@@ -38,7 +38,11 @@
         </div>
         <div class="field">
           <label>Привязать к заявке</label>
-          <select [(ngModel)]="form.orderId" name="orderId">
+          <select
+            [(ngModel)]="form.orderId"
+            name="orderId"
+            (ngModelChange)="onOrderLinkChange()"
+          >
             <option value="">— без привязки —</option>
             @for (o of state.orders(); track o.id) {
               <option [value]="o.id">
@@ -50,7 +54,11 @@
         </div>
         <div class="field">
           <label>Привязать к ремонту</label>
-          <select [(ngModel)]="form.repairId" name="repairId">
+          <select
+            [(ngModel)]="form.repairId"
+            name="repairId"
+            (ngModelChange)="onRepairLinkChange()"
+          >
             <option value="">— без привязки —</option>
             @for (r of state.repairs(); track r.id) {
               <option [value]="r.id">
@@ -87,7 +95,7 @@
           type="text"
           [value]="search()"
           (input)="search.set($any($event.target).value)"
-          placeholder="Поиск: категория, комментарий..."
+          placeholder="Поиск: заявка, клиент, техника, категория..."
         />
         <div class="segmented-filter">
           <button
@@ -163,43 +171,142 @@
     </div>
 
     <div class="card panel" style="margin-top: 16px">
-      <h3 style="margin-top: 0">Финансы по аренде</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Заявка</th>
-              <th>Клиент</th>
-              <th>План</th>
-              <th>Доход</th>
-              <th>Расход</th>
-              <th>Прибыль</th>
-              <th>Остаток</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (o of state.orders(); track o.id) {
-              <tr>
-                <td>{{ o.id | slice: -5 }}</td>
-                <td>
-                  {{ state.byId(state.clients(), o.clientId)?.name || "—" }}
-                </td>
-                <td>{{ utils.money(state.orderPlan(o)) }}</td>
-                <td>{{ utils.money(state.orderIncome(o.id)) }}</td>
-                <td>{{ utils.money(state.orderExpense(o.id)) }}</td>
-                <td>{{ utils.money(state.orderProfit(o.id)) }}</td>
-                <td>{{ utils.money(state.orderRemaining(o)) }}</td>
-              </tr>
-            }
-            @if (!state.orders().length) {
-              <tr>
-                <td colspan="7"><div class="empty">Нет заявок.</div></td>
-              </tr>
-            }
-          </tbody>
-        </table>
+      <div class="finance-section-head">
+        <div>
+          <h3 style="margin: 0">Финансы по заявкам</h3>
+          <div class="small">
+            Каждая заявка показывает свой план, приходы, расходы, прибыль и
+            остаток к оплате.
+          </div>
+        </div>
+      </div>
+      <div class="order-finance-list">
+        @for (row of orderFinanceRows(); track row.order.id) {
+          <article class="order-finance-card">
+            <div class="order-finance-head">
+              <div>
+                <div class="order-finance-title">
+                  Заявка {{ row.order.id | slice: -5 }}
+                  <span class="badge" [ngClass]="row.order.status">
+                    {{ statusLabel(row.order.status) }}
+                  </span>
+                </div>
+                <div class="small">
+                  {{ row.clientName }} • {{ row.equipmentName }} •
+                  {{ utils.fmtDate(row.order.startDate) }} -
+                  {{ utils.fmtDate(row.order.endDate) }}
+                </div>
+                @if (row.order.location) {
+                  <div class="small">Локация: {{ row.order.location }}</div>
+                }
+              </div>
+              <div class="order-finance-summary">
+                <div class="metric">
+                  <span>План</span>
+                  <strong>{{ utils.money(row.plan) }}</strong>
+                </div>
+                <div class="metric income-metric">
+                  <span>Приход</span>
+                  <strong>{{ utils.money(row.income) }}</strong>
+                </div>
+                <div class="metric expense-metric">
+                  <span>Расход</span>
+                  <strong>{{ utils.money(row.expense) }}</strong>
+                </div>
+                <div class="metric">
+                  <span>Прибыль</span>
+                  <strong>{{ utils.money(row.profit) }}</strong>
+                </div>
+                <div class="metric">
+                  <span>Остаток</span>
+                  <strong>{{ utils.money(row.remaining) }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="finance-ledger">
+              <div class="ledger-column">
+                <h4>Приходы по заявке</h4>
+                @for (op of row.incomeOps; track op.id) {
+                  <div class="ledger-line income-line">
+                    <div>
+                      <strong>{{ utils.money(op.amount) }}</strong>
+                      <span>{{ op.category || "Приход" }}</span>
+                    </div>
+                    <small>{{ utils.fmtDate(op.date) }}</small>
+                    @if (op.comment) {
+                      <p>{{ op.comment }}</p>
+                    }
+                  </div>
+                }
+                @if (!row.incomeOps.length) {
+                  <div class="empty compact">Приходов по заявке нет.</div>
+                }
+              </div>
+              <div class="ledger-column">
+                <h4>Расходы по заявке</h4>
+                @for (op of row.expenseOps; track op.id) {
+                  <div class="ledger-line expense-line">
+                    <div>
+                      <strong>{{ utils.money(op.amount) }}</strong>
+                      <span>{{ op.category || "Расход" }}</span>
+                    </div>
+                    <small>{{ utils.fmtDate(op.date) }}</small>
+                    @if (op.comment) {
+                      <p>{{ op.comment }}</p>
+                    }
+                  </div>
+                }
+                @if (!row.expenseOps.length) {
+                  <div class="empty compact">Расходов по заявке нет.</div>
+                }
+              </div>
+            </div>
+          </article>
+        }
+        @if (!orderFinanceRows().length) {
+          <div class="empty">Нет заявок для отображения.</div>
+        }
       </div>
     </div>
+
+    @if (unlinkedOps().length) {
+      <div class="card panel" style="margin-top: 16px">
+        <h3 style="margin-top: 0">Операции без привязки</h3>
+        <div class="small" style="margin-bottom: 12px">
+          Эти приходы и расходы пока не относятся ни к заявке, ни к ремонту.
+          Их лучше привязать, чтобы финансовая картина по заявкам была точной.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата</th>
+                <th>Тип</th>
+                <th>Категория</th>
+                <th>Сумма</th>
+                <th>Комментарий</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (op of unlinkedOps(); track op.id) {
+                <tr>
+                  <td>{{ utils.fmtDate(op.date) }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="op.type">
+                      {{ op.type === "income" ? "Приход" : "Расход" }}
+                    </span>
+                  </td>
+                  <td>{{ op.category || "—" }}</td>
+                  <td>{{ utils.money(op.amount) }}</td>
+                  <td>{{ op.comment || "—" }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
 
     <div class="card panel" style="margin-top: 16px">
       <h3 style="margin-top: 0">Финансы по ремонтам</h3>
