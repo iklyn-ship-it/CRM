@@ -6,5 +6,6 @@
   },
   "assets": {
     "directory": "./dist/crm-angular/browser",
+    "not_found_handling": "single-page-application",
   },
 }
