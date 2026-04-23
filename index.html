@@ -419,6 +419,37 @@
 
     <section class="section" id="section-settings">
       <div class="row">
+        <div class="col-6">
+          <div class="card panel">
+            <h3 style="margin-top:0">Backup и восстановление</h3>
+            <div class="small" style="margin-bottom:12px">CRM теперь хранит локальные backup-снимки по каждому аккаунту отдельно и позволяет выгружать JSON-копию для внешнего хранения.</div>
+            <div class="actions">
+              <button type="button" class="btn primary" id="createBackupBtn">Создать backup</button>
+              <button type="button" class="btn" id="downloadBackupBtn">Скачать JSON backup</button>
+              <button type="button" class="btn ghost" id="importBackupBtn">Импортировать backup</button>
+            </div>
+            <input id="importFile" type="file" accept="application/json" class="hidden" />
+            <div class="field" style="margin-top:12px">
+              <label>Восстановить из локального backup</label>
+              <select id="backupRestoreSelect"></select>
+            </div>
+            <div class="actions">
+              <button type="button" class="btn warn" id="restoreBackupBtn">Восстановить выбранный backup</button>
+            </div>
+            <div id="backupStatus" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="card panel">
+            <h3 style="margin-top:0">Чеклист запуска</h3>
+            <div class="list">
+              <div class="item"><div><strong>1. Авторизация</strong><div class="small">Каждый сотрудник входит под своим аккаунтом. Изменения сохраняются сразу и подтягиваются другим пользователям автоматически.</div></div></div>
+              <div class="item"><div><strong>2. Проверка интеграции</strong><div class="small">Убедись, что в Google Forms заполнен `URL Web App` и включена автозагрузка, если форма используется постоянно.</div></div></div>
+              <div class="item"><div><strong>3. Справочники</strong><div class="small">До запуска внеси технику, клиентов и операторов, чтобы новые заявки не требовали ручного разбора.</div></div></div>
+              <div class="item"><div><strong>4. Backup-дисциплина</strong><div class="small">Перед крупными изменениями делай JSON-backup. Локальные backup-снимки остаются в браузере и доступны для быстрого отката.</div></div></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="card panel" style="margin-top:16px">
@@ -427,6 +458,8 @@
           <div class="item"><div><strong>Графики дашборда стали читабельнее</strong><div class="small">Добавлены 4 режима просмотра аналитики по технике.</div></div></div>
           <div class="item"><div><strong>2 режима календаря</strong><div class="small">1) обычный месячный, 2) техника слева и горизонтальные полосы резерва справа.</div></div></div>
           <div class="item"><div><strong>Полосы резерва по дням</strong><div class="small">В линейном режиме видно бронь техники по всей длине периода.</div></div></div>
+          <div class="item"><div><strong>Сохранение и backup</strong><div class="small">Сохранение в облако стало мгновенным, а для каждого аккаунта ведутся отдельные локальные backup-снимки.</div></div></div>
+          <div class="item"><div><strong>Совместная работа</strong><div class="small">Изменения других аккаунтов автоматически подтягиваются в открытую CRM.</div></div></div>
         </div>
       </div>
     </section>

@@ -2,9 +2,15 @@ const SUPABASE_URL = "https://alxckrhyqtmejelhzbej.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_sVWiQsMYQb349INaIMh_Rw_8CwbOac5";
 const CRM_STATE_TABLE = "crm_state";
 const LOCAL_STATE_KEY = "rbt_crm_state_v42";
+const LOCAL_BACKUPS_KEY = "rbt_crm_backups_v42";
+const MAX_LOCAL_BACKUPS = 20;
+const ADMIN_EMAILS = new Set(["iklyn@rbt-group.com.ua"]);
 const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let authUserId = "";
-let saveTimer = null;
+let authUserEmail = "";
+let cloudSaveChain = Promise.resolve();
+let cloudSyncChannel = null;
+let cloudSyncPollTimer = null;
 const state = {
   clients: [], equipment: [], operators: [], orders: [], operations: [], repairs: [],
   calendarDate: new Date(), chartMode: "bars", calendarMode: "month",
@@ -16,6 +22,13 @@ function on(id, event, handler){
   if(el) el.addEventListener(event, handler);
 }
 function uid(p){ return p + "_" + Math.random().toString(36).slice(2,9); }
+function normalizeEmail(v){ return String(v || "").trim().toLowerCase(); }
+function isAdminUser(){ return ADMIN_EMAILS.has(normalizeEmail(authUserEmail)); }
+function currentStorageScope(){ return authUserId || normalizeEmail(authUserEmail) || ""; }
+function scopedStorageKey(baseKey, scope){
+  const resolvedScope = String(scope ?? currentStorageScope()).trim();
+  return resolvedScope ? `${baseKey}:${resolvedScope}` : "";
+}
 function serializeState(){
   return {
     clients:state.clients,
@@ -56,18 +69,23 @@ function hasMeaningfulCloudState(payload){
     .some(key => Object.prototype.hasOwnProperty.call(payload, key));
 }
 function saveLocalState(){
+  const storageKey = scopedStorageKey(LOCAL_STATE_KEY);
+  if(!storageKey) return;
   try{
-    window.localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify({
+    window.localStorage.setItem(storageKey, JSON.stringify({
       userId: authUserId || "",
+      userEmail: normalizeEmail(authUserEmail),
       savedAt: new Date().toISOString(),
       data: serializeState()
     }));
   }catch(_err){
   }
 }
-function loadLocalState(){
+function loadLocalState(scope){
+  const storageKey = scopedStorageKey(LOCAL_STATE_KEY, scope);
+  if(!storageKey) return null;
   try{
-    const raw = window.localStorage.getItem(LOCAL_STATE_KEY);
+    const raw = window.localStorage.getItem(storageKey);
     if(!raw) return null;
     const parsed = JSON.parse(raw);
     if(!hasMeaningfulCloudState(parsed?.data)) return null;
@@ -76,10 +94,137 @@ function loadLocalState(){
     return null;
   }
 }
-function scheduleCloudSave(){
+function loadLocalBackups(scope){
+  const storageKey = scopedStorageKey(LOCAL_BACKUPS_KEY, scope);
+  if(!storageKey) return [];
+  try{
+    const raw = window.localStorage.getItem(storageKey);
+    if(!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(item => hasMeaningfulCloudState(item?.data)) : [];
+  }catch(_err){
+    return [];
+  }
+}
+function writeLocalBackups(backups, scope){
+  const storageKey = scopedStorageKey(LOCAL_BACKUPS_KEY, scope);
+  if(!storageKey) return;
+  try{
+    window.localStorage.setItem(storageKey, JSON.stringify(backups));
+  }catch(_err){
+  }
+}
+function saveLocalBackup(reason){
+  const scope = currentStorageScope();
+  if(!scope) return null;
+  const snapshot = serializeState();
+  const backups = loadLocalBackups(scope);
+  const serialized = JSON.stringify(snapshot);
+  if(backups[0] && JSON.stringify(backups[0].data) === serialized) return backups[0];
+  const nextBackup = {
+    id: uid("bkp"),
+    reason: reason || "auto",
+    createdAt: new Date().toISOString(),
+    data: snapshot
+  };
+  writeLocalBackups([nextBackup, ...backups].slice(0, MAX_LOCAL_BACKUPS), scope);
+  return nextBackup;
+}
+function selectedBackupId(){
+  return $("backupRestoreSelect")?.value || "";
+}
+function renderBackupStatus(kind, text){
+  const box = $("backupStatus");
+  if(!box) return;
+  box.innerHTML = text ? `<div class="${kind === "error" ? "alert" : "ok"}">${esc(text)}</div>` : "";
+}
+function refreshBackupPanel(){
+  const select = $("backupRestoreSelect");
+  if(!select) return;
+  const backups = loadLocalBackups();
+  select.innerHTML = backups.length
+    ? backups.map(item => `<option value="${item.id}">${new Date(item.createdAt).toLocaleString("uk-UA")} • ${esc(item.reason || "backup")}</option>`).join("")
+    : `<option value="">Локальных backup-снимков пока нет</option>`;
+  select.disabled = !backups.length;
+  if($("restoreBackupBtn")) $("restoreBackupBtn").disabled = !backups.length;
+  if($("downloadBackupBtn")) $("downloadBackupBtn").disabled = !authUserId;
+  if($("createBackupBtn")) $("createBackupBtn").disabled = !authUserId;
+  if($("importBackupBtn")) $("importBackupBtn").disabled = !authUserId;
+}
+function queueCloudSave(){
+  if(!authUserId || !supabaseClient) return Promise.resolve();
+  cloudSaveChain = cloudSaveChain
+    .catch(()=>{})
+    .then(()=>saveCloudState());
+  return cloudSaveChain;
+}
+function downloadStateSnapshot(snapshot, filenamePrefix){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    version: "v4.2",
+    userId: authUserId || "",
+    userEmail: normalizeEmail(authUserEmail),
+    data: snapshot
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${filenamePrefix || "RBT_CRM_backup"}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"-")}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function restoreSelectedBackup(){
+  const backupId = selectedBackupId();
+  if(!backupId) return;
+  const backup = loadLocalBackups().find(item => item.id === backupId);
+  if(!backup) return renderBackupStatus("error", "Не удалось найти выбранный backup.");
+  if(!confirm("Восстановить CRM из выбранного backup? Текущее состояние будет заменено.")) return;
+  saveLocalBackup("pre-restore");
+  applyState(backup.data);
+  clearOrderForm(); clearRepairForm(); clearOperationForm();
+  renderAll();
+  renderBackupStatus("ok", `Восстановлен backup от ${new Date(backup.createdAt).toLocaleString("uk-UA")}.`);
+}
+function createManualBackup(){
+  const backup = saveLocalBackup("manual");
+  refreshBackupPanel();
+  if(!backup) return renderBackupStatus("error", "Сначала войди в аккаунт, чтобы создать backup.");
+  renderBackupStatus("ok", `Создан локальный backup: ${new Date(backup.createdAt).toLocaleString("uk-UA")}.`);
+}
+function refreshAdminControls(){
+  const adminOnlyIds = ["seedBtn", "resetBtn"];
+  adminOnlyIds.forEach(id => {
+    const el = $(id);
+    if(el) el.style.display = isAdminUser() ? "" : "none";
+  });
+}
+function stopCloudSync(){
+  if(cloudSyncPollTimer){
+    clearInterval(cloudSyncPollTimer);
+    cloudSyncPollTimer = null;
+  }
+  if(cloudSyncChannel && supabaseClient){
+    supabaseClient.removeChannel(cloudSyncChannel);
+    cloudSyncChannel = null;
+  }
+}
+function startCloudSync(){
+  stopCloudSync();
   if(!authUserId || !supabaseClient) return;
-  if(saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveCloudState, 500);
+  cloudSyncPollTimer = window.setInterval(() => {
+    loadCloudState({ skipSave: true, silent: true });
+  }, 5000);
+  cloudSyncChannel = supabaseClient
+    .channel(`crm_state_${authUserId}`)
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: CRM_STATE_TABLE,
+      filter: `user_id=eq.${authUserId}`
+    }, () => {
+      loadCloudState({ skipSave: true, silent: true });
+    })
+    .subscribe();
 }
 async function saveCloudState(){
   if(!authUserId || !supabaseClient) return;
@@ -92,7 +237,7 @@ async function saveCloudState(){
   }
   renderAuthStatus("ok", `Авторизован: ${authUserId}. Данные синхронизируются с облаком.`);
 }
-async function loadCloudState(){
+async function loadCloudState(options = {}){
   if(!authUserId || !supabaseClient) return;
   const localSnapshot = serializeState();
   const { data, error } = await supabaseClient
@@ -101,24 +246,26 @@ async function loadCloudState(){
     .eq("user_id", authUserId)
     .maybeSingle();
   if(error){
-    renderAuthStatus("error", `Ошибка загрузки из облака: ${error.message}`);
+    if(!options.silent) renderAuthStatus("error", `Ошибка загрузки из облака: ${error.message}`);
     return;
   }
   if(data?.data && hasMeaningfulCloudState(data.data)){
     applyState(data.data);
-    renderAll();
+    renderAll({ skipSave: Boolean(options.skipSave) });
     refreshIntegrationForm();
     return;
   }
   applyState(localSnapshot);
-  renderAll();
+  renderAll({ skipSave: Boolean(options.skipSave) });
   refreshIntegrationForm();
   await saveCloudState();
 }
 function save(){
   saveLocalState();
+  saveLocalBackup("auto");
+  refreshBackupPanel();
   if(!authUserId) return;
-  scheduleCloudSave();
+  queueCloudSave();
 }
 function esc(v){
   return String(v ?? "")
@@ -193,6 +340,12 @@ function repairConflicts(){
     });
   });
   return list;
+}
+function orderEquipmentHtml(order){
+  const eqName = byId(state.equipment, order.equipmentId)?.name;
+  if(eqName) return esc(eqName);
+  if(String(order.notes || "").includes("Google Form")) return '<span class="badge repairplan">Требует разбора</span>';
+  return "—";
 }
 
 function refreshSelects(){
@@ -351,7 +504,7 @@ function renderOrders(){
   }
   list.sort((a,b)=>b.startDate.localeCompare(a.startDate));
   $("ordersBody").innerHTML = list.length ? list.map(o=>{
-    const cl=esc(byId(state.clients,o.clientId)?.name||"—"); const eq=esc(byId(state.equipment,o.equipmentId)?.name||"—");
+    const cl=esc(byId(state.clients,o.clientId)?.name||"—"); const eq=orderEquipmentHtml(o);
     const confMark = confSet.has(o.id) ? `<div class="small" style="color:#fca5a5">Конфликт по технике</div>` : "";
     return `<tr>
       <td>${o.id.slice(-5)}</td>
@@ -536,7 +689,19 @@ function renderOperators(){
     return `<tr><td>${esc(op.name)}</td><td>${esc(op.phone||"—")}</td><td>${esc(op.skill||"—")}</td><td>${shifts}</td><td>${money(shifts*Number(op.rate||0))}</td><td><button class="btn ghost" onclick="editOperator('${op.id}')">Редактировать</button><button class="btn ghost" onclick="removeOperator('${op.id}')">Удалить</button></td></tr>`;
   }).join("") : `<tr><td colspan="6"><div class="empty">Нет операторов.</div></td></tr>`;
 }
-function renderAll(){ refreshSelects(); renderDashboard(); renderOrders(); renderRepairs(); renderCalendar(); renderFinance(); renderEquipment(); renderClients(); renderOperators(); save(); }
+function renderAll(options = {}){
+  refreshSelects();
+  renderDashboard();
+  renderOrders();
+  renderRepairs();
+  renderCalendar();
+  renderFinance();
+  renderEquipment();
+  renderClients();
+  renderOperators();
+  refreshBackupPanel();
+  if(!options.skipSave) save();
+}
 function renderIntegrationStatus(kind, text){
   const box = $("integrationStatus");
   if(!box) return;
@@ -557,6 +722,7 @@ function setAppAccess(isAuthorized){
     btn.disabled = !isAuthorized && !isAuth;
   });
   if($("topActions")) $("topActions").style.display = isAuthorized ? "" : "none";
+  refreshAdminControls();
   if(!isAuthorized){
     activateSection("auth");
     if($("pageTitle")) $("pageTitle").textContent = "Авторизация";
@@ -568,6 +734,7 @@ function setAppAccess(isAuthorized){
 function updateAuthUi(session){
   const user = session?.user || null;
   authUserId = user?.id || "";
+  authUserEmail = normalizeEmail(user?.email);
   if($("authEmail")) $("authEmail").disabled = Boolean(user);
   if($("authPassword")) $("authPassword").disabled = Boolean(user);
   if($("authLoginBtn")) $("authLoginBtn").disabled = Boolean(user);
@@ -579,6 +746,8 @@ function updateAuthUi(session){
   } else {
     renderAuthStatus("error", "Не авторизован. Войди, чтобы открыть CRM и синхронизацию.");
   }
+  refreshAdminControls();
+  refreshBackupPanel();
 }
 async function initAuth(){
   if(!supabaseClient){
@@ -588,32 +757,40 @@ async function initAuth(){
   const { data } = await supabaseClient.auth.getSession();
   updateAuthUi(data.session);
   if(data.session?.user){
-    await loadCloudState();
-    activateSection("dashboard");
-  } else {
-    const localState = loadLocalState();
+    const localState = loadLocalState(authUserId);
     if(localState?.data){
       applyState(localState.data);
-    } else {
-      resetState();
+      renderAll({ skipSave: true });
+      refreshIntegrationForm();
     }
-    renderAll();
+    await loadCloudState({ skipSave: true });
+    startCloudSync();
+    activateSection("dashboard");
+  } else {
+    stopCloudSync();
+    resetState();
+    renderAll({ skipSave: true });
     refreshIntegrationForm();
+    renderBackupStatus("ok", "");
   }
   supabaseClient.auth.onAuthStateChange(async (_, session) => {
     updateAuthUi(session);
     if(session?.user){
-      await loadCloudState();
-      activateSection("dashboard");
-    } else {
-      const localState = loadLocalState();
+      const localState = loadLocalState(session.user.id);
       if(localState?.data){
         applyState(localState.data);
-      } else {
-        resetState();
+        renderAll({ skipSave: true });
+        refreshIntegrationForm();
       }
-      renderAll();
+      await loadCloudState({ skipSave: true });
+      startCloudSync();
+      activateSection("dashboard");
+    } else {
+      stopCloudSync();
+      resetState();
+      renderAll({ skipSave: true });
       refreshIntegrationForm();
+      renderBackupStatus("ok", "");
     }
   });
 }
@@ -930,11 +1107,7 @@ function bindGeneral(){
   const flushLocalState = ()=>saveLocalState();
   const flushPendingChanges = ()=>{
     saveLocalState();
-    if(authUserId && saveTimer){
-      clearTimeout(saveTimer);
-      saveTimer = null;
-      saveCloudState();
-    }
+    if(authUserId) queueCloudSave();
   };
   window.addEventListener("beforeunload", flushPendingChanges);
   document.addEventListener("visibilitychange", ()=>{
@@ -948,35 +1121,39 @@ function bindGeneral(){
   on("calendarMode","change",()=>{ state.calendarMode = $("calendarMode").value; renderCalendar(); save(); });
   on("chartMode","change",()=>{ state.chartMode = $("chartMode").value; renderDashboardChart(); save(); });
 
-  on("resetBtn","click",()=>{ if(confirm("Удалить все данные CRM?")){ resetState(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); } });
+  on("resetBtn","click",()=>{
+    if(!isAdminUser()) return alert("Сброс доступен только для iklyn@rbt-group.com.ua.");
+    if(confirm("Удалить все данные CRM?")){
+      saveLocalBackup("pre-reset");
+      resetState();
+      clearOrderForm(); clearRepairForm(); clearOperationForm();
+      renderAll();
+      renderBackupStatus("ok", "Перед сбросом создан backup pre-reset.");
+    }
+  });
   on("exportBtn","click",()=>{
-    const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode},null,2)],{type:"application/json"});
-    const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="RBT_CRM_v41_export.json"; a.click(); URL.revokeObjectURL(a.href);
+    downloadStateSnapshot(serializeState(), "RBT_CRM_backup");
+    renderBackupStatus("ok", "JSON-backup выгружен.");
   });
   on("importFile","change",e=>{
     const file=e.target.files[0]; if(!file) return;
     const r=new FileReader(); r.onload=()=>{
       try{
         const data=JSON.parse(r.result);
-        state.clients=Array.isArray(data.clients)?data.clients:[];
-        state.equipment=Array.isArray(data.equipment)?data.equipment:[];
-        state.operators=Array.isArray(data.operators)?data.operators:[];
-        state.orders=Array.isArray(data.orders)?data.orders:[];
-        state.operations=Array.isArray(data.operations)?data.operations:[];
-        state.repairs=Array.isArray(data.repairs)?data.repairs:[];
-        state.chartMode=data.chartMode||"bars";
-        state.calendarMode=data.calendarMode||"month";
-        state.integrations={
-          googleFormsUrl: data.integrations?.googleFormsUrl || "",
-          autoSync: Boolean(data.integrations?.autoSync),
-          importedResponseIds: Array.isArray(data.integrations?.importedResponseIds) ? data.integrations.importedResponseIds : [],
-          lastSyncAt: data.integrations?.lastSyncAt || "",
-          lastSyncStatus: data.integrations?.lastSyncStatus || ""
-        };
-        clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); alert("Импорт выполнен.");
+        const snapshot = hasMeaningfulCloudState(data?.data) ? data.data : data;
+        if(!hasMeaningfulCloudState(snapshot)) throw new Error("bad-backup");
+        saveLocalBackup("pre-import");
+        applyState(snapshot);
+        clearOrderForm(); clearRepairForm(); clearOperationForm();
+        renderAll();
+        renderBackupStatus("ok", "Backup импортирован и применён.");
       }catch(err){ alert("Не удалось импортировать файл."); }
     }; r.readAsText(file); e.target.value="";
   });
+  on("createBackupBtn","click", createManualBackup);
+  on("downloadBackupBtn","click", ()=>downloadStateSnapshot(serializeState(), "RBT_CRM_backup"));
+  on("restoreBackupBtn","click", restoreSelectedBackup);
+  on("importBackupBtn","click", ()=>$("importFile")?.click());
   on("seedBtn","click",seedDemo);
   on("authForm","submit", async e => {
     e.preventDefault();
@@ -1038,6 +1215,7 @@ function bindGeneral(){
   on("syncGoogleFormsBtn","click",()=>syncGoogleForms(true));
 }
 function seedDemo(){
+  if(!isAdminUser()) return alert("Демо-данные доступны только для iklyn@rbt-group.com.ua.");
   if(state.clients.length || state.orders.length || state.operations.length || state.repairs.length){ if(!confirm("Демо-данные добавятся к текущим. Продолжить?")) return; }
   const c1={id:uid("cl"),name:"ТОВ Будмонтаж",phone:"+380671112233",source:"Сайт",type:"Постоянный",notes:"Часто арендует экскаватор"};
   const c2={id:uid("cl"),name:"ФОП Коваленко",phone:"+380501234567",source:"OLX",type:"Разовый",notes:"Объекты по Киевской области"};
@@ -1071,11 +1249,9 @@ function seedDemo(){
   renderAll();
 }
 async function init(){
-  const localState = loadLocalState();
-  if(localState?.data) applyState(localState.data);
   bindNav(); bindForms(); bindFilters(); bindGeneral();
   $("chartMode").value = state.chartMode; $("calendarMode").value = state.calendarMode;
-  clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); refreshIntegrationForm(); setAppAccess(false);
+  clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll({ skipSave: true }); refreshIntegrationForm(); setAppAccess(false); refreshBackupPanel();
   await initAuth();
   if(state.integrations.autoSync && state.integrations.googleFormsUrl) syncGoogleForms(false);
 }
