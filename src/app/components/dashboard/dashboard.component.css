@@ -52,6 +52,10 @@
   margin: 16px 0;
 }
 
+.visual-grid.single {
+  grid-template-columns: 1fr;
+}
+
 .chart-card {
   min-height: 260px;
 }
@@ -70,6 +74,78 @@
 
 .chart-head h3 {
   margin: 0;
+}
+
+.dashboard-controls {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: end;
+  padding: 16px;
+  margin: 16px 0 0;
+}
+
+.control-title {
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chart-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chart-tabs button,
+.ghost-btn {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.chart-tabs button.active {
+  border-color: rgba(56, 189, 248, 0.55);
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(34, 197, 94, 0.14));
+  color: #f8fafc;
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.12) inset;
+}
+
+.period-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: end;
+}
+
+.period-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.period-controls input {
+  height: 38px;
+  min-width: 150px;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: #0a1324;
+  color: #e5e7eb;
+}
+
+.ghost-btn {
+  border-radius: 12px;
 }
 
 .status-bars {
@@ -170,7 +246,7 @@
 .month-chart {
   height: 220px;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
   gap: 12px;
   align-items: end;
   padding: 12px;
@@ -279,6 +355,12 @@
   .dash-grid {
     grid-template-columns: 1fr;
   }
+  .dashboard-controls {
+    grid-template-columns: 1fr;
+  }
+  .period-controls {
+    justify-content: flex-start;
+  }
   .chart-card.wide {
     grid-column: span 1;
   }
@@ -300,5 +382,9 @@
   .month-chart {
     gap: 6px;
     overflow-x: auto;
+  }
+  .period-controls input,
+  .ghost-btn {
+    width: 100%;
   }
 }

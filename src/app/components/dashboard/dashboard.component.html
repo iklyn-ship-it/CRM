@@ -1,30 +1,32 @@
 <div class="dash-metrics">
   <div class="card metric">
     <div class="label">Выручка</div>
-    <div class="val">{{ utils.money(state.totalIncome()) }}</div>
+    <div class="val">{{ utils.money(metricSummary().income) }}</div>
   </div>
   <div class="card metric">
     <div class="label">Расходы</div>
-    <div class="val expense-val">{{ utils.money(state.totalExpense()) }}</div>
+    <div class="val expense-val">{{ utils.money(metricSummary().expense) }}</div>
   </div>
   <div class="card metric">
     <div class="label">Чистая прибыль</div>
-    <div class="val profit-val">{{ utils.money(state.totalProfit()) }}</div>
+    <div class="val profit-val">{{ utils.money(metricSummary().profit) }}</div>
   </div>
   <div class="card metric">
     <div class="label">Заявки</div>
-    <div class="val">{{ state.activeOrders().length }}</div>
+    <div class="val">{{ metricSummary().activeOrders }}</div>
     <div class="sub">активных</div>
   </div>
   <div class="card metric">
     <div class="label">Ремонты</div>
-    <div class="val">{{ state.activeRepairs().length }}</div>
+    <div class="val">{{ metricSummary().activeRepairs }}</div>
     <div class="sub">запланировано</div>
   </div>
   <div class="card metric">
     <div class="label">Загрузка</div>
-    <div class="val">{{ state.avgUtilization() }}%</div>
-    <div class="sub">техники в этом месяце</div>
+    <div class="val">{{ metricSummary().utilization }}%</div>
+    <div class="sub">
+      техники {{ periodFrom() || periodTo() ? periodLabel() : "в этом месяце" }}
+    </div>
   </div>
 </div>
 
@@ -33,11 +35,51 @@
   <div [class]="a.kind" style="margin-bottom: 8px">{{ a.text }}</div>
 }
 
-<div class="visual-grid">
-  <div class="card panel chart-card">
+<div class="dashboard-controls card">
+  <div>
+    <div class="control-title">Графики</div>
+    <div class="chart-tabs">
+      @for (tab of chartTabs; track tab.key) {
+        <button
+          type="button"
+          [class.active]="activeChart() === tab.key"
+          (click)="setActiveChart(tab.key)"
+        >
+          {{ tab.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="period-controls">
+    <label>
+      <span>От</span>
+      <input
+        type="date"
+        [ngModel]="periodFrom()"
+        (ngModelChange)="periodFrom.set($event)"
+      />
+    </label>
+    <label>
+      <span>До</span>
+      <input
+        type="date"
+        [ngModel]="periodTo()"
+        (ngModelChange)="periodTo.set($event)"
+      />
+    </label>
+    <button type="button" class="ghost-btn" (click)="resetPeriod()">
+      Весь период
+    </button>
+  </div>
+</div>
+
+<div class="visual-grid single">
+  @if (activeChart() === "orders") {
+  <div class="card panel chart-card wide">
     <div class="chart-head">
       <h3>Воронка заявок</h3>
-      <span class="small">по текущим статусам</span>
+      <span class="small">{{ periodLabel() }}</span>
     </div>
     <div class="status-bars">
       @for (item of orderStatusChart(); track item.label) {
@@ -58,16 +100,18 @@
       }
     </div>
   </div>
+  }
 
-  <div class="card panel chart-card">
+  @if (activeChart() === "money") {
+  <div class="card panel chart-card wide">
     <div class="chart-head">
       <h3>Структура денег</h3>
-      <span class="small">приходы и расходы</span>
+      <span class="small">{{ periodLabel() }}</span>
     </div>
     <div class="donut-wrap">
       <div class="donut" [style.background]="donutStyle(financeDonut())">
         <div class="donut-hole">
-          <strong>{{ utils.money(state.totalProfit()) }}</strong>
+          <strong>{{ utils.money(metricSummary().profit) }}</strong>
           <span>cashflow</span>
         </div>
       </div>
@@ -82,11 +126,13 @@
       </div>
     </div>
   </div>
+  }
 
+  @if (activeChart() === "cashflow") {
   <div class="card panel chart-card wide">
     <div class="chart-head">
       <h3>Cashflow по месяцам</h3>
-      <span class="small">последние 6 месяцев</span>
+      <span class="small">{{ periodLabel() }}</span>
     </div>
     <div class="month-chart">
       @for (m of monthlyFinance(); track m.label) {
@@ -115,39 +161,43 @@
       <span><i class="legend-profit"></i>Прибыль</span>
     </div>
   </div>
+  }
+
+  @if (activeChart() === "equipment") {
+  <div class="card panel chart-card wide">
+    <div class="chart-head">
+      <h3>Прибыль по технике</h3>
+      <span class="small">{{ periodLabel() }}</span>
+    </div>
+    @if (periodEquipmentAnalytics().length) {
+      <div class="hchart-list">
+        @for (item of periodEquipmentAnalytics(); track item.name) {
+          <div class="hchart-row">
+            <div class="hchart-name">{{ item.name }}</div>
+            <div class="hchart-track">
+              <div
+                class="hchart-fill profit"
+                [style.width.%]="
+                  maxProfit() ? (Math.abs(item.profit) / maxProfit()) * 100 : 0
+                "
+              ></div>
+            </div>
+            <div class="hchart-val">{{ utils.money(item.profit) }}</div>
+          </div>
+        }
+      </div>
+    } @else {
+      <div class="empty">
+        Нет финансовых операций по технике за выбранный период.
+      </div>
+    }
+  </div>
+  }
 </div>
 
 <div class="dash-grid">
-  <!-- Left: chart + events -->
+  <!-- Left: events -->
   <div class="dash-left">
-    <div class="card panel">
-      <h3 style="margin: 0 0 12px">Прибыль по технике</h3>
-      @if (state.equipmentAnalytics().length) {
-        <div class="hchart-list">
-          @for (item of state.equipmentAnalytics(); track item.name) {
-            <div class="hchart-row">
-              <div class="hchart-name">{{ item.name }}</div>
-              <div class="hchart-track">
-                <div
-                  class="hchart-fill profit"
-                  [style.width.%]="
-                    maxProfit()
-                      ? (Math.abs(item.profit) / maxProfit()) * 100
-                      : 0
-                  "
-                ></div>
-              </div>
-              <div class="hchart-val">{{ utils.money(item.profit) }}</div>
-            </div>
-          }
-        </div>
-      } @else {
-        <div class="empty">
-          Добавь технику, заявки и операции — графики появятся.
-        </div>
-      }
-    </div>
-
     <div class="card panel">
       <h3 style="margin: 0 0 12px">Ближайшие события</h3>
       <div class="table-wrap">
@@ -208,12 +258,12 @@
       </div>
     </div>
 
-    @if (state.equipmentAnalytics().length) {
+    @if (periodEquipmentAnalytics().length) {
       <div class="card panel">
         <h3 style="margin: 0 0 12px">Рейтинг техники</h3>
         <div class="list">
           @for (
-            item of state.equipmentAnalytics();
+            item of periodEquipmentAnalytics();
             track item.name;
             let i = $index
           ) {
