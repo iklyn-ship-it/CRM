@@ -1,6 +1,7 @@
 const SUPABASE_URL = "https://alxckrhyqtmejelhzbej.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_sVWiQsMYQb349INaIMh_Rw_8CwbOac5";
 const CRM_STATE_TABLE = "crm_state";
+const LOCAL_STATE_KEY = "rbt_crm_state_v42";
 const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let authUserId = "";
 let saveTimer = null;
@@ -16,11 +17,24 @@ function on(id, event, handler){
 }
 function uid(p){ return p + "_" + Math.random().toString(36).slice(2,9); }
 function serializeState(){
-  return {clients:state.clients,equipment:state.equipment,operators:state.operators,orders:state.orders,operations:state.operations,repairs:state.repairs,chartMode:state.chartMode,calendarMode:state.calendarMode,integrations:state.integrations};
+  return {
+    clients:state.clients,
+    equipment:state.equipment,
+    operators:state.operators,
+    orders:state.orders,
+    operations:state.operations,
+    repairs:state.repairs,
+    calendarDate: state.calendarDate instanceof Date ? state.calendarDate.toISOString() : new Date().toISOString(),
+    chartMode:state.chartMode,
+    calendarMode:state.calendarMode,
+    integrations:state.integrations
+  };
 }
 function applyState(raw){
   state.clients=raw.clients||[]; state.equipment=raw.equipment||[]; state.operators=raw.operators||[];
   state.orders=raw.orders||[]; state.operations=raw.operations||[]; state.repairs=raw.repairs||[];
+  state.calendarDate = raw.calendarDate ? new Date(raw.calendarDate) : new Date();
+  if(isNaN(state.calendarDate)) state.calendarDate = new Date();
   state.chartMode=raw.chartMode||"bars"; state.calendarMode=raw.calendarMode||"month";
   state.integrations={
     googleFormsUrl: raw.integrations?.googleFormsUrl || "",
@@ -32,13 +46,35 @@ function applyState(raw){
 }
 function resetState(){
   state.clients=[]; state.equipment=[]; state.operators=[]; state.orders=[]; state.operations=[]; state.repairs=[];
+  state.calendarDate = new Date();
   state.chartMode="bars"; state.calendarMode="month";
   state.integrations={ googleFormsUrl: "", autoSync: false, importedResponseIds: [], lastSyncAt: "", lastSyncStatus: "" };
 }
 function hasMeaningfulCloudState(payload){
   if(!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
-  return ["clients","equipment","operators","orders","operations","repairs","integrations","chartMode","calendarMode"]
+  return ["clients","equipment","operators","orders","operations","repairs","integrations","chartMode","calendarMode","calendarDate"]
     .some(key => Object.prototype.hasOwnProperty.call(payload, key));
+}
+function saveLocalState(){
+  try{
+    window.localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify({
+      userId: authUserId || "",
+      savedAt: new Date().toISOString(),
+      data: serializeState()
+    }));
+  }catch(_err){
+  }
+}
+function loadLocalState(){
+  try{
+    const raw = window.localStorage.getItem(LOCAL_STATE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!hasMeaningfulCloudState(parsed?.data)) return null;
+    return parsed;
+  }catch(_err){
+    return null;
+  }
 }
 function scheduleCloudSave(){
   if(!authUserId || !supabaseClient) return;
@@ -80,6 +116,7 @@ async function loadCloudState(){
   await saveCloudState();
 }
 function save(){
+  saveLocalState();
   if(!authUserId) return;
   scheduleCloudSave();
 }
@@ -554,7 +591,12 @@ async function initAuth(){
     await loadCloudState();
     activateSection("dashboard");
   } else {
-    resetState();
+    const localState = loadLocalState();
+    if(localState?.data){
+      applyState(localState.data);
+    } else {
+      resetState();
+    }
     renderAll();
     refreshIntegrationForm();
   }
@@ -564,7 +606,12 @@ async function initAuth(){
       await loadCloudState();
       activateSection("dashboard");
     } else {
-      resetState();
+      const localState = loadLocalState();
+      if(localState?.data){
+        applyState(localState.data);
+      } else {
+        resetState();
+      }
       renderAll();
       refreshIntegrationForm();
     }
@@ -880,6 +927,21 @@ function bindFilters(){
   $("opFilterType").addEventListener("change", renderFinance);
 }
 function bindGeneral(){
+  const flushLocalState = ()=>saveLocalState();
+  const flushPendingChanges = ()=>{
+    saveLocalState();
+    if(authUserId && saveTimer){
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      saveCloudState();
+    }
+  };
+  window.addEventListener("beforeunload", flushPendingChanges);
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "hidden") flushPendingChanges();
+  });
+  window.addEventListener("pagehide", flushPendingChanges);
+  window.addEventListener("blur", flushLocalState);
   on("prevMonth","click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()-1, 1); renderCalendar(); save(); });
   on("nextMonth","click",()=>{ state.calendarDate = new Date(state.calendarDate.getFullYear(), state.calendarDate.getMonth()+1, 1); renderCalendar(); save(); });
   on("currentMonth","click",()=>{ state.calendarDate = new Date(); renderCalendar(); save(); });
@@ -946,7 +1008,7 @@ function bindGeneral(){
     const email = $("authEmail").value.trim();
     if(!email) return alert("Укажи email для восстановления пароля.");
     const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin
+      redirectTo: "https://supabase.com"
     });
     if(error){
       renderAuthStatus("error", `Ошибка сброса пароля: ${error.message}`);
@@ -1009,6 +1071,8 @@ function seedDemo(){
   renderAll();
 }
 async function init(){
+  const localState = loadLocalState();
+  if(localState?.data) applyState(localState.data);
   bindNav(); bindForms(); bindFilters(); bindGeneral();
   $("chartMode").value = state.chartMode; $("calendarMode").value = state.calendarMode;
   clearEquipmentForm(); clearClientForm(); clearOperatorForm(); clearOrderForm(); clearRepairForm(); clearOperationForm(); renderAll(); refreshIntegrationForm(); setAppAccess(false);
