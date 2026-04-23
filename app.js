@@ -285,6 +285,7 @@ function typeBadge(t){ return t==="income" ? badge("income","Приход") : ba
 function eqBadge(s){ return {free:badge("free","Свободна"),busy:badge("busy","В работе"),repair:badge("repairstatus","Ремонт")}[s] || badge("free","Свободна"); }
 function statusClass(status){ return `status-${String(status || "new").replace(/[^a-z]/g, "")}`; }
 function getFilterValue(id){ return document.querySelector(`#${id} .filter-chip.active`)?.dataset.value || ""; }
+function isCalendarVisibleOrder(order){ return order?.status !== "cancelled"; }
 function overlap(a1,a2,b1,b2){ return new Date(a1)<=new Date(b2) && new Date(b1)<=new Date(a2); }
 function byId(arr,id){ return arr.find(x=>x.id===id); }
 function normalizeText(v){ return String(v || "").trim().toLowerCase(); }
@@ -563,7 +564,7 @@ function renderCalendarMonth(){
       const cur=new Date(y,m,cell);
       const inMonth=cur.getMonth()===m;
       const ds=cur.toISOString().slice(0,10);
-      const rentEntries=state.orders.filter(o=>o.status!=="cancelled" && o.startDate<=ds && o.endDate>=ds).map(o=>{
+      const rentEntries=state.orders.filter(o=>isCalendarVisibleOrder(o) && o.startDate<=ds && o.endDate>=ds).map(o=>{
         const eq=esc(byId(state.equipment,o.equipmentId)?.name || "Техника");
         const cl=esc(byId(state.clients,o.clientId)?.name || "Клиент");
         return {...o,eq,cl,type:"rent",statusClass:statusClass(o.status)};
@@ -611,7 +612,7 @@ function renderCalendarTimeline(){
     html += `</div>`;
 
     const rowEvents = [
-      ...state.orders.filter(o=>o.equipmentId===eq.id && o.status!=="cancelled").map(o=>({id:o.id,type:"rent",status:o.status,title:esc(byId(state.clients,o.clientId)?.name || "Аренда"),startDate:o.startDate,endDate:o.endDate,conflict:allConflicts.has(o.id)})),
+      ...state.orders.filter(o=>o.equipmentId===eq.id && isCalendarVisibleOrder(o)).map(o=>({id:o.id,type:"rent",status:o.status,title:esc(byId(state.clients,o.clientId)?.name || "Аренда"),startDate:o.startDate,endDate:o.endDate,conflict:allConflicts.has(o.id)})),
       ...state.repairs.filter(r=>r.equipmentId===eq.id && r.status!=="cancelled").map(r=>({id:r.id,type:"repair",title:esc(r.tasks || "Ремонт"),startDate:r.startDate,endDate:r.endDate,conflict:allConflicts.has(r.id)}))
     ];
     const rowIndex = state.equipment.findIndex(e => e.id === eq.id);
