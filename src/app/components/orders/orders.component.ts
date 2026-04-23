@@ -1,4 +1,4 @@
-import { Component, computed, inject } from "@angular/core";
+import { Component, computed, signal, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { NgClass, SlicePipe } from "@angular/common";
 import { StateService } from "../../services/state.service";
@@ -18,8 +18,8 @@ export class OrdersComponent {
   db = inject(DbService);
   utils = inject(UtilsService);
 
-  search = "";
-  filterStatus = "";
+  search = signal("");
+  filterStatus = signal("");
   editingId = "";
 
   form = {
@@ -50,8 +50,8 @@ export class OrdersComponent {
   });
 
   readonly filteredOrders = computed(() => {
-    const q = this.search.toLowerCase();
-    const fs = this.filterStatus;
+    const q = this.search().toLowerCase();
+    const fs = this.filterStatus();
     let list = [...this.state.orders()];
     if (fs) list = list.filter((o) => o.status === fs);
     if (q) {

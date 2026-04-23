@@ -1,17 +1,37 @@
 <div class="row">
   <div class="col-4">
     <div class="card panel">
-      <h3 style="margin-top:0">{{ editingId ? 'Редактирование ремонта' : 'Запланировать ремонт' }}</h3>
+      <h3 style="margin-top: 0">
+        {{ editingId ? "Редактирование ремонта" : "Запланировать ремонт" }}
+      </h3>
       <form (ngSubmit)="save()">
         <div class="field">
           <label>Техника</label>
           <select [(ngModel)]="form.equipmentId" name="equipmentId">
             <option value="">— выбрать —</option>
-            @for (e of state.equipment(); track e.id) { <option [value]="e.id">{{ e.name }}</option> }
+            @for (e of state.equipment(); track e.id) {
+              <option [value]="e.id">{{ e.name }}</option>
+            }
           </select>
         </div>
-        <div class="field"><label>Дата начала</label><input type="date" [(ngModel)]="form.startDate" name="startDate" required></div>
-        <div class="field"><label>Дата окончания</label><input type="date" [(ngModel)]="form.endDate" name="endDate" required></div>
+        <div class="field">
+          <label>Дата начала</label
+          ><input
+            type="date"
+            [(ngModel)]="form.startDate"
+            name="startDate"
+            required
+          />
+        </div>
+        <div class="field">
+          <label>Дата окончания</label
+          ><input
+            type="date"
+            [(ngModel)]="form.endDate"
+            name="endDate"
+            required
+          />
+        </div>
         <div class="field">
           <label>Статус</label>
           <select [(ngModel)]="form.status" name="status">
@@ -21,11 +41,23 @@
             <option value="cancelled">Отменён</option>
           </select>
         </div>
-        <div class="field"><label>Что необходимо сделать</label><textarea [(ngModel)]="form.tasks" name="tasks"></textarea></div>
-        <div class="field"><label>Комментарий</label><textarea [(ngModel)]="form.notes" name="notes"></textarea></div>
+        <div class="field">
+          <label>Что необходимо сделать</label
+          ><textarea [(ngModel)]="form.tasks" name="tasks"></textarea>
+        </div>
+        <div class="field">
+          <label>Комментарий</label
+          ><textarea [(ngModel)]="form.notes" name="notes"></textarea>
+        </div>
         <div class="actions">
-          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить ремонт' }}</button>
-          @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
+          <button type="submit" class="btn primary">
+            {{ editingId ? "Сохранить изменения" : "Сохранить ремонт" }}
+          </button>
+          @if (editingId) {
+            <button type="button" class="btn ghost" (click)="clearForm()">
+              Отмена
+            </button>
+          }
         </div>
       </form>
     </div>
@@ -33,8 +65,16 @@
   <div class="col-8">
     <div class="card panel">
       <div class="toolbar">
-        <input type="text" [(ngModel)]="search" placeholder="Поиск: техника, работы...">
-        <select [(ngModel)]="filterStatus">
+        <input
+          type="text"
+          [value]="search()"
+          (input)="search.set($any($event.target).value)"
+          placeholder="Поиск: техника, работы..."
+        />
+        <select
+          [value]="filterStatus()"
+          (change)="filterStatus.set($any($event.target).value)"
+        >
           <option value="">Все статусы</option>
           <option value="planned">Запланирован</option>
           <option value="active">В ремонте</option>
@@ -49,27 +89,54 @@
       }
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Период</th><th>Техника</th><th>Работы</th><th>Комментарий</th><th>Статус</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Период</th>
+              <th>Техника</th>
+              <th>Работы</th>
+              <th>Комментарий</th>
+              <th>Статус</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
             @for (r of filteredRepairs(); track r.id) {
               <tr>
-                <td>{{ r.id | slice:-5 }}</td>
+                <td>{{ r.id | slice: -5 }}</td>
                 <td>
                   {{ utils.fmtDate(r.startDate) }}
-                  <div class="small">{{ utils.fmtDate(r.endDate) }} • {{ utils.daysInclusive(r.startDate, r.endDate) }} дн.</div>
-                  @if (conflictSet().has(r.id)) { <div class="small" style="color:#fca5a5">Пересекается с арендой</div> }
+                  <div class="small">
+                    {{ utils.fmtDate(r.endDate) }} •
+                    {{ utils.daysInclusive(r.startDate, r.endDate) }} дн.
+                  </div>
+                  @if (conflictSet().has(r.id)) {
+                    <div class="small" style="color: #fca5a5">
+                      Пересекается с арендой
+                    </div>
+                  }
                 </td>
                 <td>{{ eqName(r.equipmentId) }}</td>
-                <td>{{ r.tasks || '—' }}</td>
-                <td>{{ r.notes || '—' }}</td>
-                <td><span class="badge" [ngClass]="statusBadgeClass(r.status)">{{ statusLabel(r.status) }}</span></td>
+                <td>{{ r.tasks || "—" }}</td>
+                <td>{{ r.notes || "—" }}</td>
+                <td>
+                  <span class="badge" [ngClass]="statusBadgeClass(r.status)">{{
+                    statusLabel(r.status)
+                  }}</span>
+                </td>
                 <td>
                   <button class="btn ghost" (click)="edit(r)">Ред.</button>
-                  <button class="btn ghost" (click)="remove(r.id)">Удалить</button>
+                  <button class="btn ghost" (click)="remove(r.id)">
+                    Удалить
+                  </button>
                 </td>
               </tr>
             }
-            @if (!filteredRepairs().length) { <tr><td colspan="7"><div class="empty">Ремонтов пока нет.</div></td></tr> }
+            @if (!filteredRepairs().length) {
+              <tr>
+                <td colspan="7"><div class="empty">Ремонтов пока нет.</div></td>
+              </tr>
+            }
           </tbody>
         </table>
       </div>

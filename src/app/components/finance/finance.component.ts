@@ -1,4 +1,4 @@
-import { Component, computed, inject } from "@angular/core";
+import { Component, computed, signal, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { NgClass, SlicePipe } from "@angular/common";
 import { StateService } from "../../services/state.service";
@@ -18,8 +18,8 @@ export class FinanceComponent {
   db = inject(DbService);
   utils = inject(UtilsService);
 
-  search = "";
-  filterType = "";
+  search = signal("");
+  filterType = signal("");
   editingId = "";
   form = {
     date: "",
@@ -41,8 +41,8 @@ export class FinanceComponent {
   ];
 
   readonly filteredOps = computed(() => {
-    const q = this.search.toLowerCase(),
-      ft = this.filterType;
+    const q = this.search().toLowerCase(),
+      ft = this.filterType();
     let ops = [...this.state.operations()].sort((a, b) =>
       b.date.localeCompare(a.date),
     );
