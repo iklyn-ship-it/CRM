@@ -3,6 +3,20 @@ import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
 import { SupabaseService } from "../../services/supabase.service";
 
+interface ChartPoint {
+  label: string;
+  value: number;
+  percent: number;
+  color: string;
+}
+
+interface MonthlyFinancePoint {
+  label: string;
+  income: number;
+  expense: number;
+  profit: number;
+}
+
 @Component({
   selector: "app-dashboard",
   standalone: true,
@@ -99,26 +113,129 @@ export class DashboardComponent {
     ];
   });
 
-  statusLabel(s: string): string {
-    return (
-      {
-        new: "Новое",
-        confirmed: "Подтверждена",
-        active: "В работе",
-        completed: "Завершена",
-        cancelled: "Отменена",
-      }[s] || "Новое"
+  readonly orderStatusChart = computed((): ChartPoint[] => {
+    const colors: Record<string, string> = {
+      new: "#38bdf8",
+      confirmed: "#22c55e",
+      active: "#f59e0b",
+      completed: "#94a3b8",
+      cancelled: "#ef4444",
+    };
+    const total = Math.max(1, this.state.orders().length);
+    return ["new", "confirmed", "active", "completed", "cancelled"].map(
+      (status) => {
+        const value = this.state.orders().filter((o) => o.status === status)
+          .length;
+        return {
+          label: this.statusLabel(status),
+          value,
+          percent: Math.round((value / total) * 100),
+          color: colors[status] || "#94a3b8",
+        };
+      },
     );
+  });
+
+  readonly financeDonut = computed((): ChartPoint[] => {
+    const income = this.state.totalIncome();
+    const orderExpense = this.state
+      .operations()
+      .filter((o) => o.type === "expense" && o.orderId)
+      .reduce((s, o) => s + Number(o.amount || 0), 0);
+    const repairExpense = this.state
+      .operations()
+      .filter((o) => o.type === "expense" && o.repairId)
+      .reduce((s, o) => s + Number(o.amount || 0), 0);
+    const otherExpense = Math.max(
+      0,
+      this.state.totalExpense() - orderExpense - repairExpense,
+    );
+    const rows = [
+      { label: "Приходы", value: income, color: "#22c55e" },
+      { label: "Расходы по заявкам", value: orderExpense, color: "#f59e0b" },
+      { label: "Ремонты", value: repairExpense, color: "#f97316" },
+      { label: "Прочие расходы", value: otherExpense, color: "#ef4444" },
+    ];
+    const total = Math.max(
+      1,
+      rows.reduce((sum, row) => sum + row.value, 0),
+    );
+    return rows.map((row) => ({
+      ...row,
+      percent: Math.round((row.value / total) * 100),
+    }));
+  });
+
+  readonly monthlyFinance = computed((): MonthlyFinancePoint[] => {
+    const months: MonthlyFinancePoint[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}`;
+      const income = this.state
+        .operations()
+        .filter((o) => o.type === "income" && o.date.startsWith(key))
+        .reduce((s, o) => s + Number(o.amount || 0), 0);
+      const expense = this.state
+        .operations()
+        .filter((o) => o.type === "expense" && o.date.startsWith(key))
+        .reduce((s, o) => s + Number(o.amount || 0), 0);
+      months.push({
+        label: `${String(d.getMonth() + 1).padStart(2, "0")}.${String(
+          d.getFullYear(),
+        ).slice(-2)}`,
+        income,
+        expense,
+        profit: income - expense,
+      });
+    }
+    return months;
+  });
+
+  readonly maxMonthlyValue = computed(() =>
+    Math.max(
+      1,
+      ...this.monthlyFinance().flatMap((m) => [
+        Math.abs(m.income),
+        Math.abs(m.expense),
+        Math.abs(m.profit),
+      ]),
+    ),
+  );
+
+  donutStyle(points: ChartPoint[]): string {
+    let cursor = 0;
+    const slices = points
+      .filter((p) => p.value > 0)
+      .map((p) => {
+        const start = cursor;
+        cursor += p.percent;
+        return `${p.color} ${start}% ${cursor}%`;
+      });
+    return `conic-gradient(${slices.length ? slices.join(", ") : "#334155 0 100%"})`;
+  }
+
+  statusLabel(s: string): string {
+    const labels: Record<string, string> = {
+      new: "Новое",
+      confirmed: "Подтверждена",
+      active: "В работе",
+      completed: "Завершена",
+      cancelled: "Отменена",
+    };
+    return labels[s] || "Новое";
   }
 
   repairStatusLabel(s: string): string {
-    return (
-      {
-        planned: "Запланирован",
-        active: "В ремонте",
-        completed: "Завершён",
-        cancelled: "Отменён",
-      }[s] || "Запланирован"
-    );
+    const labels: Record<string, string> = {
+      planned: "Запланирован",
+      active: "В ремонте",
+      completed: "Завершён",
+      cancelled: "Отменён",
+    };
+    return labels[s] || "Запланирован";
   }
 }

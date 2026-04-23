@@ -20,6 +20,7 @@ export class OrdersComponent {
 
   search = signal("");
   filterStatus = signal("");
+  formOpen = signal(false);
   editingId = "";
 
   form = {
@@ -81,15 +82,24 @@ export class OrdersComponent {
     return this.state.byId(this.state.equipment(), id)?.name || "—";
   }
   statusLabel(s: string): string {
-    return (
-      {
-        new: "Новое",
-        confirmed: "Подтверждена",
-        active: "В работе",
-        completed: "Завершена",
-        cancelled: "Отменена",
-      }[s] || s
-    );
+    const labels: Record<string, string> = {
+      new: "Новое",
+      confirmed: "Подтверждена",
+      active: "В работе",
+      completed: "Завершена",
+      cancelled: "Отменена",
+    };
+    return labels[s] || s;
+  }
+
+  openCreate(): void {
+    this.clearForm();
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
   }
 
   onEquipmentChange(): void {
@@ -108,6 +118,7 @@ export class OrdersComponent {
       });
     }
     this.clearForm();
+    this.formOpen.set(false);
   }
 
   edit(order: Order): void {
@@ -123,6 +134,7 @@ export class OrdersComponent {
       status: order.status,
       notes: order.notes,
     };
+    this.formOpen.set(true);
   }
 
   async remove(id: string): Promise<void> {

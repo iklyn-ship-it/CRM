@@ -1,3 +1,61 @@
 :host {
   display: block;
 }
+
+.orders-page {
+  position: relative;
+}
+
+.orders-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.orders-heading h2 {
+  margin: 0 0 4px;
+  color: #facc15;
+}
+
+.orders-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.order-form-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.order-form-modal {
+  width: min(760px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  border-color: rgba(56, 189, 248, 0.32);
+}
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+  .orders-heading {
+    flex-direction: column;
+  }
+
+  .orders-heading .btn {
+    width: 100%;
+  }
+}

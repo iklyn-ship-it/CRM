@@ -1,9 +1,28 @@
-<div class="row">
-  <div class="col-4">
-    <div class="card panel">
-      <h3 style="margin-top: 0">
-        {{ editingId ? "Редактирование заявки" : "Новая заявка" }}
-      </h3>
+<div class="orders-page">
+  <div class="orders-heading">
+    <div>
+      <h2>Заявки</h2>
+      <p>Создание заявки открывается отдельно, чтобы таблица всегда была в фокусе.</p>
+    </div>
+    <button type="button" class="btn primary" (click)="openCreate()">
+      + Новая заявка
+    </button>
+  </div>
+
+  @if (formOpen()) {
+    <div class="order-form-backdrop" (click)="closeForm()">
+      <div
+        class="card panel order-form-modal"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="modal-head">
+          <h3 style="margin: 0">
+            {{ editingId ? "Редактирование заявки" : "Новая заявка" }}
+          </h3>
+          <button type="button" class="btn ghost" (click)="closeForm()">
+            Закрыть
+          </button>
+        </div>
       <form (ngSubmit)="save()">
         <div class="field">
           <label>Клиент</label>
@@ -91,17 +110,17 @@
           <button type="submit" class="btn primary">
             {{ editingId ? "Сохранить изменения" : "Сохранить заявку" }}
           </button>
-          @if (editingId) {
-            <button type="button" class="btn ghost" (click)="clearForm()">
-              Отмена
-            </button>
-          }
+          <button type="button" class="btn ghost" (click)="closeForm()">
+            Отмена
+          </button>
         </div>
       </form>
+      </div>
     </div>
-  </div>
+  }
 
-  <div class="col-8">
+  <div class="row">
+    <div class="col-12">
     <div class="card panel">
       <div class="toolbar">
         <input
@@ -192,4 +211,5 @@
       </div>
     </div>
   </div>
+</div>
 </div>

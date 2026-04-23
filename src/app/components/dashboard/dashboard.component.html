@@ -33,6 +33,90 @@
   <div [class]="a.kind" style="margin-bottom: 8px">{{ a.text }}</div>
 }
 
+<div class="visual-grid">
+  <div class="card panel chart-card">
+    <div class="chart-head">
+      <h3>Воронка заявок</h3>
+      <span class="small">по текущим статусам</span>
+    </div>
+    <div class="status-bars">
+      @for (item of orderStatusChart(); track item.label) {
+        <div class="status-bar-row">
+          <div class="status-bar-label">
+            <span class="dot" [style.background]="item.color"></span>
+            {{ item.label }}
+          </div>
+          <div class="status-bar-track">
+            <div
+              class="status-bar-fill"
+              [style.background]="item.color"
+              [style.width.%]="item.percent"
+            ></div>
+          </div>
+          <strong>{{ item.value }}</strong>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="card panel chart-card">
+    <div class="chart-head">
+      <h3>Структура денег</h3>
+      <span class="small">приходы и расходы</span>
+    </div>
+    <div class="donut-wrap">
+      <div class="donut" [style.background]="donutStyle(financeDonut())">
+        <div class="donut-hole">
+          <strong>{{ utils.money(state.totalProfit()) }}</strong>
+          <span>cashflow</span>
+        </div>
+      </div>
+      <div class="donut-legend">
+        @for (item of financeDonut(); track item.label) {
+          <div>
+            <span class="dot" [style.background]="item.color"></span>
+            <span>{{ item.label }}</span>
+            <strong>{{ item.percent }}%</strong>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="card panel chart-card wide">
+    <div class="chart-head">
+      <h3>Cashflow по месяцам</h3>
+      <span class="small">последние 6 месяцев</span>
+    </div>
+    <div class="month-chart">
+      @for (m of monthlyFinance(); track m.label) {
+        <div class="month-column">
+          <div class="month-bars">
+            <span
+              class="month-bar income-bar"
+              [style.height.%]="(Math.abs(m.income) / maxMonthlyValue()) * 100"
+            ></span>
+            <span
+              class="month-bar expense-bar"
+              [style.height.%]="(Math.abs(m.expense) / maxMonthlyValue()) * 100"
+            ></span>
+            <span
+              class="month-bar profit-bar"
+              [style.height.%]="(Math.abs(m.profit) / maxMonthlyValue()) * 100"
+            ></span>
+          </div>
+          <div class="small">{{ m.label }}</div>
+        </div>
+      }
+    </div>
+    <div class="chart-legend">
+      <span><i class="legend-income"></i>Приход</span>
+      <span><i class="legend-expense"></i>Расход</span>
+      <span><i class="legend-profit"></i>Прибыль</span>
+    </div>
+  </div>
+</div>
+
 <div class="dash-grid">
   <!-- Left: chart + events -->
   <div class="dash-left">
