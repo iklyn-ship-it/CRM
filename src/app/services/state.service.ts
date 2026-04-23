@@ -53,13 +53,21 @@ export class StateService {
   );
 
   readonly totalExpense = computed(() =>
+    this.manualExpense() + this.operatorPayroll(),
+  );
+
+  readonly totalProfit = computed(
+    () => this.totalIncome() - this.totalExpense(),
+  );
+
+  readonly manualExpense = computed(() =>
     this.operations()
       .filter((o) => o.type === "expense")
       .reduce((s, o) => s + Number(o.amount || 0), 0),
   );
 
-  readonly totalProfit = computed(
-    () => this.totalIncome() - this.totalExpense(),
+  readonly operatorPayroll = computed(() =>
+    this.orders().reduce((sum, order) => sum + this.orderOperatorCost(order), 0),
   );
 
   readonly avgUtilization = computed(() => {
@@ -162,6 +170,14 @@ export class StateService {
   }
 
   orderExpense(orderId: string): number {
+    const order = this.byId(this.orders(), orderId);
+    return (
+      this.orderManualExpense(orderId) +
+      (order ? this.orderOperatorCost(order) : 0)
+    );
+  }
+
+  orderManualExpense(orderId: string): number {
     return this.orderOps(orderId)
       .filter((o) => o.type === "expense")
       .reduce((s, o) => s + Number(o.amount || 0), 0);
@@ -169,6 +185,21 @@ export class StateService {
 
   orderProfit(orderId: string): number {
     return this.orderIncome(orderId) - this.orderExpense(orderId);
+  }
+
+  orderOperatorCost(order: Order, fromDate = "", toDate = ""): number {
+    if (!order.operatorId || order.status === "cancelled") return 0;
+    const operator = this.byId(this.operators(), order.operatorId);
+    if (!operator?.rate) return 0;
+
+    const startDate =
+      fromDate && fromDate > order.startDate ? fromDate : order.startDate;
+    const endDate = toDate && toDate < order.endDate ? toDate : order.endDate;
+    if (startDate > endDate) return 0;
+
+    return (
+      this.utils.daysInclusive(startDate, endDate) * Number(operator.rate || 0)
+    );
   }
 
   orderRemaining(order: Order): number {

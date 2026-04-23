@@ -245,6 +245,15 @@
               </div>
               <div class="ledger-column">
                 <h4>Расходы по заявке</h4>
+                @if (row.operatorExpense > 0) {
+                  <div class="ledger-line expense-line">
+                    <div>
+                      <strong>{{ utils.money(row.operatorExpense) }}</strong>
+                      <span>Зарплата оператора</span>
+                    </div>
+                    <small>Автоматически по ставке и сроку заявки</small>
+                  </div>
+                }
                 @for (op of row.expenseOps; track op.id) {
                   <div class="ledger-line expense-line">
                     <div>
@@ -257,7 +266,7 @@
                     }
                   </div>
                 }
-                @if (!row.expenseOps.length) {
+                @if (!row.expenseOps.length && !row.operatorExpense) {
                   <div class="empty compact">Расходов по заявке нет.</div>
                 }
               </div>

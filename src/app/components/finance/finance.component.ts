@@ -13,6 +13,8 @@ interface OrderFinanceRow {
   plan: number;
   income: number;
   expense: number;
+  manualExpense: number;
+  operatorExpense: number;
   profit: number;
   remaining: number;
   incomeOps: FinanceOperation[];
@@ -89,10 +91,12 @@ export class FinanceComponent {
           (sum, op) => sum + Number(op.amount || 0),
           0,
         );
-        const expense = expenseOps.reduce(
+        const manualExpense = expenseOps.reduce(
           (sum, op) => sum + Number(op.amount || 0),
           0,
         );
+        const operatorExpense = this.state.orderOperatorCost(order);
+        const expense = manualExpense + operatorExpense;
         const plan = this.state.orderPlan(order);
 
         return {
@@ -102,6 +106,8 @@ export class FinanceComponent {
           plan,
           income,
           expense,
+          manualExpense,
+          operatorExpense,
           profit: income - expense,
           remaining: Math.max(0, plan - income),
           incomeOps,

@@ -153,6 +153,18 @@ export class DashboardComponent {
         const income = ops
           .filter((op) => op.type === "income" && orderIds.has(op.orderId))
           .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+        const operatorExpense = orders
+          .filter((o) => o.equipmentId === eq.id)
+          .reduce(
+            (sum, order) =>
+              sum +
+              this.state.orderOperatorCost(
+                order,
+                this.periodStart(),
+                this.periodEnd(),
+              ),
+            0,
+          );
         const orderExpense = ops
           .filter((op) => op.type === "expense" && orderIds.has(op.orderId))
           .reduce((sum, op) => sum + Number(op.amount || 0), 0);
@@ -162,8 +174,8 @@ export class DashboardComponent {
         return {
           name: eq.name,
           income,
-          expense: orderExpense + repairExpense,
-          profit: income - orderExpense - repairExpense,
+          expense: orderExpense + operatorExpense + repairExpense,
+          profit: income - orderExpense - operatorExpense - repairExpense,
         };
       })
       .filter((item) => item.income || item.expense || item.profit)
@@ -189,9 +201,11 @@ export class DashboardComponent {
     const linkedExpense = ops
       .filter((o) => o.type === "expense" && o.orderId)
       .reduce((s, o) => s + Number(o.amount || 0), 0);
+    const operatorSpend = this.periodOperatorPayroll();
     return [
       { label: "Доход по аренде", value: linkedIncome },
       { label: "Расходы по аренде", value: linkedExpense },
+      { label: "Зарплата операторов", value: operatorSpend },
       { label: "Расходы на ремонты", value: repairSpend },
       {
         label: "Cashflow за период",
@@ -232,13 +246,19 @@ export class DashboardComponent {
     const repairExpense = ops
       .filter((o) => o.type === "expense" && o.repairId)
       .reduce((s, o) => s + Number(o.amount || 0), 0);
+    const operatorExpense = this.periodOperatorPayroll();
     const otherExpense = Math.max(
       0,
-      this.periodExpense() - orderExpense - repairExpense,
+      this.periodExpense() - orderExpense - operatorExpense - repairExpense,
     );
     const rows = [
       { label: "Приходы", value: income, color: "#22c55e" },
       { label: "Расходы по заявкам", value: orderExpense, color: "#f59e0b" },
+      {
+        label: "Зарплата операторов",
+        value: operatorExpense,
+        color: "#8b5cf6",
+      },
       { label: "Ремонты", value: repairExpense, color: "#f97316" },
       { label: "Прочие расходы", value: otherExpense, color: "#ef4444" },
     ];
@@ -264,7 +284,8 @@ export class DashboardComponent {
         .reduce((s, o) => s + Number(o.amount || 0), 0);
       const expense = this.periodOperations()
         .filter((o) => o.type === "expense" && o.date.startsWith(key))
-        .reduce((s, o) => s + Number(o.amount || 0), 0);
+        .reduce((s, o) => s + Number(o.amount || 0), 0) +
+        this.operatorPayrollForMonth(key);
       months.push({
         label: `${String(d.getMonth() + 1).padStart(2, "0")}.${String(
           d.getFullYear(),
@@ -292,7 +313,9 @@ export class DashboardComponent {
     const from = this.periodStart();
     const to = this.periodEnd();
     if (!from && !to) return "за всё время";
-    if (from && to) return `${this.utils.fmtDate(from)} — ${this.utils.fmtDate(to)}`;
+    if (from && to) {
+      return `${this.utils.fmtDate(from)} — ${this.utils.fmtDate(to)}`;
+    }
     if (from) return `с ${this.utils.fmtDate(from)}`;
     return `до ${this.utils.fmtDate(to || "")}`;
   });
@@ -306,7 +329,8 @@ export class DashboardComponent {
   periodExpense(): number {
     return this.periodOperations()
       .filter((o) => o.type === "expense")
-      .reduce((s, o) => s + Number(o.amount || 0), 0);
+      .reduce((s, o) => s + Number(o.amount || 0), 0) +
+      this.periodOperatorPayroll();
   }
 
   setActiveChart(chart: DashboardChart): void {
@@ -442,18 +466,66 @@ export class DashboardComponent {
   }
 
   private orderProfitInPeriod(orderId: string): number {
+    const order = this.state.byId(this.state.orders(), orderId);
+    const operatorCost = order
+      ? this.state.orderOperatorCost(order, this.periodStart(), this.periodEnd())
+      : 0;
     return this.periodOperations()
       .filter((op) => op.orderId === orderId)
       .reduce(
         (sum, op) =>
           sum + (op.type === "income" ? 1 : -1) * Number(op.amount || 0),
         0,
-      );
+      ) - operatorCost;
   }
 
   private repairExpenseInPeriod(repairId: string): number {
     return this.periodOperations()
       .filter((op) => op.repairId === repairId && op.type === "expense")
       .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+  }
+
+  private periodOperatorPayroll(): number {
+    return this.periodOrders().reduce(
+      (sum, order) =>
+        sum +
+        this.state.orderOperatorCost(
+          order,
+          this.periodStart(),
+          this.periodEnd(),
+        ),
+      0,
+    );
+  }
+
+  private operatorPayrollForMonth(monthKey: string): number {
+    const monthStart = `${monthKey}-01`;
+    const [year, month] = monthKey.split("-").map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    const monthEnd = `${monthKey}-${String(lastDay).padStart(2, "0")}`;
+    return this.periodOrders()
+      .filter(
+        (order) => order.startDate <= monthEnd && order.endDate >= monthStart,
+      )
+      .reduce(
+        (sum, order) =>
+          sum +
+          this.state.orderOperatorCost(
+            order,
+            this.maxDate(monthStart, this.periodStart()),
+            this.minDate(monthEnd, this.periodEnd()),
+          ),
+        0,
+      );
+  }
+
+  private maxDate(a: string, b: string): string {
+    if (!b) return a;
+    return a > b ? a : b;
+  }
+
+  private minDate(a: string, b: string): string {
+    if (!b) return a;
+    return a < b ? a : b;
   }
 }
