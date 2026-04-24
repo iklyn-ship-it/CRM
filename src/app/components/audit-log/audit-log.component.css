@@ -5,7 +5,7 @@
 .journal-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .journal-head h2 {
@@ -20,70 +20,81 @@
 .journal-filters {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 220px 220px;
-  gap: 12px;
+  gap: 10px;
+  padding: 12px;
 }
 
 .journal-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .journal-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+  padding: 12px;
 }
 
 .journal-meta {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   align-items: flex-start;
 }
 
 .journal-main {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   flex-wrap: wrap;
 }
 
+.journal-main strong {
+  font-size: 14px;
+}
+
 .entity-label {
   color: #facc15;
+  font-size: 13px;
 }
 
 .journal-summary {
   color: #e5e7eb;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .changes-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: 6px;
+  padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.02);
 }
 
 .change-row {
   display: grid;
   grid-template-columns: 180px 1fr;
-  gap: 12px;
+  gap: 8px;
   align-items: start;
 }
 
 .change-label {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .change-values {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  font-size: 12px;
+  line-height: 1.3;
 }
 
 .change-values i {
