@@ -1,4 +1,5 @@
 import { Component, inject } from "@angular/core";
+import { NgClass } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
@@ -8,7 +9,7 @@ import { Operator } from "../../models/crm.models";
 @Component({
   selector: "app-operators",
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, NgClass],
   templateUrl: "./operators.component.html",
   styleUrl: "./operators.component.css",
 })
@@ -19,6 +20,14 @@ export class OperatorsComponent {
 
   editingId = "";
   form = { name: "", phone: "", skill: "", rate: 0 };
+
+  operatorBadgeClass(status: "free" | "busy"): string {
+    return status === "busy" ? "busy" : "free";
+  }
+
+  operatorBadgeLabel(status: "free" | "busy"): string {
+    return status === "busy" ? "В работе" : "Свободен";
+  }
 
   opShifts(opId: string): number {
     return this.state

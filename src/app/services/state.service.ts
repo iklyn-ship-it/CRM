@@ -255,6 +255,19 @@ export class StateService {
     return used ? "busy" : "free";
   }
 
+  runtimeOperatorStatus(operatorId: string): "free" | "busy" {
+    const now = this.utils.todayStr();
+    const busy = this.orders().some(
+      (o) =>
+        o.operatorId === operatorId &&
+        o.status !== "cancelled" &&
+        o.status !== "completed" &&
+        o.startDate <= now &&
+        o.endDate >= now,
+    );
+    return busy ? "busy" : "free";
+  }
+
   utilForEq(eqId: string, date: Date): number {
     const year = date.getFullYear(),
       month = date.getMonth();

@@ -19,11 +19,16 @@
       <h3 style="margin-top:0">Операторы</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
+          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Статус</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
           <tbody>
             @for (op of state.operators(); track op.id) {
               <tr>
                 <td>{{ op.name }}</td><td>{{ op.phone || '—' }}</td><td>{{ op.skill || '—' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="operatorBadgeClass(state.runtimeOperatorStatus(op.id))">
+                    {{ operatorBadgeLabel(state.runtimeOperatorStatus(op.id)) }}
+                  </span>
+                </td>
                 <td>{{ opShifts(op.id) }}</td>
                 <td>{{ utils.money(opShifts(op.id) * (op.rate || 0)) }}</td>
                 <td>
@@ -32,7 +37,7 @@
                 </td>
               </tr>
             }
-            @if (!state.operators().length) { <tr><td colspan="6"><div class="empty">Нет операторов.</div></td></tr> }
+            @if (!state.operators().length) { <tr><td colspan="7"><div class="empty">Нет операторов.</div></td></tr> }
           </tbody>
         </table>
       </div>
