@@ -428,14 +428,26 @@ export class DbService {
   }
 
   private entityLabel(table: string, record: Record<string, any>): string {
-    if (table === "clients") return record.name || record.id || "без названия";
-    if (table === "equipment") return record.name || record.code || record.id || "без названия";
-    if (table === "operators") return record.name || record.id || "без имени";
-    if (table === "orders") return record.id ? String(record.id).slice(-5) : "без ID";
-    if (table === "repairs") return record.tasks || record.id || "без описания";
-    if (table === "operations") return record.category || record.id || "операция";
+    if (table === "clients") {
+      return record["name"] || record["id"] || "без названия";
+    }
+    if (table === "equipment") {
+      return record["name"] || record["code"] || record["id"] || "без названия";
+    }
+    if (table === "operators") {
+      return record["name"] || record["id"] || "без имени";
+    }
+    if (table === "orders") {
+      return record["id"] ? String(record["id"]).slice(-5) : "без ID";
+    }
+    if (table === "repairs") {
+      return record["tasks"] || record["id"] || "без описания";
+    }
+    if (table === "operations") {
+      return record["category"] || record["id"] || "операция";
+    }
     if (table === "integrations") return "Google Таблицы";
-    return record.id || "запись";
+    return record["id"] || "запись";
   }
 
   private fieldLabel(field: string): string {
