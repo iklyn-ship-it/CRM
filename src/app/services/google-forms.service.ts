@@ -114,13 +114,10 @@ export class GoogleFormsService {
       }
 
       const clientId = await this.ensureClient(record);
-      const equipmentId = this.findEquipmentId(record);
+      const equipmentId = await this.ensureEquipment(record);
       const operatorId = this.findOperatorId(record);
       const notes = [
         (record.notes || "").trim(),
-        !equipmentId && (record.equipmentCode || record.equipmentName)
-          ? `Техника из формы: ${record.equipmentCode || record.equipmentName}`
-          : "",
         responseId ? `Google Sheets ID: ${responseId}` : "Google Sheets import",
       ]
         .filter(Boolean)
@@ -176,6 +173,25 @@ export class GoogleFormsService {
           .find((item) => this.utils.normalizeText(item.name) === name)?.id ||
           ""
       : "";
+  }
+
+  private async ensureEquipment(record: GoogleFormResponse): Promise<string> {
+    const existingId = this.findEquipmentId(record);
+    if (existingId) return existingId;
+
+    const code = (record.equipmentCode || "").trim();
+    const name = (record.equipmentName || "").trim();
+    if (!code && !name) return "";
+
+    const equipment = await this.db.insert("equipment", {
+      id: this.utils.uid("eq"),
+      name: name || code || "Техника из Google Forms",
+      type: "Из формы",
+      code,
+      defaultRate: Number(record.rate || 0),
+      status: "free",
+    });
+    return equipment.id;
   }
 
   private async ensureClient(record: GoogleFormResponse): Promise<string> {
