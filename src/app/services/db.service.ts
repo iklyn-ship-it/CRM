@@ -357,7 +357,7 @@ export class DbService {
         user_id: this.supa.userId,
         actor_email: this.supa.user()?.email || "",
         entity_type: table,
-        entity_id: String(next?.id || previous?.id || ""),
+        entity_id: String(next?.["id"] || previous?.["id"] || ""),
         entity_label: this.entityLabel(table, next || previous || {}),
         action,
         summary: this.buildSummary(table, action, next || previous || {}, changes),
