@@ -35,6 +35,7 @@ export interface Order {
   rate: number;
   status: OrderStatus;
   notes: string;
+  createdAt: string;
 }
 
 export type OrderStatus = 'new' | 'confirmed' | 'active' | 'completed' | 'cancelled';

@@ -163,6 +163,7 @@
           <thead>
             <tr>
               <th>ID</th>
+              <th>Создана</th>
               <th>Период</th>
               <th>Клиент</th>
               <th>Техника</th>
@@ -178,6 +179,7 @@
             @for (o of filteredOrders(); track o.id) {
               <tr>
                 <td>{{ o.id | slice: -5 }}</td>
+                <td>{{ o.createdAt ? utils.fmtDate(o.createdAt.slice(0, 10)) : "—" }}</td>
                 <td>
                   {{ utils.fmtDate(o.startDate) }}
                   <div class="small">
@@ -216,7 +218,7 @@
             }
             @if (!filteredOrders().length) {
               <tr>
-                <td colspan="10">
+                <td colspan="11">
                   <div class="empty">Ничего не найдено.</div>
                 </td>
               </tr>
