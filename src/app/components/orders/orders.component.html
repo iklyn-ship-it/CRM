@@ -56,6 +56,14 @@
               </option>
             }
           </select>
+          @if (formOperatorConflict(); as conflict) {
+            <div class="operator-busy-warning">
+              Оператор занят в другой заявке:
+              {{ eqName(conflict.equipmentId) }} •
+              {{ utils.fmtDate(conflict.startDate) }} -
+              {{ utils.fmtDate(conflict.endDate) }}
+            </div>
+          }
         </div>
         <div class="field">
           <label>Дата начала</label
@@ -179,6 +187,11 @@
                   @if (conflictSet().has(o.id)) {
                     <div class="small" style="color: #fca5a5">
                       Конфликт по технике
+                    </div>
+                  }
+                  @if (operatorConflictSet().has(o.id)) {
+                    <div class="small" style="color: #fdba74">
+                      Оператор занят в другой заявке
                     </div>
                   }
                 </td>

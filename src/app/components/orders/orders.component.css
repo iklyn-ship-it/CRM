@@ -50,6 +50,16 @@
   margin-bottom: 16px;
 }
 
+.operator-busy-warning {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(251, 146, 60, 0.28);
+  border-radius: 12px;
+  background: rgba(124, 45, 18, 0.18);
+  color: #fdba74;
+  font-size: 13px;
+}
+
 @media (max-width: 720px) {
   .orders-heading {
     flex-direction: column;

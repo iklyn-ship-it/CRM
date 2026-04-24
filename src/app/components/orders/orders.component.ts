@@ -50,6 +50,31 @@ export class OrdersComponent {
     return new Set(conf.flatMap((x) => [x[0], x[1]]));
   });
 
+  readonly operatorConflictSet = computed(() => {
+    const conf = this.state.operatorConflicts();
+    return new Set(conf.flatMap((x) => [x[0], x[1]]));
+  });
+
+  readonly formOperatorConflict = computed(() => {
+    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+      return null;
+    }
+    return (
+      this.state.orders().find(
+        (order) =>
+          order.id !== this.editingId &&
+          order.status !== "cancelled" &&
+          order.operatorId === this.form.operatorId &&
+          this.utils.overlap(
+            this.form.startDate,
+            this.form.endDate,
+            order.startDate,
+            order.endDate,
+          ),
+      ) || null
+    );
+  });
+
   readonly filteredOrders = computed(() => {
     const q = this.search().toLowerCase();
     const fs = this.filterStatus();
@@ -81,6 +106,9 @@ export class OrdersComponent {
   eqName(id: string): string {
     return this.state.byId(this.state.equipment(), id)?.name || "—";
   }
+  operatorName(id: string): string {
+    return this.state.byId(this.state.operators(), id)?.name || "—";
+  }
   statusLabel(s: string): string {
     const labels: Record<string, string> = {
       new: "Новое",
@@ -109,6 +137,15 @@ export class OrdersComponent {
 
   async save(): Promise<void> {
     if (!this.form.startDate || !this.form.endDate) return;
+    const operatorConflict = this.formOperatorConflict();
+    if (operatorConflict) {
+      const conflictEquipment =
+        this.eqName(operatorConflict.equipmentId) || "другая техника";
+      alert(
+        `Оператор занят в другой заявке: ${conflictEquipment}, ${this.utils.fmtDate(operatorConflict.startDate)} - ${this.utils.fmtDate(operatorConflict.endDate)}.`,
+      );
+      return;
+    }
     if (this.editingId) {
       await this.db.update("orders", this.editingId, this.form);
     } else {

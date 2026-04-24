@@ -97,6 +97,27 @@ export class StateService {
     return list;
   });
 
+  readonly operatorConflicts = computed((): [string, string, string][] => {
+    const list: [string, string, string][] = [];
+    const orders = this.orders().filter(
+      (o) => o.status !== "cancelled" && o.operatorId,
+    );
+    for (let i = 0; i < orders.length; i++) {
+      for (let j = i + 1; j < orders.length; j++) {
+        const a = orders[i],
+          b = orders[j];
+        if (
+          a.operatorId &&
+          a.operatorId === b.operatorId &&
+          this.utils.overlap(a.startDate, a.endDate, b.startDate, b.endDate)
+        ) {
+          list.push([a.id, b.id, a.operatorId]);
+        }
+      }
+    }
+    return list;
+  });
+
   readonly repairConflicts = computed((): [string, string, string][] => {
     const list: [string, string, string][] = [];
     this.repairs()
