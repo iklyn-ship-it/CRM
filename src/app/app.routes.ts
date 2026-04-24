@@ -86,6 +86,13 @@ export const routes: Routes = [
             (m) => m.SettingsComponent,
           ),
       },
+      {
+        path: "journal",
+        loadComponent: () =>
+          import("./components/audit-log/audit-log.component").then(
+            (m) => m.AuditLogComponent,
+          ),
+      },
       { path: "", redirectTo: "dashboard", pathMatch: "full" },
     ],
   },

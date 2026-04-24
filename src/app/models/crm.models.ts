@@ -63,6 +63,26 @@ export interface FinanceOperation {
   comment: string;
 }
 
+export interface AuditLogChange {
+  field: string;
+  label: string;
+  from: string;
+  to: string;
+}
+
+export interface AuditLog {
+  id: string;
+  actorId: string;
+  actorEmail: string;
+  entityType: string;
+  entityId: string;
+  entityLabel: string;
+  action: 'create' | 'update' | 'delete';
+  summary: string;
+  changes: AuditLogChange[];
+  createdAt: string;
+}
+
 export interface Integrations {
   googleFormsUrl: string;
   autoSync: boolean;

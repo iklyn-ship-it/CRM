@@ -34,6 +34,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
     { path: "/clients", label: "Клиенты" },
     { path: "/operators", label: "Операторы" },
     { path: "/integrations", label: "Google Таблицы" },
+    { path: "/journal", label: "Журнал" },
     { path: "/settings", label: "Настройки" },
   ];
 

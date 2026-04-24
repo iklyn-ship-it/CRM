@@ -8,6 +8,8 @@ import {
   Order,
   Repair,
   FinanceOperation,
+  AuditLog,
+  AuditLogChange,
   Integrations,
 } from "../models/crm.models";
 
@@ -39,6 +41,16 @@ export class DbService {
     "orders",
     "repairs",
     "operations",
+    "audit_logs",
+  ] as const;
+  private readonly auditableTables = [
+    "clients",
+    "equipment",
+    "operators",
+    "orders",
+    "repairs",
+    "operations",
+    "integrations",
   ] as const;
 
   readonly clients = signal<Client[]>([]);
@@ -47,6 +59,7 @@ export class DbService {
   readonly orders = signal<Order[]>([]);
   readonly repairs = signal<Repair[]>([]);
   readonly operations = signal<FinanceOperation[]>([]);
+  readonly auditLogs = signal<AuditLog[]>([]);
   readonly integrations = signal<Integrations>({
     googleFormsUrl: "",
     autoSync: false,
@@ -82,6 +95,7 @@ export class DbService {
       orders,
       repairs,
       operations,
+      auditLogs,
       integ,
       settings,
     ] = await Promise.all([
@@ -91,6 +105,11 @@ export class DbService {
       this.supa.client.from("orders").select("*"),
       this.supa.client.from("repairs").select("*"),
       this.supa.client.from("operations").select("*"),
+      this.supa.client
+        .from("audit_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(300),
       this.supa.client
         .from("integrations")
         .select("*")
@@ -110,6 +129,7 @@ export class DbService {
     this.orders.set((orders.data || []).map((r) => toCamel(r) as any));
     this.repairs.set((repairs.data || []).map((r) => toCamel(r) as any));
     this.operations.set((operations.data || []).map((r) => toCamel(r) as any));
+    this.auditLogs.set((auditLogs.data || []).map((r) => toCamel(r) as any));
 
     if (integ.data) {
       const d = toCamel(integ.data) as any;
@@ -167,7 +187,15 @@ export class DbService {
   private async reloadTable(table: string): Promise<void> {
     const uid = this.supa.userId;
     if (!uid) return;
-    const { data } = await this.supa.client.from(table).select("*");
+    const query =
+      table === "audit_logs"
+        ? this.supa.client
+            .from(table)
+            .select("*")
+            .order("created_at", { ascending: false })
+            .limit(300)
+        : this.supa.client.from(table).select("*");
+    const { data } = await query;
     const rows = (data || []).map((r) => toCamel(r) as any);
     const signalMap: Record<string, WritableSignal<any[]>> = {
       clients: this.clients,
@@ -176,6 +204,7 @@ export class DbService {
       orders: this.orders,
       repairs: this.repairs,
       operations: this.operations,
+      audit_logs: this.auditLogs,
     };
     signalMap[table]?.set(rows);
   }
@@ -190,6 +219,7 @@ export class DbService {
       .select()
       .single();
     if (error) throw error;
+    await this.writeAuditLog(table, "create", null, toCamel(data));
     await this.reloadTable(table);
     return toCamel(data);
   }
@@ -199,6 +229,7 @@ export class DbService {
     id: string,
     changes: Record<string, any>,
   ): Promise<any> {
+    const previous = this.getLocalRow(table, id);
     const row = toSnake(changes);
     delete row["id"];
     delete row["user_id"];
@@ -209,13 +240,16 @@ export class DbService {
       .select()
       .single();
     if (error) throw error;
+    await this.writeAuditLog(table, "update", previous, toCamel(data));
     await this.reloadTable(table);
     return toCamel(data);
   }
 
   async remove(table: string, id: string): Promise<void> {
+    const previous = this.getLocalRow(table, id);
     const { error } = await this.supa.client.from(table).delete().eq("id", id);
     if (error) throw error;
+    await this.writeAuditLog(table, "delete", previous, null);
     await this.reloadTable(table);
   }
 
@@ -269,6 +303,7 @@ export class DbService {
     this.orders.set([]);
     this.repairs.set([]);
     this.operations.set([]);
+    this.auditLogs.set([]);
     this.integrations.set({
       googleFormsUrl: "",
       autoSync: false,
@@ -281,5 +316,164 @@ export class DbService {
       calendarMode: "month",
       calendarDate: "",
     });
+  }
+
+  private getLocalRow(table: string, id: string): Record<string, any> | null {
+    const rows = this.localRows(table);
+    return rows.find((row: any) => row.id === id) || null;
+  }
+
+  private localRows(table: string): any[] {
+    const signalMap: Record<string, () => any[]> = {
+      clients: this.clients,
+      equipment: this.equipment,
+      operators: this.operators,
+      orders: this.orders,
+      repairs: this.repairs,
+      operations: this.operations,
+    };
+    return signalMap[table]?.() || [];
+  }
+
+  private isAuditableTable(table: string): boolean {
+    return (this.auditableTables as readonly string[]).includes(table);
+  }
+
+  private async writeAuditLog(
+    table: string,
+    action: AuditLog["action"],
+    previous: Record<string, any> | null,
+    next: Record<string, any> | null,
+  ): Promise<void> {
+    if (!this.isAuditableTable(table) || table === "audit_logs") return;
+
+    try {
+      const changes =
+        action === "update" ? this.buildChanges(previous || {}, next || {}) : [];
+      const payload = {
+        id: this.supa.userId
+          ? `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+          : "",
+        user_id: this.supa.userId,
+        actor_email: this.supa.user()?.email || "",
+        entity_type: table,
+        entity_id: String(next?.id || previous?.id || ""),
+        entity_label: this.entityLabel(table, next || previous || {}),
+        action,
+        summary: this.buildSummary(table, action, next || previous || {}, changes),
+        changes,
+      };
+
+      if (!payload.id || !payload.user_id) return;
+
+      await this.supa.client.from("audit_logs").insert(payload);
+    } catch {
+      // Audit log should never break the main CRM action.
+    }
+  }
+
+  private buildChanges(
+    previous: Record<string, any>,
+    next: Record<string, any>,
+  ): AuditLogChange[] {
+    const ignored = new Set([
+      "id",
+      "userId",
+      "user_id",
+      "createdAt",
+      "created_at",
+      "updatedAt",
+      "updated_at",
+    ]);
+    const keys = new Set([...Object.keys(previous), ...Object.keys(next)]);
+    return [...keys]
+      .filter((key) => !ignored.has(key))
+      .filter(
+        (key) => JSON.stringify(previous[key] ?? "") !== JSON.stringify(next[key] ?? ""),
+      )
+      .map((key) => ({
+        field: key,
+        label: this.fieldLabel(key),
+        from: this.stringifyValue(previous[key]),
+        to: this.stringifyValue(next[key]),
+      }))
+      .slice(0, 12);
+  }
+
+  private buildSummary(
+    table: string,
+    action: AuditLog["action"],
+    record: Record<string, any>,
+    changes: AuditLogChange[],
+  ): string {
+    const entity = this.entityTitle(table);
+    const label = this.entityLabel(table, record);
+    if (action === "create") return `Создан ${entity}: ${label}`;
+    if (action === "delete") return `Удален ${entity}: ${label}`;
+    if (!changes.length) return `Обновлен ${entity}: ${label}`;
+    return `Обновлен ${entity}: ${label} (${changes.map((c) => c.label).join(", ")})`;
+  }
+
+  private entityTitle(table: string): string {
+    const labels: Record<string, string> = {
+      clients: "клиент",
+      equipment: "техника",
+      operators: "оператор",
+      orders: "заявка",
+      repairs: "ремонт",
+      operations: "финансовая операция",
+      integrations: "интеграция",
+    };
+    return labels[table] || table;
+  }
+
+  private entityLabel(table: string, record: Record<string, any>): string {
+    if (table === "clients") return record.name || record.id || "без названия";
+    if (table === "equipment") return record.name || record.code || record.id || "без названия";
+    if (table === "operators") return record.name || record.id || "без имени";
+    if (table === "orders") return record.id ? String(record.id).slice(-5) : "без ID";
+    if (table === "repairs") return record.tasks || record.id || "без описания";
+    if (table === "operations") return record.category || record.id || "операция";
+    if (table === "integrations") return "Google Таблицы";
+    return record.id || "запись";
+  }
+
+  private fieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      name: "Название",
+      phone: "Телефон",
+      source: "Источник",
+      type: "Тип",
+      notes: "Комментарий",
+      code: "Код",
+      defaultRate: "Ставка по умолчанию",
+      status: "Статус",
+      clientId: "Клиент",
+      equipmentId: "Техника",
+      operatorId: "Оператор",
+      startDate: "Дата начала",
+      endDate: "Дата окончания",
+      location: "Локация",
+      rate: "Тариф",
+      tasks: "Работы",
+      date: "Дата",
+      category: "Категория",
+      amount: "Сумма",
+      orderId: "Заявка",
+      repairId: "Ремонт",
+      comment: "Комментарий",
+      googleFormsUrl: "Google Таблицы",
+      autoSync: "Автосинхронизация",
+      lastSyncStatus: "Статус синхронизации",
+    };
+    return labels[field] || field;
+  }
+
+  private stringifyValue(value: any): string {
+    if (value === null || value === undefined || value === "") return "—";
+    if (typeof value === "boolean") return value ? "Да" : "Нет";
+    if (Array.isArray(value)) return value.join(", ") || "—";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
   }
 }

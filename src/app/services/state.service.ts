@@ -24,6 +24,7 @@ export class StateService {
   readonly orders = this.db.orders;
   readonly repairs = this.db.repairs;
   readonly operations = this.db.operations;
+  readonly auditLogs = this.db.auditLogs;
   readonly integrations = this.db.integrations;
   readonly userSettings = this.db.userSettings;
   readonly loading = this.db.loading;

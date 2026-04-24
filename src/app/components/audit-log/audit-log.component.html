@@ -1,0 +1,70 @@
+<div class="journal-page">
+  <div class="journal-head">
+    <div>
+      <h2>Журнал изменений</h2>
+      <p>Кто создавал и редактировал клиентов, технику, заявки, ремонты и финансы.</p>
+    </div>
+  </div>
+
+  <div class="card panel journal-filters">
+    <input
+      type="text"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+      placeholder="Поиск: email, объект, описание..."
+    />
+
+    <select [ngModel]="filterEntity()" (ngModelChange)="filterEntity.set($event)">
+      @for (item of entities; track item.value) {
+        <option [value]="item.value">{{ item.label }}</option>
+      }
+    </select>
+
+    <select [ngModel]="filterAction()" (ngModelChange)="filterAction.set($event)">
+      @for (item of actions; track item.value) {
+        <option [value]="item.value">{{ item.label }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="journal-list">
+    @for (log of filteredLogs(); track log.id) {
+      <article class="card panel journal-card">
+        <div class="journal-meta">
+          <div class="journal-main">
+            <span class="badge" [class]="log.action">{{ actionLabel(log.action) }}</span>
+            <strong>{{ entityLabel(log.entityType) }}</strong>
+            <span class="entity-label">{{ log.entityLabel }}</span>
+          </div>
+          <div class="small">
+            {{ utils.fmtDate(log.createdAt.slice(0, 10)) }} •
+            {{ log.actorEmail || "неизвестный пользователь" }}
+          </div>
+        </div>
+
+        <div class="journal-summary">{{ log.summary }}</div>
+
+        @if (log.changes?.length) {
+          <div class="changes-list">
+            @for (change of log.changes; track change.field) {
+              <div class="change-row">
+                <div class="change-label">{{ change.label }}</div>
+                <div class="change-values">
+                  <span>{{ change.from }}</span>
+                  <i>→</i>
+                  <span>{{ change.to }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </article>
+    }
+
+    @if (!filteredLogs().length) {
+      <div class="card panel empty">
+        Журнал пока пуст. После применения SQL-миграции здесь начнут появляться новые изменения.
+      </div>
+    }
+  </div>
+</div>
