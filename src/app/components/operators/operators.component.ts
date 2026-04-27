@@ -4,7 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { Operator } from "../../models/crm.models";
+import { Operator, OperatorWorkStatus } from "../../models/crm.models";
 
 @Component({
   selector: "app-operators",
@@ -19,7 +19,23 @@ export class OperatorsComponent {
   utils = inject(UtilsService);
 
   editingId = "";
-  form = { name: "", phone: "", skill: "", rate: 0 };
+  form = {
+    name: "",
+    phone: "",
+    skill: "",
+    rate: 0,
+    workStatus: "active" as OperatorWorkStatus,
+  };
+
+  readonly workStatuses: {
+    value: OperatorWorkStatus;
+    label: string;
+    className: string;
+  }[] = [
+    { value: "active", label: "Работает", className: "confirmed" },
+    { value: "sick_leave", label: "Больничный", className: "repairplan" },
+    { value: "dismissed", label: "Уволен", className: "cancelled" },
+  ];
 
   operatorBadgeClass(status: "free" | "busy"): string {
     return status === "busy" ? "busy" : "free";
@@ -27,6 +43,20 @@ export class OperatorsComponent {
 
   operatorBadgeLabel(status: "free" | "busy"): string {
     return status === "busy" ? "В работе" : "Свободен";
+  }
+
+  workStatusBadgeClass(status: OperatorWorkStatus): string {
+    return (
+      this.workStatuses.find((item) => item.value === status)?.className ||
+      "confirmed"
+    );
+  }
+
+  workStatusLabel(status: OperatorWorkStatus): string {
+    return (
+      this.workStatuses.find((item) => item.value === status)?.label ||
+      "Работает"
+    );
   }
 
   opShifts(opId: string): number {
@@ -58,7 +88,19 @@ export class OperatorsComponent {
       phone: op.phone,
       skill: op.skill,
       rate: op.rate,
+      workStatus: op.workStatus || "active",
     };
+  }
+
+  async setWorkStatus(
+    op: Operator,
+    status: OperatorWorkStatus,
+  ): Promise<void> {
+    if ((op.workStatus || "active") === status) return;
+    await this.db.update("operators", op.id, { workStatus: status });
+    if (this.editingId === op.id) {
+      this.form = { ...this.form, workStatus: status };
+    }
   }
 
   async remove(id: string): Promise<void> {
@@ -72,6 +114,12 @@ export class OperatorsComponent {
 
   clearForm(): void {
     this.editingId = "";
-    this.form = { name: "", phone: "", skill: "", rate: 0 };
+    this.form = {
+      name: "",
+      phone: "",
+      skill: "",
+      rate: 0,
+      workStatus: "active",
+    };
   }
 }

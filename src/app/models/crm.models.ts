@@ -22,7 +22,10 @@ export interface Operator {
   phone: string;
   skill: string;
   rate: number;
+  workStatus: OperatorWorkStatus;
 }
+
+export type OperatorWorkStatus = 'active' | 'sick_leave' | 'dismissed';
 
 export interface Order {
   id: string;

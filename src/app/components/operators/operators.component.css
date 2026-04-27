@@ -1,3 +1,44 @@
 :host {
   display: block;
 }
+
+.work-status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+}
+
+.status-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mini-status-btn {
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.mini-status-btn.active {
+  color: var(--txt);
+  border-color: currentColor;
+}
+
+.mini-status-btn.confirmed.active {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.mini-status-btn.repairplan.active {
+  background: rgba(249, 115, 22, 0.12);
+}
+
+.mini-status-btn.cancelled.active {
+  background: rgba(239, 68, 68, 0.12);
+}

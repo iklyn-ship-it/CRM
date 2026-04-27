@@ -7,6 +7,14 @@
         <div class="field"><label>Телефон</label><input type="text" [(ngModel)]="form.phone" name="phone"></div>
         <div class="field"><label>Специализация</label><input type="text" [(ngModel)]="form.skill" name="skill"></div>
         <div class="field"><label>Ставка, ₴/день</label><input type="number" [(ngModel)]="form.rate" name="rate" min="0"></div>
+        <div class="field">
+          <label>Состояние сотрудника</label>
+          <select [(ngModel)]="form.workStatus" name="workStatus">
+            @for (item of workStatuses; track item.value) {
+              <option [value]="item.value">{{ item.label }}</option>
+            }
+          </select>
+        </div>
         <div class="actions">
           <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить оператора' }}</button>
           @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
@@ -19,7 +27,7 @@
       <h3 style="margin-top:0">Операторы</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Статус</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
+          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Занятость</th><th>Состояние</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
           <tbody>
             @for (op of state.operators(); track op.id) {
               <tr>
@@ -29,6 +37,28 @@
                     {{ operatorBadgeLabel(state.runtimeOperatorStatus(op.id)) }}
                   </span>
                 </td>
+                <td>
+                  <div class="work-status-cell">
+                    <span class="badge" [ngClass]="workStatusBadgeClass(op.workStatus || 'active')">
+                      {{ workStatusLabel(op.workStatus || 'active') }}
+                    </span>
+                    <div class="status-buttons">
+                      @for (item of workStatuses; track item.value) {
+                        <button
+                          type="button"
+                          class="mini-status-btn"
+                          [class.active]="(op.workStatus || 'active') === item.value"
+                          [class.confirmed]="item.className === 'confirmed'"
+                          [class.repairplan]="item.className === 'repairplan'"
+                          [class.cancelled]="item.className === 'cancelled'"
+                          (click)="setWorkStatus(op, item.value)"
+                        >
+                          {{ item.label }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                </td>
                 <td>{{ opShifts(op.id) }}</td>
                 <td>{{ utils.money(opShifts(op.id) * (op.rate || 0)) }}</td>
                 <td>
@@ -37,7 +67,7 @@
                 </td>
               </tr>
             }
-            @if (!state.operators().length) { <tr><td colspan="7"><div class="empty">Нет операторов.</div></td></tr> }
+            @if (!state.operators().length) { <tr><td colspan="8"><div class="empty">Нет операторов.</div></td></tr> }
           </tbody>
         </table>
       </div>

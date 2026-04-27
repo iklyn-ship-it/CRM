@@ -79,6 +79,14 @@ export class DbService {
 
   readonly loading = signal(false);
 
+  private normalizeOperator(row: any): Operator {
+    const operator = toCamel(row) as any;
+    return {
+      ...operator,
+      workStatus: operator.workStatus || "active",
+    } as Operator;
+  }
+
   /** Load shared CRM data for all authenticated users. */
   async loadAll(): Promise<void> {
     this.loading.set(true);
@@ -125,7 +133,7 @@ export class DbService {
 
     this.clients.set((clients.data || []).map((r) => toCamel(r) as any));
     this.equipment.set((equipment.data || []).map((r) => toCamel(r) as any));
-    this.operators.set((operators.data || []).map((r) => toCamel(r) as any));
+    this.operators.set((operators.data || []).map((r) => this.normalizeOperator(r)));
     this.orders.set((orders.data || []).map((r) => toCamel(r) as any));
     this.repairs.set((repairs.data || []).map((r) => toCamel(r) as any));
     this.operations.set((operations.data || []).map((r) => toCamel(r) as any));
@@ -197,6 +205,10 @@ export class DbService {
         : this.supa.client.from(table).select("*");
     const { data } = await query;
     const rows = (data || []).map((r) => toCamel(r) as any);
+    const normalizedRows =
+      table === "operators"
+        ? (data || []).map((r) => this.normalizeOperator(r))
+        : rows;
     const signalMap: Record<string, WritableSignal<any[]>> = {
       clients: this.clients,
       equipment: this.equipment,
@@ -206,7 +218,7 @@ export class DbService {
       operations: this.operations,
       audit_logs: this.auditLogs,
     };
-    signalMap[table]?.set(rows);
+    signalMap[table]?.set(normalizedRows);
   }
 
   // ---- Generic CRUD ----
@@ -467,6 +479,7 @@ export class DbService {
       endDate: "Дата окончания",
       location: "Локация",
       rate: "Тариф",
+      workStatus: "Состояние сотрудника",
       tasks: "Работы",
       date: "Дата",
       category: "Категория",
@@ -486,6 +499,9 @@ export class DbService {
     if (typeof value === "boolean") return value ? "Да" : "Нет";
     if (Array.isArray(value)) return value.join(", ") || "—";
     if (typeof value === "object") return JSON.stringify(value);
+    if (value === "active") return "Работает";
+    if (value === "sick_leave") return "Больничный";
+    if (value === "dismissed") return "Уволен";
     return String(value);
   }
 }
