@@ -8,6 +8,13 @@
   gap: 14px;
   margin-bottom: 16px;
 }
+
+.plan-analytics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
 .expense-val {
   color: #fca5a5;
 }
@@ -43,6 +50,18 @@
   font-size: 12px;
   color: var(--muted);
   margin-top: 8px;
+}
+
+.plan-metric .val {
+  font-size: 22px;
+}
+
+.plan-breakdown {
+  margin-bottom: 16px;
+}
+
+.plan-row {
+  grid-template-columns: 220px 1fr 140px;
 }
 
 .visual-grid {
@@ -351,6 +370,9 @@
   .dash-metrics {
     grid-template-columns: repeat(2, 1fr);
   }
+  .plan-analytics {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .visual-grid,
   .dash-grid {
     grid-template-columns: 1fr;
@@ -376,7 +398,13 @@
   .dash-metrics {
     grid-template-columns: 1fr;
   }
+  .plan-analytics {
+    grid-template-columns: 1fr;
+  }
   .status-bar-row {
+    grid-template-columns: 1fr;
+  }
+  .plan-row {
     grid-template-columns: 1fr;
   }
   .month-chart {

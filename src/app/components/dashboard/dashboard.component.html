@@ -30,6 +30,57 @@
   </div>
 </div>
 
+<div class="plan-analytics">
+  <div class="card metric plan-metric">
+    <div class="label">План заявок</div>
+    <div class="val">{{ utils.money(planSummary().totalPlan) }}</div>
+    <div class="sub">{{ periodOrders().length }} заявок {{ periodLabel() }}</div>
+  </div>
+  <div class="card metric plan-metric">
+    <div class="label">План в работе</div>
+    <div class="val">{{ utils.money(planSummary().activePlan) }}</div>
+    <div class="sub">новые, подтверждённые и активные</div>
+  </div>
+  <div class="card metric plan-metric">
+    <div class="label">Закрытый план</div>
+    <div class="val">{{ utils.money(planSummary().completedPlan) }}</div>
+    <div class="sub">по завершённым заявкам</div>
+  </div>
+  <div class="card metric plan-metric">
+    <div class="label">Остаток к получению</div>
+    <div class="val">{{ utils.money(planSummary().remaining) }}</div>
+    <div class="sub">без отменённых заявок</div>
+  </div>
+</div>
+
+<div class="card panel plan-breakdown">
+  <div class="chart-head">
+    <h3>План по статусам заявок</h3>
+    <span class="small"
+      >Средний план: {{ utils.money(planSummary().avgPlan) }}</span
+    >
+  </div>
+  <div class="status-bars">
+    @for (item of planByStatus(); track item.status) {
+      <div class="status-bar-row plan-row">
+        <div class="status-bar-label">
+          <span class="dot" [style.background]="item.color"></span>
+          {{ item.label }}
+          <span class="small">({{ item.count }})</span>
+        </div>
+        <div class="status-bar-track">
+          <div
+            class="status-bar-fill"
+            [style.background]="item.color"
+            [style.width.%]="item.percent"
+          ></div>
+        </div>
+        <strong>{{ utils.money(item.plan) }}</strong>
+      </div>
+    }
+  </div>
+</div>
+
 <!-- Alerts -->
 @for (a of alerts(); track a.text) {
   <div [class]="a.kind" style="margin-bottom: 8px">{{ a.text }}</div>

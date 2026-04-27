@@ -103,6 +103,67 @@ export class DashboardComponent {
     };
   });
 
+  readonly planSummary = computed(() => {
+    const orders = this.periodOrders();
+    const activeStatuses = ["new", "confirmed", "active"];
+    const nonCancelled = orders.filter((o) => o.status !== "cancelled");
+    const totalPlan = orders.reduce(
+      (sum, order) => sum + this.state.orderPlan(order),
+      0,
+    );
+    const activePlan = orders
+      .filter((order) => activeStatuses.includes(order.status))
+      .reduce((sum, order) => sum + this.state.orderPlan(order), 0);
+    const completedPlan = orders
+      .filter((order) => order.status === "completed")
+      .reduce((sum, order) => sum + this.state.orderPlan(order), 0);
+    const remaining = nonCancelled.reduce(
+      (sum, order) => sum + this.state.orderRemaining(order),
+      0,
+    );
+    return {
+      totalPlan,
+      activePlan,
+      completedPlan,
+      remaining,
+      avgPlan: orders.length ? totalPlan / orders.length : 0,
+    };
+  });
+
+  readonly planByStatus = computed(() => {
+    const colors: Record<string, string> = {
+      new: "#38bdf8",
+      confirmed: "#22c55e",
+      active: "#f59e0b",
+      completed: "#94a3b8",
+      cancelled: "#ef4444",
+    };
+    const rows = ["new", "confirmed", "active", "completed", "cancelled"].map(
+      (status) => {
+        const orders = this.periodOrders().filter((o) => o.status === status);
+        const plan = orders.reduce(
+          (sum, order) => sum + this.state.orderPlan(order),
+          0,
+        );
+        return {
+          status,
+          label: this.statusLabel(status),
+          count: orders.length,
+          plan,
+          color: colors[status] || "#94a3b8",
+        };
+      },
+    );
+    const totalPlan = Math.max(
+      1,
+      rows.reduce((sum, row) => sum + row.plan, 0),
+    );
+    return rows.map((row) => ({
+      ...row,
+      percent: Math.round((row.plan / totalPlan) * 100),
+    }));
+  });
+
   readonly upcomingEvents = computed(() => {
     const today = this.utils.todayStr();
     const hasPeriod = Boolean(this.periodFrom() || this.periodTo());
