@@ -36,6 +36,7 @@
 
 .metric {
   padding: 18px;
+  min-width: 0;
 }
 .metric .label {
   font-size: 13px;
@@ -45,11 +46,15 @@
   font-size: 26px;
   font-weight: 800;
   margin-top: 8px;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .metric .sub {
   font-size: 12px;
   color: var(--muted);
   margin-top: 8px;
+  overflow-wrap: anywhere;
 }
 
 .plan-metric .val {
@@ -61,7 +66,7 @@
 }
 
 .plan-row {
-  grid-template-columns: 220px 1fr 140px;
+  grid-template-columns: minmax(150px, 220px) minmax(120px, 1fr) minmax(92px, 160px);
 }
 
 .visual-grid {
@@ -89,6 +94,7 @@
   gap: 12px;
   align-items: baseline;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .chart-head h3 {
@@ -178,6 +184,7 @@
   grid-template-columns: 160px 1fr 42px;
   gap: 10px;
   align-items: center;
+  min-width: 0;
 }
 
 .status-bar-label {
@@ -186,6 +193,15 @@
   align-items: center;
   color: #e5e7eb;
   font-size: 13px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.plan-row strong {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .dot {
