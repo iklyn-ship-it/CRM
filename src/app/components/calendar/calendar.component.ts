@@ -90,6 +90,7 @@ export class CalendarComponent {
             type: "rent",
             statusClass: "status-" + o.status,
             equipmentId: o.equipmentId,
+            blocksSchedule: this.state.orderBlocksSchedule(o),
             conflict: false,
           }));
 
@@ -112,9 +113,13 @@ export class CalendarComponent {
 
         const entries = [...rentEntries, ...repairEntries];
         const cnt: Record<string, number> = {};
-        entries.forEach(
-          (e) => (cnt[e.equipmentId] = (cnt[e.equipmentId] || 0) + 1),
-        );
+        entries.forEach((e) => {
+          const shouldCount =
+            e.type === "repair" || ("blocksSchedule" in e && e.blocksSchedule);
+          if (shouldCount) {
+            cnt[e.equipmentId] = (cnt[e.equipmentId] || 0) + 1;
+          }
+        });
         entries.forEach((e) => (e.conflict = cnt[e.equipmentId] > 1));
         cells.push({ date: cur, inMonth, ds, entries: entries.slice(0, 5) });
       }

@@ -81,7 +81,7 @@ export class StateService {
 
   readonly orderConflicts = computed((): [string, string, string][] => {
     const list: [string, string, string][] = [];
-    const orders = this.orders().filter((o) => o.status !== "cancelled");
+    const orders = this.orders().filter((o) => this.orderBlocksSchedule(o));
     for (let i = 0; i < orders.length; i++) {
       for (let j = i + 1; j < orders.length; j++) {
         const a = orders[i],
@@ -101,7 +101,7 @@ export class StateService {
   readonly operatorConflicts = computed((): [string, string, string][] => {
     const list: [string, string, string][] = [];
     const orders = this.orders().filter(
-      (o) => o.status !== "cancelled" && o.operatorId,
+      (o) => this.orderBlocksSchedule(o) && o.operatorId,
     );
     for (let i = 0; i < orders.length; i++) {
       for (let j = i + 1; j < orders.length; j++) {
@@ -127,7 +127,7 @@ export class StateService {
         this.orders()
           .filter(
             (o) =>
-              o.status !== "cancelled" &&
+              this.orderBlocksSchedule(o) &&
               o.equipmentId === r.equipmentId &&
               this.utils.overlap(
                 o.startDate,
@@ -228,6 +228,14 @@ export class StateService {
     return Math.max(0, this.orderPlan(order) - this.orderIncome(order.id));
   }
 
+  isCompletedAndPaid(order: Order): boolean {
+    return order.status === "completed" && this.orderRemaining(order) <= 0;
+  }
+
+  orderBlocksSchedule(order: Order): boolean {
+    return order.status !== "cancelled" && !this.isCompletedAndPaid(order);
+  }
+
   repairExpense(repairId: string): number {
     return this.operations()
       .filter((o) => o.repairId === repairId && o.type === "expense")
@@ -248,7 +256,7 @@ export class StateService {
     const used = this.orders().some(
       (o) =>
         o.equipmentId === eq.id &&
-        o.status !== "cancelled" &&
+        this.orderBlocksSchedule(o) &&
         o.startDate <= now &&
         o.endDate >= now,
     );
@@ -260,8 +268,7 @@ export class StateService {
     const busy = this.orders().some(
       (o) =>
         o.operatorId === operatorId &&
-        o.status !== "cancelled" &&
-        o.status !== "completed" &&
+        this.orderBlocksSchedule(o) &&
         o.startDate <= now &&
         o.endDate >= now,
     );

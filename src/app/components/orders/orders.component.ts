@@ -63,7 +63,7 @@ export class OrdersComponent {
       this.state.orders().find(
         (order) =>
           order.id !== this.editingId &&
-          order.status !== "cancelled" &&
+          this.state.orderBlocksSchedule(order) &&
           order.operatorId === this.form.operatorId &&
           this.utils.overlap(
             this.form.startDate,
