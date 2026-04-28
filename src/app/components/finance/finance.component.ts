@@ -36,6 +36,7 @@ export class FinanceComponent {
   search = signal("");
   filterType = signal("");
   editingId = "";
+  originalOrderId = "";
   form = {
     date: "",
     type: "income" as "income" | "expense",
@@ -54,6 +55,17 @@ export class FinanceComponent {
     "Запчасти",
     "Прочее",
   ];
+
+  readonly availableOrderLinks = computed(() => {
+    const currentOrderId = this.form.orderId;
+    return [...this.state.orders()]
+      .filter(
+        (order) =>
+          order.status !== "completed" ||
+          (this.editingId && order.id === currentOrderId),
+      )
+      .sort((a, b) => b.startDate.localeCompare(a.startDate));
+  });
 
   readonly filteredOps = computed(() => {
     const q = this.search().toLowerCase(),
@@ -144,6 +156,15 @@ export class FinanceComponent {
   }
 
   onOrderLinkChange(): void {
+    const order = this.state.byId(this.state.orders(), this.form.orderId);
+    if (
+      order?.status === "completed" &&
+      (!this.editingId || this.form.orderId !== this.originalOrderId)
+    ) {
+      this.form.orderId = "";
+      alert("К завершённой заявке нельзя привязать новую финансовую операцию.");
+      return;
+    }
     if (this.form.orderId) this.form.repairId = "";
   }
 
@@ -167,6 +188,14 @@ export class FinanceComponent {
 
   async save(): Promise<void> {
     if (!this.form.date || !this.form.amount) return;
+    const linkedOrder = this.state.byId(this.state.orders(), this.form.orderId);
+    if (
+      linkedOrder?.status === "completed" &&
+      (!this.editingId || linkedOrder.id !== this.originalOrderId)
+    ) {
+      alert("Завершённая заявка закрыта для новых финансовых операций.");
+      return;
+    }
     if (this.editingId)
       await this.db.update("operations", this.editingId, this.form);
     else
@@ -179,6 +208,7 @@ export class FinanceComponent {
 
   edit(op: FinanceOperation): void {
     this.editingId = op.id;
+    this.originalOrderId = op.orderId;
     this.form = {
       date: op.date,
       type: op.type,
@@ -198,6 +228,7 @@ export class FinanceComponent {
 
   clearForm(): void {
     this.editingId = "";
+    this.originalOrderId = "";
     this.form = {
       date: "",
       type: "income",

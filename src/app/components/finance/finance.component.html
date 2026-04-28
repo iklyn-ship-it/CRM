@@ -44,10 +44,13 @@
             (ngModelChange)="onOrderLinkChange()"
           >
             <option value="">— без привязки —</option>
-            @for (o of state.orders(); track o.id) {
+            @for (o of availableOrderLinks(); track o.id) {
               <option [value]="o.id">
                 {{ o.id | slice: -5 }} •
                 {{ state.byId(state.clients(), o.clientId)?.name || "Клиент" }}
+                @if (o.status === "completed") {
+                  • завершена
+                }
               </option>
             }
           </select>
