@@ -36,7 +36,6 @@ export class FinanceComponent {
   search = signal("");
   filterType = signal("");
   editingId = "";
-  originalOrderId = "";
   form = {
     date: "",
     type: "income" as "income" | "expense",
@@ -57,13 +56,8 @@ export class FinanceComponent {
   ];
 
   readonly availableOrderLinks = computed(() => {
-    const currentOrderId = this.form.orderId;
     return [...this.state.orders()]
-      .filter(
-        (order) =>
-          order.status !== "completed" ||
-          (this.editingId && order.id === currentOrderId),
-      )
+      .filter((order) => order.status !== "completed")
       .sort((a, b) => b.startDate.localeCompare(a.startDate));
   });
 
@@ -157,12 +151,11 @@ export class FinanceComponent {
 
   onOrderLinkChange(): void {
     const order = this.state.byId(this.state.orders(), this.form.orderId);
-    if (
-      order?.status === "completed" &&
-      (!this.editingId || this.form.orderId !== this.originalOrderId)
-    ) {
+    if (order?.status === "completed") {
       this.form.orderId = "";
-      alert("К завершённой заявке нельзя привязать новую финансовую операцию.");
+      alert(
+        "Завершённая заявка закрыта для финансовых операций. Сначала измените статус заявки.",
+      );
       return;
     }
     if (this.form.orderId) this.form.repairId = "";
@@ -189,11 +182,10 @@ export class FinanceComponent {
   async save(): Promise<void> {
     if (!this.form.date || !this.form.amount) return;
     const linkedOrder = this.state.byId(this.state.orders(), this.form.orderId);
-    if (
-      linkedOrder?.status === "completed" &&
-      (!this.editingId || linkedOrder.id !== this.originalOrderId)
-    ) {
-      alert("Завершённая заявка закрыта для новых финансовых операций.");
+    if (linkedOrder?.status === "completed") {
+      alert(
+        "Завершённая заявка закрыта для финансовых операций. Чтобы внести изменения, сначала измените статус заявки.",
+      );
       return;
     }
     if (this.editingId)
@@ -207,8 +199,14 @@ export class FinanceComponent {
   }
 
   edit(op: FinanceOperation): void {
+    const linkedOrder = this.state.byId(this.state.orders(), op.orderId);
+    if (linkedOrder?.status === "completed") {
+      alert(
+        "Операции по завершённой заявке нельзя изменять. Сначала измените статус заявки.",
+      );
+      return;
+    }
     this.editingId = op.id;
-    this.originalOrderId = op.orderId;
     this.form = {
       date: op.date,
       type: op.type,
@@ -228,7 +226,6 @@ export class FinanceComponent {
 
   clearForm(): void {
     this.editingId = "";
-    this.originalOrderId = "";
     this.form = {
       date: "",
       type: "income",
