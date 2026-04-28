@@ -5,8 +5,15 @@
 .finance-section-head {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 16px;
   margin-bottom: 14px;
+}
+
+.finance-order-filter {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  min-width: min(560px, 100%);
 }
 
 .order-finance-list {
@@ -151,6 +158,15 @@
   .order-finance-head,
   .finance-ledger {
     grid-template-columns: 1fr;
+  }
+
+  .finance-section-head {
+    flex-direction: column;
+  }
+
+  .finance-order-filter {
+    justify-content: flex-start;
+    min-width: 0;
   }
 }
 

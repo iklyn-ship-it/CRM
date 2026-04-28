@@ -4,7 +4,7 @@ import { NgClass, SlicePipe } from "@angular/common";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { FinanceOperation, Order } from "../../models/crm.models";
+import { FinanceOperation, Order, OrderStatus } from "../../models/crm.models";
 
 interface OrderFinanceRow {
   order: Order;
@@ -35,6 +35,7 @@ export class FinanceComponent {
 
   search = signal("");
   filterType = signal("");
+  orderFinanceStatusFilter = signal<"open" | "all" | OrderStatus>("open");
   editingId = "";
   form = {
     date: "",
@@ -53,6 +54,19 @@ export class FinanceComponent {
     "Логистика",
     "Запчасти",
     "Прочее",
+  ];
+
+  readonly orderFinanceStatusFilters: {
+    value: "open" | "all" | OrderStatus;
+    label: string;
+  }[] = [
+    { value: "open", label: "Актуальные" },
+    { value: "new", label: "Новые" },
+    { value: "confirmed", label: "Подтверждённые" },
+    { value: "active", label: "В работе" },
+    { value: "cancelled", label: "Отменённые" },
+    { value: "completed", label: "Завершённые" },
+    { value: "all", label: "Все" },
   ];
 
   readonly availableOrderLinks = computed(() => {
@@ -80,7 +94,13 @@ export class FinanceComponent {
 
   readonly orderFinanceRows = computed((): OrderFinanceRow[] => {
     const q = this.search().toLowerCase();
+    const statusFilter = this.orderFinanceStatusFilter();
     return [...this.state.orders()]
+      .filter((order) => {
+        if (statusFilter === "all") return true;
+        if (statusFilter === "open") return order.status !== "completed";
+        return order.status === statusFilter;
+      })
       .sort((a, b) => b.startDate.localeCompare(a.startDate))
       .map((order) => {
         const clientName =

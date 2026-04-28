@@ -182,6 +182,23 @@
             остаток к оплате.
           </div>
         </div>
+        <div class="segmented-filter finance-order-filter">
+          @for (filter of orderFinanceStatusFilters; track filter.value) {
+            <button
+              type="button"
+              class="filter-chip"
+              [class.active]="orderFinanceStatusFilter() === filter.value"
+              [ngClass]="
+                filter.value === 'open' || filter.value === 'all'
+                  ? ''
+                  : filter.value
+              "
+              (click)="orderFinanceStatusFilter.set(filter.value)"
+            >
+              {{ filter.label }}
+            </button>
+          }
+        </div>
       </div>
       <div class="order-finance-list">
         @for (row of orderFinanceRows(); track row.order.id) {
