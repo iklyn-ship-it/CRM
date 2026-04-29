@@ -371,6 +371,35 @@ th {
   display: none !important;
 }
 
+.split-scroll-page {
+  align-items: start;
+}
+
+.sticky-side-panel {
+  position: sticky;
+  top: 20px;
+}
+
+.internal-scroll-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 40px);
+  min-height: 0;
+}
+
+.internal-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.internal-scroll-body thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #111827;
+}
+
 /* Responsive grid */
 @media (max-width: 960px) {
   .row {
@@ -383,5 +412,13 @@ th {
   .col-5,
   .col-4 {
     grid-column: span 1;
+  }
+
+  .sticky-side-panel {
+    position: static;
+  }
+
+  .internal-scroll-panel {
+    max-height: none;
   }
 }

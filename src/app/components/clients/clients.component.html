@@ -1,6 +1,6 @@
-<div class="row">
+<div class="row split-scroll-page">
   <div class="col-4">
-    <div class="card panel">
+    <div class="card panel sticky-side-panel">
       <h3 style="margin-top:0">{{ editingId ? 'Редактирование клиента' : 'Добавить клиента' }}</h3>
       <form (ngSubmit)="save()">
         <div class="field">
@@ -46,9 +46,9 @@
     </div>
   </div>
   <div class="col-8">
-    <div class="card panel">
+    <div class="card panel internal-scroll-panel">
       <h3 style="margin-top:0">Клиенты</h3>
-      <div class="table-wrap">
+      <div class="table-wrap internal-scroll-body">
         <table>
           <thead><tr><th>Клиент</th><th>Телефон</th><th>Источник</th><th>Заказы</th><th>Выручка</th><th>Прибыль</th><th></th></tr></thead>
           <tbody>
