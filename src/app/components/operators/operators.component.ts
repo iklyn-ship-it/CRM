@@ -1,15 +1,33 @@
-import { Component, inject } from "@angular/core";
-import { NgClass } from "@angular/common";
+import { Component, computed, inject, signal } from "@angular/core";
+import { NgClass, SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { Operator, OperatorWorkStatus } from "../../models/crm.models";
+import {
+  Operator,
+  OperatorWorkStatus,
+  OrderStatus,
+} from "../../models/crm.models";
+
+interface OperatorWorkJournalRow {
+  orderId: string;
+  operatorName: string;
+  clientName: string;
+  equipmentName: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  rate: number;
+  amount: number;
+  status: OrderStatus;
+}
 
 @Component({
   selector: "app-operators",
   standalone: true,
-  imports: [FormsModule, NgClass],
+  imports: [FormsModule, NgClass, SlicePipe],
   templateUrl: "./operators.component.html",
   styleUrl: "./operators.component.css",
 })
@@ -18,6 +36,9 @@ export class OperatorsComponent {
   db = inject(DbService);
   utils = inject(UtilsService);
 
+  journalOperatorFilter = signal("");
+  journalFrom = signal("");
+  journalTo = signal("");
   editingId = "";
   form = {
     name: "",
@@ -37,12 +58,92 @@ export class OperatorsComponent {
     { value: "dismissed", label: "Уволен", className: "cancelled" },
   ];
 
+  readonly workJournalRows = computed((): OperatorWorkJournalRow[] => {
+    const operatorId = this.journalOperatorFilter();
+    const from = this.journalFrom();
+    const to = this.journalTo();
+
+    return this.state
+      .orders()
+      .filter((order) => {
+        if (!order.operatorId || order.status === "cancelled") return false;
+        if (operatorId && order.operatorId !== operatorId) return false;
+        if (from || to) {
+          const fromDate = from || "0000-01-01";
+          const toDate = to || "9999-12-31";
+          if (
+            !this.utils.overlap(
+              fromDate,
+              toDate,
+              order.startDate,
+              order.endDate,
+            )
+          ) {
+            return false;
+          }
+        }
+        return true;
+      })
+      .map((order) => {
+        const operator = this.state.byId(
+          this.state.operators(),
+          order.operatorId,
+        );
+        const client = this.state.byId(this.state.clients(), order.clientId);
+        const equipment = this.state.byId(
+          this.state.equipment(),
+          order.equipmentId,
+        );
+        const startDate =
+          from && from > order.startDate ? from : order.startDate;
+        const endDate = to && to < order.endDate ? to : order.endDate;
+        const days = this.utils.daysInclusive(startDate, endDate);
+        const rate = Number(operator?.rate || 0);
+
+        return {
+          orderId: order.id,
+          operatorName: operator?.name || "—",
+          clientName: client?.name || "—",
+          equipmentName: equipment?.name || "—",
+          location: order.location || "—",
+          startDate,
+          endDate,
+          days,
+          rate,
+          amount: days * rate,
+          status: order.status,
+        };
+      })
+      .sort((a, b) => b.startDate.localeCompare(a.startDate));
+  });
+
+  readonly journalSummary = computed(() =>
+    this.workJournalRows().reduce(
+      (summary, row) => ({
+        days: summary.days + row.days,
+        amount: summary.amount + row.amount,
+      }),
+      { days: 0, amount: 0 },
+    ),
+  );
+
   operatorBadgeClass(status: "free" | "busy"): string {
     return status === "busy" ? "busy" : "free";
   }
 
   operatorBadgeLabel(status: "free" | "busy"): string {
     return status === "busy" ? "В работе" : "Свободен";
+  }
+
+  orderStatusLabel(status: OrderStatus): string {
+    const labels: Record<OrderStatus, string> = {
+      new: "Новая",
+      confirmed: "Подтверждена",
+      active: "В работе",
+      completed: "Завершена",
+      cancelled: "Отменена",
+    };
+    return labels[status];
   }
 
   workStatusBadgeClass(status: OperatorWorkStatus): string {

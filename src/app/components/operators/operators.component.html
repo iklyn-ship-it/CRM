@@ -74,3 +74,107 @@
     </div>
   </div>
 </div>
+
+<div class="card panel operator-journal-panel">
+  <div class="operator-journal-head">
+    <div>
+      <h3 style="margin-top:0">Журнал работы операторов</h3>
+      <div class="small">Кто, где, когда, сколько работал и на какой технике.</div>
+    </div>
+    <div class="journal-filters">
+      <div class="field compact-field">
+        <label>Оператор</label>
+        <select
+          [ngModel]="journalOperatorFilter()"
+          (ngModelChange)="journalOperatorFilter.set($event)"
+          name="journalOperatorFilter"
+        >
+          <option value="">Все операторы</option>
+          @for (op of state.operators(); track op.id) {
+            <option [value]="op.id">{{ op.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field compact-field">
+        <label>От</label>
+        <input
+          type="date"
+          [ngModel]="journalFrom()"
+          (ngModelChange)="journalFrom.set($event)"
+          name="journalFrom"
+        />
+      </div>
+      <div class="field compact-field">
+        <label>До</label>
+        <input
+          type="date"
+          [ngModel]="journalTo()"
+          (ngModelChange)="journalTo.set($event)"
+          name="journalTo"
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="journal-summary">
+    <div>
+      <span>Записей</span>
+      <strong>{{ workJournalRows().length }}</strong>
+    </div>
+    <div>
+      <span>Рабочих дней</span>
+      <strong>{{ journalSummary().days }}</strong>
+    </div>
+    <div>
+      <span>Начислено</span>
+      <strong>{{ utils.money(journalSummary().amount) }}</strong>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Оператор</th>
+          <th>Когда</th>
+          <th>Дней</th>
+          <th>Клиент</th>
+          <th>Техника</th>
+          <th>Где</th>
+          <th>Заявка</th>
+          <th>Статус</th>
+          <th>Начислено</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of workJournalRows(); track row.orderId) {
+          <tr>
+            <td>{{ row.operatorName }}</td>
+            <td>
+              {{ utils.fmtDate(row.startDate) }} -
+              {{ utils.fmtDate(row.endDate) }}
+            </td>
+            <td>{{ row.days }}</td>
+            <td>{{ row.clientName }}</td>
+            <td>{{ row.equipmentName }}</td>
+            <td>{{ row.location }}</td>
+            <td>{{ row.orderId | slice: -5 }}</td>
+            <td>
+              <span class="badge" [ngClass]="row.status">
+                {{ orderStatusLabel(row.status) }}
+              </span>
+            </td>
+            <td>{{ utils.money(row.amount) }}</td>
+          </tr>
+        }
+        @if (!workJournalRows().length) {
+          <tr>
+            <td colspan="9">
+              <div class="empty">Нет записей по выбранным фильтрам.</div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
