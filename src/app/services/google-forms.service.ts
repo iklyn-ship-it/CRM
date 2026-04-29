@@ -96,25 +96,37 @@ export class GoogleFormsService {
 
   private async importResponses(records: GoogleFormResponse[]): Promise<void> {
     let imported = 0,
-      skipped = 0;
+      skipped = 0,
+      equipmentCreated = 0;
     const importedIds = [...this.db.integrations().importedResponseIds];
 
     for (const record of records) {
       const responseId = (record.responseId || "").trim();
       const startDate = (record.startDate || "").slice(0, 10);
       const endDate = (record.endDate || "").slice(0, 10);
-      if (
-        (responseId && importedIds.includes(responseId)) ||
-        !record.clientName ||
-        !startDate ||
-        !endDate
-      ) {
+      const hasEquipmentDetails = Boolean(
+        (record.equipmentName || "").trim() ||
+          (record.equipmentCode || "").trim(),
+      );
+      const equipmentAlreadyExists = Boolean(this.findEquipmentId(record));
+      const alreadyImported = Boolean(
+        responseId && importedIds.includes(responseId),
+      );
+
+      if (alreadyImported || !record.clientName || !startDate || !endDate) {
+        if (hasEquipmentDetails && !equipmentAlreadyExists) {
+          const equipmentId = await this.ensureEquipment(record);
+          if (equipmentId) equipmentCreated++;
+        }
         skipped++;
         continue;
       }
 
       const clientId = await this.ensureClient(record);
       const equipmentId = await this.ensureEquipment(record);
+      if (hasEquipmentDetails && !equipmentAlreadyExists && equipmentId) {
+        equipmentCreated++;
+      }
       const operatorId = this.findOperatorId(record);
       const notes = [
         (record.notes || "").trim(),
@@ -144,8 +156,8 @@ export class GoogleFormsService {
       importedResponseIds: importedIds,
       lastSyncAt: new Date().toISOString(),
       lastSyncStatus: imported
-        ? `Импортировано: ${imported}. Пропущено: ${skipped}.`
-        : `Новых заявок нет. Пропущено: ${skipped}.`,
+        ? `Импортировано: ${imported}. Добавлено техники: ${equipmentCreated}. Пропущено: ${skipped}.`
+        : `Новых заявок нет. Добавлено техники: ${equipmentCreated}. Пропущено: ${skipped}.`,
     };
     await this.db.saveIntegrations(integ);
     this.refreshStatus();
