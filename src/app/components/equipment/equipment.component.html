@@ -1,6 +1,6 @@
-<div class="row">
+<div class="row equipment-page">
   <div class="col-4">
-    <div class="card panel">
+    <div class="card panel equipment-form-panel">
       <h3 style="margin-top:0">{{ editingId ? 'Редактирование техники' : 'Добавить технику' }}</h3>
       <form (ngSubmit)="save()">
         <div class="field">
@@ -35,7 +35,7 @@
     </div>
   </div>
   <div class="col-8">
-    <div class="card panel">
+    <div class="card panel equipment-list-panel">
       <div class="equipment-head">
         <div>
           <h3 style="margin-top:0">Парк техники</h3>
@@ -52,7 +52,7 @@
           Добавить из Google Form
         </button>
       </div>
-      <div class="table-wrap">
+      <div class="table-wrap equipment-table-wrap">
         <table>
           <thead><tr><th>№</th><th>Название</th><th>Тип</th><th>ID</th><th>Тариф</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead>
           <tbody>

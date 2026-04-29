@@ -2,12 +2,42 @@
   display: block;
 }
 
+.equipment-page {
+  align-items: start;
+}
+
+.equipment-form-panel {
+  position: sticky;
+  top: 20px;
+}
+
+.equipment-list-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 40px);
+  min-height: 0;
+}
+
 .equipment-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.equipment-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+.equipment-table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #111827;
 }
 
 .duplicate-input {
@@ -30,6 +60,14 @@
 }
 
 @media (max-width: 720px) {
+  .equipment-form-panel {
+    position: static;
+  }
+
+  .equipment-list-panel {
+    max-height: none;
+  }
+
   .equipment-head {
     flex-direction: column;
   }
