@@ -2,6 +2,14 @@
   display: block;
 }
 
+.equipment-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 .duplicate-input {
   border-color: #ef4444;
   box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.45);
@@ -19,4 +27,10 @@
   color: var(--muted);
   font-weight: 700;
   text-align: center;
+}
+
+@media (max-width: 720px) {
+  .equipment-head {
+    flex-direction: column;
+  }
 }

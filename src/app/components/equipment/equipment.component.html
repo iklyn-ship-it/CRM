@@ -36,7 +36,22 @@
   </div>
   <div class="col-8">
     <div class="card panel">
-      <h3 style="margin-top:0">Парк техники</h3>
+      <div class="equipment-head">
+        <div>
+          <h3 style="margin-top:0">Парк техники</h3>
+          <div class="small">
+            Недостающих позиций из Google Form: {{ missingGoogleFormEquipment().length }}
+          </div>
+        </div>
+        <button
+          type="button"
+          class="btn info"
+          [disabled]="!missingGoogleFormEquipment().length"
+          (click)="importGoogleFormEquipment()"
+        >
+          Добавить из Google Form
+        </button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>№</th><th>Название</th><th>Тип</th><th>ID</th><th>Тариф</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead>
