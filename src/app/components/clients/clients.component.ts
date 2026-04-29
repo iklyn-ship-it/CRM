@@ -20,6 +20,46 @@ export class ClientsComponent {
   editingId = "";
   form = { name: "", phone: "", source: "", type: "Разовый", notes: "" };
 
+  duplicateName(): Client | null {
+    const name = this.normalizeText(this.form.name);
+    if (!name) return null;
+    return (
+      this.state
+        .clients()
+        .find(
+          (client) =>
+            client.id !== this.editingId &&
+            this.normalizeText(client.name) === name,
+        ) || null
+    );
+  }
+
+  duplicatePhone(): Client | null {
+    const phone = this.normalizePhone(this.form.phone);
+    if (!phone) return null;
+    return (
+      this.state
+        .clients()
+        .find(
+          (client) =>
+            client.id !== this.editingId &&
+            this.normalizePhone(client.phone) === phone,
+        ) || null
+    );
+  }
+
+  hasDuplicate(): boolean {
+    return Boolean(this.duplicateName()) || Boolean(this.duplicatePhone());
+  }
+
+  private normalizeText(value: string): string {
+    return (value || "").trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
+  private normalizePhone(value: string): string {
+    return (value || "").replace(/\D/g, "");
+  }
+
   clientOrders(clientId: string) {
     return this.state.orders().filter((o) => o.clientId === clientId);
   }
@@ -38,6 +78,7 @@ export class ClientsComponent {
 
   async save(): Promise<void> {
     if (!this.form.name) return;
+    if (this.hasDuplicate()) return;
     if (this.editingId)
       await this.db.update("clients", this.editingId, this.form);
     else

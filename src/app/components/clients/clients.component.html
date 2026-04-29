@@ -3,8 +3,35 @@
     <div class="card panel">
       <h3 style="margin-top:0">{{ editingId ? 'Редактирование клиента' : 'Добавить клиента' }}</h3>
       <form (ngSubmit)="save()">
-        <div class="field"><label>Имя / Компания</label><input type="text" [(ngModel)]="form.name" name="name" required></div>
-        <div class="field"><label>Телефон</label><input type="text" [(ngModel)]="form.phone" name="phone"></div>
+        <div class="field">
+          <label>Имя / Компания</label>
+          <input
+            type="text"
+            [(ngModel)]="form.name"
+            name="name"
+            required
+            [class.duplicate-input]="duplicateName()"
+          >
+          @if (duplicateName(); as duplicate) {
+            <div class="duplicate-warning">
+              Клиент с таким именем уже есть: {{ duplicate.name }}
+            </div>
+          }
+        </div>
+        <div class="field">
+          <label>Телефон</label>
+          <input
+            type="text"
+            [(ngModel)]="form.phone"
+            name="phone"
+            [class.duplicate-input]="duplicatePhone()"
+          >
+          @if (duplicatePhone(); as duplicate) {
+            <div class="duplicate-warning">
+              Этот телефон уже указан у клиента: {{ duplicate.name }}
+            </div>
+          }
+        </div>
         <div class="field"><label>Источник</label><input type="text" [(ngModel)]="form.source" name="source"></div>
         <div class="field">
           <label>Тип клиента</label>
@@ -12,7 +39,7 @@
         </div>
         <div class="field"><label>Комментарий</label><textarea [(ngModel)]="form.notes" name="notes"></textarea></div>
         <div class="actions">
-          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить клиента' }}</button>
+          <button type="submit" class="btn primary" [disabled]="hasDuplicate()">{{ editingId ? 'Сохранить изменения' : 'Сохранить клиента' }}</button>
           @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
         </div>
       </form>

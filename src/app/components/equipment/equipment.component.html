@@ -3,7 +3,21 @@
     <div class="card panel">
       <h3 style="margin-top:0">{{ editingId ? 'Редактирование техники' : 'Добавить технику' }}</h3>
       <form (ngSubmit)="save()">
-        <div class="field"><label>Название</label><input type="text" [(ngModel)]="form.name" name="name" required></div>
+        <div class="field">
+          <label>Название</label>
+          <input
+            type="text"
+            [(ngModel)]="form.name"
+            name="name"
+            required
+            [class.duplicate-input]="duplicateName()"
+          >
+          @if (duplicateName(); as duplicate) {
+            <div class="duplicate-warning">
+              Такая техника уже есть: {{ duplicate.name }}
+            </div>
+          }
+        </div>
         <div class="field"><label>Тип</label><input type="text" [(ngModel)]="form.type" name="type"></div>
         <div class="field"><label>Госномер / ID</label><input type="text" [(ngModel)]="form.code" name="code"></div>
         <div class="field"><label>Тариф по умолчанию, ₴/день</label><input type="number" [(ngModel)]="form.defaultRate" name="defaultRate" min="0"></div>
@@ -14,7 +28,7 @@
           </select>
         </div>
         <div class="actions">
-          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить технику' }}</button>
+          <button type="submit" class="btn primary" [disabled]="!!duplicateName()">{{ editingId ? 'Сохранить изменения' : 'Сохранить технику' }}</button>
           @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
         </div>
       </form>

@@ -27,6 +27,23 @@ export class EquipmentComponent {
     status: "free" as Equipment["status"],
   };
 
+  duplicateName(): Equipment | null {
+    const name = this.normalizeText(this.form.name);
+    if (!name) return null;
+    return (
+      this.state
+        .equipment()
+        .find(
+          (eq) =>
+            eq.id !== this.editingId && this.normalizeText(eq.name) === name,
+        ) || null
+    );
+  }
+
+  private normalizeText(value: string): string {
+    return (value || "").trim().replace(/\s+/g, " ").toLowerCase();
+  }
+
   eqBadgeClass(s: string): string {
     return { free: "free", busy: "busy", repair: "repairstatus" }[s] || "free";
   }
@@ -43,6 +60,7 @@ export class EquipmentComponent {
 
   async save(): Promise<void> {
     if (!this.form.name) return;
+    if (this.duplicateName()) return;
     if (this.editingId)
       await this.db.update("equipment", this.editingId, this.form);
     else
