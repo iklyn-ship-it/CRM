@@ -5,6 +5,15 @@
       <div class="small">Выбери удобный режим просмотра.</div>
     </div>
     <div class="actions">
+      <select
+        [ngModel]="equipmentTypeFilter()"
+        (ngModelChange)="equipmentTypeFilter.set($event)"
+      >
+        <option value="">Все типы техники</option>
+        @for (type of equipmentTypes(); track type) {
+          <option [value]="type">{{ type }}</option>
+        }
+      </select>
       <select [ngModel]="state.calendarMode()" (ngModelChange)="onModeChange($event)">
         <option value="month">1) Месячный календарь</option>
         <option value="timeline">2) Техника слева + полосы резерва</option>
@@ -20,6 +29,7 @@
     <div class="chip"><span class="dot" style="background:rgba(56,189,248,.8)"></span> аренда</div>
     <div class="chip"><span class="dot" style="background:rgba(249,115,22,.85)"></span> ремонт</div>
     <div class="chip"><span class="dot" style="background:rgba(239,68,68,.85)"></span> конфликт</div>
+    <div class="chip chip-muted">тип: {{ equipmentTypeFilter() || 'все' }}</div>
     <div class="chip chip-muted">отменённые заявки не показываются</div>
   </div>
 
@@ -65,6 +75,11 @@
               </div>
             }
           }
+        </div>
+      }
+      @if (!timelineEquipment().length) {
+        <div class="timeline-empty">
+          Нет техники по выбранному типу.
         </div>
       }
     </div>

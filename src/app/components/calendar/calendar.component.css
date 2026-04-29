@@ -103,6 +103,14 @@
   border: 1px solid var(--line);
   border-radius: 16px;
 }
+
+.timeline-empty {
+  min-width: 320px;
+  padding: 16px;
+  color: var(--muted);
+  background: #0a1324;
+}
+
 .timeline-head,
 .timeline-row {
   display: grid;

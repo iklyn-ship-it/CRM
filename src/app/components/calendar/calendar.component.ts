@@ -33,6 +33,33 @@ export class CalendarComponent {
 
   // Local signal for calendar navigation (not persisted on every click)
   readonly viewDate = signal(new Date());
+  readonly equipmentTypeFilter = signal("");
+
+  private normalizeType(value: string): string {
+    return (value || "").trim();
+  }
+
+  readonly equipmentTypes = computed(() => {
+    const types = this.state
+      .equipment()
+      .map((eq) => this.normalizeType(eq.type))
+      .filter(Boolean);
+    return Array.from(new Set(types)).sort((a, b) => a.localeCompare(b));
+  });
+
+  readonly filteredEquipment = computed(() => {
+    const type = this.equipmentTypeFilter();
+    return this.state
+      .equipment()
+      .filter((eq) => !type || this.normalizeType(eq.type) === type);
+  });
+
+  private isEquipmentTypeVisible(equipmentId: string): boolean {
+    const type = this.equipmentTypeFilter();
+    if (!type) return true;
+    const equipment = this.state.byId(this.state.equipment(), equipmentId);
+    return this.normalizeType(equipment?.type || "") === type;
+  }
 
   get monthLabel(): string {
     return this.viewDate().toLocaleDateString("ru-RU", {
@@ -78,7 +105,10 @@ export class CalendarComponent {
           .orders()
           .filter(
             (o) =>
-              o.status !== "cancelled" && o.startDate <= ds && o.endDate >= ds,
+              o.status !== "cancelled" &&
+              this.isEquipmentTypeVisible(o.equipmentId) &&
+              o.startDate <= ds &&
+              o.endDate >= ds,
           )
           .map((o) => ({
             eq:
@@ -98,7 +128,10 @@ export class CalendarComponent {
           .repairs()
           .filter(
             (r) =>
-              r.status !== "cancelled" && r.startDate <= ds && r.endDate >= ds,
+              r.status !== "cancelled" &&
+              this.isEquipmentTypeVisible(r.equipmentId) &&
+              r.startDate <= ds &&
+              r.endDate >= ds,
           )
           .map((r) => ({
             eq:
@@ -135,7 +168,7 @@ export class CalendarComponent {
     const start = new Date(y, m, 1),
       end = new Date(y, m + 1, 0);
 
-    return this.state.equipment().map((eq) => {
+    return this.filteredEquipment().map((eq) => {
       const events = [
         ...this.state
           .orders()
