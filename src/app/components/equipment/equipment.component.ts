@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, computed, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { NgClass } from "@angular/common";
 import { StateService } from "../../services/state.service";
@@ -18,6 +18,7 @@ export class EquipmentComponent {
   db = inject(DbService);
   utils = inject(UtilsService);
 
+  typeFilter = signal("");
   editingId = "";
   form = {
     name: "",
@@ -83,6 +84,21 @@ export class EquipmentComponent {
   private normalizeText(value: string): string {
     return (value || "").trim().replace(/\s+/g, " ").toLowerCase();
   }
+
+  readonly equipmentTypes = computed(() => {
+    const types = this.state
+      .equipment()
+      .map((eq) => (eq.type || "").trim())
+      .filter(Boolean);
+    return Array.from(new Set(types)).sort((a, b) => a.localeCompare(b));
+  });
+
+  readonly filteredEquipment = computed(() => {
+    const type = this.typeFilter();
+    return this.state
+      .equipment()
+      .filter((eq) => !type || (eq.type || "").trim() === type);
+  });
 
   missingGoogleFormEquipment(): string[] {
     const existing = new Set(

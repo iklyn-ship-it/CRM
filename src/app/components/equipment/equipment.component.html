@@ -40,23 +40,36 @@
         <div>
           <h3 style="margin-top:0">Парк техники</h3>
           <div class="small">
+            Показано: {{ filteredEquipment().length }} из {{ state.equipment().length }}.
             Недостающих позиций из Google Form: {{ missingGoogleFormEquipment().length }}
           </div>
         </div>
-        <button
-          type="button"
-          class="btn info"
-          [disabled]="!missingGoogleFormEquipment().length"
-          (click)="importGoogleFormEquipment()"
-        >
-          Добавить из Google Form
-        </button>
+        <div class="equipment-head-actions">
+          <select
+            [ngModel]="typeFilter()"
+            (ngModelChange)="typeFilter.set($event)"
+            name="equipmentTypeFilter"
+          >
+            <option value="">Все типы</option>
+            @for (type of equipmentTypes(); track type) {
+              <option [value]="type">{{ type }}</option>
+            }
+          </select>
+          <button
+            type="button"
+            class="btn info"
+            [disabled]="!missingGoogleFormEquipment().length"
+            (click)="importGoogleFormEquipment()"
+          >
+            Добавить из Google Form
+          </button>
+        </div>
       </div>
       <div class="table-wrap equipment-table-wrap">
         <table>
           <thead><tr><th>№</th><th>Название</th><th>Тип</th><th>ID</th><th>Тариф</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead>
           <tbody>
-            @for (eq of state.equipment(); track eq.id; let i = $index) {
+            @for (eq of filteredEquipment(); track eq.id; let i = $index) {
               <tr>
                 <td class="equipment-row-number">{{ i + 1 }}</td>
                 <td>{{ eq.name }}</td><td>{{ eq.type || '—' }}</td><td>{{ eq.code || '—' }}</td>
@@ -70,7 +83,7 @@
                 </td>
               </tr>
             }
-            @if (!state.equipment().length) { <tr><td colspan="9"><div class="empty">Нет техники.</div></td></tr> }
+            @if (!filteredEquipment().length) { <tr><td colspan="9"><div class="empty">Нет техники по выбранному типу.</div></td></tr> }
           </tbody>
         </table>
       </div>

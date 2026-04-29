@@ -27,6 +27,18 @@
   margin-bottom: 14px;
 }
 
+.equipment-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.equipment-head-actions select {
+  min-width: 180px;
+}
+
 .equipment-table-wrap {
   flex: 1 1 auto;
   min-height: 0;
@@ -70,5 +82,10 @@
 
   .equipment-head {
     flex-direction: column;
+  }
+
+  .equipment-head-actions {
+    justify-content: flex-start;
+    width: 100%;
   }
 }
