@@ -313,6 +313,24 @@
                   </div>
                 }
                 <div class="field">
+                  <label>Дата начала логистики</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.logisticsStartDate"
+                    name="logisticsStartDate"
+                    [placeholder]="form.startDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Дата окончания логистики</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.logisticsEndDate"
+                    name="logisticsEndDate"
+                    [placeholder]="form.endDate"
+                  />
+                </div>
+                <div class="field">
                   <label>Подача, км × ₴{{ pickupRatePerKm }}</label>
                   <input
                     type="number"
@@ -354,7 +372,7 @@
               <div class="logistics-total">
                 Итого логистика: {{ utils.money(logisticsTotal()) }}
                 @if (form.logisticsProvider === "own_trawl") {
-                  <span>Резерв трала появится в календаре на период заявки.</span>
+                  <span>Резерв трала появится в календаре на даты логистики.</span>
                 }
               </div>
             }

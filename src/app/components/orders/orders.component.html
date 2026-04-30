@@ -72,7 +72,7 @@
             [(ngModel)]="form.startDate"
             name="startDate"
             required
-          />
+            />
         </div>
         <div class="field">
           <label>Дата окончания</label
@@ -171,7 +171,7 @@
               type="checkbox"
               [(ngModel)]="form.logisticsEnabled"
               name="logisticsEnabled"
-            />
+              />
             <span>Логистика</span>
           </label>
           @if (form.logisticsEnabled) {
@@ -200,6 +200,24 @@
                   </select>
                 </div>
               }
+              <div class="field">
+                <label>Дата начала логистики</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.logisticsStartDate"
+                  name="logisticsStartDate"
+                  [placeholder]="form.startDate"
+                />
+              </div>
+              <div class="field">
+                <label>Дата окончания логистики</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.logisticsEndDate"
+                  name="logisticsEndDate"
+                  [placeholder]="form.endDate"
+                />
+              </div>
               <div class="field">
                 <label>Подача, км × ₴{{ pickupRatePerKm }}</label>
                 <input
@@ -242,7 +260,7 @@
             <div class="logistics-total">
               Итого логистика: {{ utils.money(logisticsTotal()) }}
               @if (form.logisticsProvider === "own_trawl") {
-                <span>Резерв трала появится в календаре на период заявки.</span>
+                <span>Резерв трала появится в календаре на даты логистики.</span>
               }
             </div>
           }
@@ -379,6 +397,9 @@
                 @if (selected.logisticsTrailerId) {
                   • {{ eqName(selected.logisticsTrailerId) }}
                 }
+                • {{ utils.fmtDate(selected.logisticsStartDate || selected.startDate) }}
+                -
+                {{ utils.fmtDate(selected.logisticsEndDate || selected.endDate) }}
                 • подача {{ selected.logisticsPickupKm || 0 }} км /
                 {{ utils.money(selected.logisticsPickupCost || 0) }}
                 • доставка {{ selected.logisticsDeliveryKm || 0 }} км /

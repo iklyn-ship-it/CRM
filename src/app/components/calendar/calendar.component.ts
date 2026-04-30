@@ -56,6 +56,8 @@ export class CalendarComponent {
     logisticsEnabled: false,
     logisticsProvider: "own_trawl" as "own_trawl" | "third_party",
     logisticsTrailerId: "",
+    logisticsStartDate: "",
+    logisticsEndDate: "",
     logisticsPickupKm: 0,
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
@@ -179,8 +181,8 @@ export class CalendarComponent {
               o.logisticsTrailerId &&
               this.state.orderBlocksSchedule(o) &&
               this.isEquipmentTypeVisible(o.logisticsTrailerId) &&
-              o.startDate <= ds &&
-              o.endDate >= ds,
+              this.state.orderLogisticsStart(o) <= ds &&
+              this.state.orderLogisticsEnd(o) >= ds,
           )
           .map((o) => ({
             id: o.id,
@@ -365,6 +367,8 @@ export class CalendarComponent {
       logisticsEnabled: Boolean(order.logisticsEnabled),
       logisticsProvider: order.logisticsProvider || "own_trawl",
       logisticsTrailerId: order.logisticsTrailerId || "",
+      logisticsStartDate: order.logisticsStartDate || order.startDate || "",
+      logisticsEndDate: order.logisticsEndDate || order.endDate || "",
       logisticsPickupKm: Number(order.logisticsPickupKm || 0),
       logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
       logisticsPickupCost: Number(order.logisticsPickupCost || 0),
@@ -407,8 +411,27 @@ export class CalendarComponent {
     );
   }
 
+  validateLogistics(): boolean {
+    if (!this.form.logisticsEnabled) return true;
+    const start = this.form.logisticsStartDate || this.form.startDate;
+    const end = this.form.logisticsEndDate || this.form.endDate;
+    if (start > end) {
+      alert("Дата начала логистики не может быть позже даты окончания.");
+      return false;
+    }
+    if (
+      this.form.logisticsProvider === "own_trawl" &&
+      !this.form.logisticsTrailerId
+    ) {
+      alert("Выбери наш трал для резерва в календаре.");
+      return false;
+    }
+    return true;
+  }
+
   async save(): Promise<void> {
     if (!this.editingId || !this.form.startDate || !this.form.endDate) return;
+    if (!this.validateLogistics()) return;
     const operatorConflict = this.formOperatorConflict();
     if (operatorConflict) {
       alert(
@@ -507,6 +530,8 @@ export class CalendarComponent {
       logisticsEnabled: false,
       logisticsProvider: "own_trawl",
       logisticsTrailerId: "",
+      logisticsStartDate: "",
+      logisticsEndDate: "",
       logisticsPickupKm: 0,
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
@@ -522,6 +547,12 @@ export class CalendarComponent {
         this.form.logisticsEnabled && this.form.logisticsProvider === "own_trawl"
           ? this.form.logisticsTrailerId
           : "",
+      logisticsStartDate: this.form.logisticsEnabled
+        ? this.form.logisticsStartDate || this.form.startDate
+        : "",
+      logisticsEndDate: this.form.logisticsEnabled
+        ? this.form.logisticsEndDate || this.form.endDate
+        : "",
       equipmentIdleDates: this.form.equipmentIdleDates
         .filter((date) => inPeriod.has(date))
         .sort(),
@@ -555,11 +586,11 @@ export class CalendarComponent {
     rangeEnd: Date,
   ): { startDate: string; endDate: string }[] {
     const from = new Date(Math.max(
-      new Date(order.startDate + "T00:00:00").getTime(),
+      new Date(this.state.orderLogisticsStart(order) + "T00:00:00").getTime(),
       rangeStart.getTime(),
     ));
     const to = new Date(Math.min(
-      new Date(order.endDate + "T00:00:00").getTime(),
+      new Date(this.state.orderLogisticsEnd(order) + "T00:00:00").getTime(),
       rangeEnd.getTime(),
     ));
     if (from > to) return [];

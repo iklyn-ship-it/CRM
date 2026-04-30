@@ -243,9 +243,17 @@ export class StateService {
       order.logisticsProvider === "own_trawl" &&
       order.logisticsTrailerId === equipmentId &&
       this.orderBlocksSchedule(order) &&
-      date >= order.startDate &&
-      date <= order.endDate
+      date >= this.orderLogisticsStart(order) &&
+      date <= this.orderLogisticsEnd(order)
     );
+  }
+
+  orderLogisticsStart(order: Order): string {
+    return order.logisticsStartDate || order.startDate;
+  }
+
+  orderLogisticsEnd(order: Order): string {
+    return order.logisticsEndDate || order.endDate;
   }
 
   orderRemaining(order: Order): number {

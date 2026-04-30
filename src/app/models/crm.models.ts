@@ -44,6 +44,8 @@ export interface Order {
   logisticsEnabled: boolean;
   logisticsProvider: 'own_trawl' | 'third_party';
   logisticsTrailerId: string;
+  logisticsStartDate: string;
+  logisticsEndDate: string;
   logisticsPickupKm: number;
   logisticsDeliveryKm: number;
   logisticsPickupCost: number;
