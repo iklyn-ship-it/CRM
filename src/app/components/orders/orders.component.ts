@@ -23,6 +23,8 @@ export class OrdersComponent {
   formOpen = signal(false);
   selectedOrder = signal<Order | null>(null);
   editingId = "";
+  readonly pickupRatePerKm = 50;
+  readonly deliveryRatePerKm = 250;
 
   form = {
     clientId: "",
@@ -36,6 +38,13 @@ export class OrdersComponent {
     notes: "",
     equipmentIdleDates: [] as string[],
     operatorIdleDates: [] as string[],
+    logisticsEnabled: false,
+    logisticsProvider: "own_trawl" as "own_trawl" | "third_party",
+    logisticsTrailerId: "",
+    logisticsPickupKm: 0,
+    logisticsDeliveryKm: 0,
+    logisticsPickupCost: 0,
+    logisticsDeliveryCost: 0,
   };
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
@@ -111,6 +120,11 @@ export class OrdersComponent {
   operatorName(id: string): string {
     return this.state.byId(this.state.operators(), id)?.name || "—";
   }
+  trawlEquipment() {
+    return this.state.equipment().filter((eq) =>
+      (eq.type || "").trim().toLowerCase().includes("трал"),
+    );
+  }
   statusLabel(s: string): string {
     const labels: Record<string, string> = {
       new: "Новое",
@@ -144,6 +158,24 @@ export class OrdersComponent {
   onEquipmentChange(): void {
     const eq = this.state.byId(this.state.equipment(), this.form.equipmentId);
     if (eq && !this.form.rate) this.form.rate = eq.defaultRate || 0;
+  }
+
+  recalcLogisticsCost(kind: "pickup" | "delivery"): void {
+    if (kind === "pickup") {
+      this.form.logisticsPickupCost =
+        Number(this.form.logisticsPickupKm || 0) * this.pickupRatePerKm;
+    } else {
+      this.form.logisticsDeliveryCost =
+        Number(this.form.logisticsDeliveryKm || 0) * this.deliveryRatePerKm;
+    }
+  }
+
+  logisticsTotal(): number {
+    if (!this.form.logisticsEnabled) return 0;
+    return (
+      Number(this.form.logisticsPickupCost || 0) +
+      Number(this.form.logisticsDeliveryCost || 0)
+    );
   }
 
   async save(): Promise<void> {
@@ -185,6 +217,13 @@ export class OrdersComponent {
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
       operatorIdleDates: [...(order.operatorIdleDates || [])],
+      logisticsEnabled: Boolean(order.logisticsEnabled),
+      logisticsProvider: order.logisticsProvider || "own_trawl",
+      logisticsTrailerId: order.logisticsTrailerId || "",
+      logisticsPickupKm: Number(order.logisticsPickupKm || 0),
+      logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
+      logisticsPickupCost: Number(order.logisticsPickupCost || 0),
+      logisticsDeliveryCost: Number(order.logisticsDeliveryCost || 0),
     };
     this.formOpen.set(true);
   }
@@ -214,6 +253,13 @@ export class OrdersComponent {
       notes: "",
       equipmentIdleDates: [],
       operatorIdleDates: [],
+      logisticsEnabled: false,
+      logisticsProvider: "own_trawl",
+      logisticsTrailerId: "",
+      logisticsPickupKm: 0,
+      logisticsDeliveryKm: 0,
+      logisticsPickupCost: 0,
+      logisticsDeliveryCost: 0,
     };
   }
 
@@ -282,6 +328,10 @@ export class OrdersComponent {
     const inPeriod = new Set(this.orderDates());
     return {
       ...this.form,
+      logisticsTrailerId:
+        this.form.logisticsEnabled && this.form.logisticsProvider === "own_trawl"
+          ? this.form.logisticsTrailerId
+          : "",
       equipmentIdleDates: this.form.equipmentIdleDates
         .filter((date) => inPeriod.has(date))
         .sort(),

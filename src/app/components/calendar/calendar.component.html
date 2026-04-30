@@ -50,11 +50,25 @@
             <button
               type="button"
               class="event"
-              [class.clickable-event]="e.type === 'rent'"
-              [ngClass]="[e.type === 'repair' ? 'repair' : e.statusClass, e.conflict ? 'conflict' : '']"
-              (click)="e.type === 'rent' ? openOrder(e.id) : null"
+              [class.clickable-event]="e.type === 'rent' || e.type === 'logistics'"
+              [ngClass]="[
+                e.type === 'repair'
+                  ? 'repair'
+                  : e.type === 'logistics'
+                    ? 'logistics'
+                    : e.statusClass,
+                e.conflict ? 'conflict' : ''
+              ]"
+              (click)="e.type === 'rent' || e.type === 'logistics' ? openOrder(e.id) : null"
             >
-              {{ e.eq }}<br><span class="small">{{ e.type === 'repair' ? 'Ремонт: ' : 'Аренда: ' }}{{ e.cl }}</span>
+              {{ e.eq }}<br><span class="small">
+                {{
+                  e.type === 'repair'
+                    ? 'Ремонт: '
+                    : e.type === 'logistics'
+                      ? 'Логистика: '
+                      : 'Аренда: '
+                }}{{ e.cl }}</span>
             </button>
           }
         </div>
@@ -85,14 +99,20 @@
               <button
                 type="button"
                 class="reserve-bar"
-                [class.clickable-event]="ev.type === 'rent'"
+                [class.clickable-event]="ev.type === 'rent' || ev.type === 'logistics'"
                 [ngClass]="[ev.type, ev.type === 'rent' ? 'status-' + ev.status : '']"
                 [style.left.px]="barLeft(ev.startIndex)"
                 [style.width.px]="ev.span * 34 - 4"
                 style="position:absolute; top:9px"
-                (click)="ev.type === 'rent' ? openOrder(ev.id) : null"
+                (click)="ev.type === 'rent' || ev.type === 'logistics' ? openOrder(ev.id) : null"
               >
-                {{ ev.type === 'repair' ? 'Ремонт' : 'Аренда' }} • {{ ev.title }}
+                {{
+                  ev.type === 'repair'
+                    ? 'Ремонт'
+                    : ev.type === 'logistics'
+                      ? 'Логистика'
+                      : 'Аренда'
+                }} • {{ ev.title }}
               </button>
             }
           }
@@ -257,6 +277,88 @@
               </details>
             </div>
           }
+          <div class="logistics-box">
+            <label class="toggle-line">
+              <input
+                type="checkbox"
+                [(ngModel)]="form.logisticsEnabled"
+                name="logisticsEnabled"
+              />
+              <span>Логистика</span>
+            </label>
+            @if (form.logisticsEnabled) {
+              <div class="logistics-grid">
+                <div class="field">
+                  <label>Перевозчик</label>
+                  <select
+                    [(ngModel)]="form.logisticsProvider"
+                    name="logisticsProvider"
+                  >
+                    <option value="own_trawl">Наш трал</option>
+                    <option value="third_party">Сторонний перевозчик</option>
+                  </select>
+                </div>
+                @if (form.logisticsProvider === "own_trawl") {
+                  <div class="field">
+                    <label>Выбрать трал</label>
+                    <select
+                      [(ngModel)]="form.logisticsTrailerId"
+                      name="logisticsTrailerId"
+                    >
+                      <option value="">— выбрать трал —</option>
+                      @for (trawl of trawlEquipment(); track trawl.id) {
+                        <option [value]="trawl.id">{{ trawl.name }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+                <div class="field">
+                  <label>Подача, км × ₴{{ pickupRatePerKm }}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsPickupKm"
+                    name="logisticsPickupKm"
+                    (ngModelChange)="recalcLogisticsCost('pickup')"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость подачи, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsPickupCost"
+                    name="logisticsPickupCost"
+                  />
+                </div>
+                <div class="field">
+                  <label>Доставка, км × ₴{{ deliveryRatePerKm }}</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryKm"
+                    name="logisticsDeliveryKm"
+                    (ngModelChange)="recalcLogisticsCost('delivery')"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость доставки, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryCost"
+                    name="logisticsDeliveryCost"
+                  />
+                </div>
+              </div>
+              <div class="logistics-total">
+                Итого логистика: {{ utils.money(logisticsTotal()) }}
+                @if (form.logisticsProvider === "own_trawl") {
+                  <span>Резерв трала появится в календаре на период заявки.</span>
+                }
+              </div>
+            }
+          </div>
           <div class="field">
             <label>Локация</label>
             <input type="text" [(ngModel)]="form.location" name="location" />

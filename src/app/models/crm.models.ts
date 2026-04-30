@@ -41,6 +41,13 @@ export interface Order {
   createdAt: string;
   equipmentIdleDates: string[];
   operatorIdleDates: string[];
+  logisticsEnabled: boolean;
+  logisticsProvider: 'own_trawl' | 'third_party';
+  logisticsTrailerId: string;
+  logisticsPickupKm: number;
+  logisticsDeliveryKm: number;
+  logisticsPickupCost: number;
+  logisticsDeliveryCost: number;
 }
 
 export type OrderStatus = 'new' | 'confirmed' | 'active' | 'completed' | 'cancelled';

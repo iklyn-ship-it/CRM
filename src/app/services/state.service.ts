@@ -86,12 +86,13 @@ export class StateService {
       for (let j = i + 1; j < orders.length; j++) {
         const a = orders[i],
           b = orders[j];
-        if (
-          a.equipmentId &&
-          a.equipmentId === b.equipmentId &&
-          this.ordersOverlapByWorkDays(a, b, "equipment")
-        ) {
-          list.push([a.id, b.id, a.equipmentId]);
+        for (const equipmentId of this.orderEquipmentReservationIds(a)) {
+          if (
+            this.orderEquipmentReservationIds(b).includes(equipmentId) &&
+            this.ordersOverlapByEquipment(a, b, equipmentId)
+          ) {
+            list.push([a.id, b.id, equipmentId]);
+          }
         }
       }
     }
@@ -128,7 +129,7 @@ export class StateService {
           .filter(
             (o) =>
               this.orderBlocksSchedule(o) &&
-              o.equipmentId === r.equipmentId &&
+              this.orderEquipmentReservationIds(o).includes(r.equipmentId) &&
               this.utils.overlap(
                 o.startDate,
                 o.endDate,
@@ -140,7 +141,7 @@ export class StateService {
                   o.startDate > r.startDate ? o.startDate : r.startDate,
                   o.endDate < r.endDate ? o.endDate : r.endDate,
                 )
-                .some((date) => this.orderWorksOnDate(o, "equipment", date)),
+                .some((date) => this.orderUsesEquipmentOnDate(o, r.equipmentId, date)),
           )
           .forEach((o) => list.push([r.id, o.id, r.equipmentId]));
       });
@@ -198,7 +199,7 @@ export class StateService {
     const order = this.byId(this.orders(), orderId);
     return (
       this.orderManualExpense(orderId) +
-      (order ? this.orderOperatorCost(order) : 0)
+      (order ? this.orderOperatorCost(order) + this.orderLogisticsCost(order) : 0)
     );
   }
 
@@ -223,6 +224,28 @@ export class StateService {
     if (startDate > endDate) return 0;
 
     return this.orderOperatorWorkDays(order, startDate, endDate) * Number(operator.rate || 0);
+  }
+
+  orderLogisticsCost(order: Order): number {
+    if (!order.logisticsEnabled) return 0;
+    return (
+      Number(order.logisticsPickupCost || 0) +
+      Number(order.logisticsDeliveryCost || 0)
+    );
+  }
+
+  orderUsesEquipmentOnDate(order: Order, equipmentId: string, date: string): boolean {
+    if (order.equipmentId === equipmentId) {
+      return this.orderWorksOnDate(order, "equipment", date);
+    }
+    return (
+      Boolean(order.logisticsEnabled) &&
+      order.logisticsProvider === "own_trawl" &&
+      order.logisticsTrailerId === equipmentId &&
+      this.orderBlocksSchedule(order) &&
+      date >= order.startDate &&
+      date <= order.endDate
+    );
   }
 
   orderRemaining(order: Order): number {
@@ -268,6 +291,33 @@ export class StateService {
       .some((date) => this.orderWorksOnDate(a, kind, date) && this.orderWorksOnDate(b, kind, date));
   }
 
+  ordersOverlapByEquipment(a: Order, b: Order, equipmentId: string): boolean {
+    if (!this.orderBlocksSchedule(a) || !this.orderBlocksSchedule(b)) {
+      return false;
+    }
+    const from = a.startDate > b.startDate ? a.startDate : b.startDate;
+    const to = a.endDate < b.endDate ? a.endDate : b.endDate;
+    if (from > to) return false;
+    return this.utils
+      .datesInclusive(from, to)
+      .some(
+        (date) =>
+          this.orderUsesEquipmentOnDate(a, equipmentId, date) &&
+          this.orderUsesEquipmentOnDate(b, equipmentId, date),
+      );
+  }
+
+  orderEquipmentReservationIds(order: Order): string[] {
+    return [
+      order.equipmentId,
+      order.logisticsEnabled &&
+      order.logisticsProvider === "own_trawl" &&
+      order.logisticsTrailerId
+        ? order.logisticsTrailerId
+        : "",
+    ].filter((id): id is string => Boolean(id));
+  }
+
   private orderWorkDates(
     order: Order,
     kind: "equipment" | "operator",
@@ -305,8 +355,7 @@ export class StateService {
     if (activeRepair || eq.status === "repair") return "repair";
     const used = this.orders().some(
       (o) =>
-        o.equipmentId === eq.id &&
-        this.orderWorksOnDate(o, "equipment", now),
+        this.orderUsesEquipmentOnDate(o, eq.id, now),
     );
     return used ? "busy" : "free";
   }
@@ -329,11 +378,17 @@ export class StateService {
     const dim = monthEnd.getDate();
     const busyDays = new Set<string>();
     const orderPeriods = this.orders()
-      .filter((o) => o.equipmentId === eqId && this.orderBlocksSchedule(o))
+      .filter(
+        (o) =>
+          o.equipmentId === eqId ||
+          (o.logisticsEnabled &&
+            o.logisticsProvider === "own_trawl" &&
+            o.logisticsTrailerId === eqId),
+      )
       .flatMap((o) =>
         this.utils
           .datesInclusive(o.startDate, o.endDate)
-          .filter((date) => this.orderWorksOnDate(o, "equipment", date))
+          .filter((date) => this.orderUsesEquipmentOnDate(o, eqId, date))
           .map((date) => ({ s: date, e: date })),
       );
     const periods = [

@@ -102,6 +102,11 @@
   background: rgba(249, 115, 22, 0.16);
   border-color: rgba(249, 115, 22, 0.35);
 }
+.event.logistics {
+  background: rgba(14, 165, 233, 0.16);
+  border-color: rgba(14, 165, 233, 0.38);
+  color: #e0f2fe;
+}
 .event.status-new {
   background: rgba(56, 189, 248, 0.14);
   border-color: rgba(56, 189, 248, 0.34);
@@ -235,6 +240,11 @@ button.reserve-bar {
   border-color: rgba(249, 115, 22, 0.4);
   color: #ffedd5;
 }
+.reserve-bar.logistics {
+  background: rgba(14, 165, 233, 0.24);
+  border-color: rgba(14, 165, 233, 0.45);
+  color: #e0f2fe;
+}
 .reserve-bar.conflict {
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.65) inset;
 }
@@ -353,8 +363,58 @@ button.reserve-bar {
   font-size: 13px;
 }
 
+.logistics-box {
+  padding: 12px;
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(56, 189, 248, 0.08), transparent 45%),
+    rgba(15, 23, 42, 0.58);
+}
+
+.toggle-line {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #e5e7eb;
+  font-weight: 800;
+}
+
+.toggle-line input {
+  width: 18px;
+  height: 18px;
+}
+
+.logistics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.logistics-total {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.42);
+  color: #facc15;
+  font-weight: 800;
+}
+
+.logistics-total span {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
 @media (max-width: 720px) {
   .calendar-order-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .logistics-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -53,7 +53,16 @@ export class CalendarComponent {
     notes: "",
     equipmentIdleDates: [] as string[],
     operatorIdleDates: [] as string[],
+    logisticsEnabled: false,
+    logisticsProvider: "own_trawl" as "own_trawl" | "third_party",
+    logisticsTrailerId: "",
+    logisticsPickupKm: 0,
+    logisticsDeliveryKm: 0,
+    logisticsPickupCost: 0,
+    logisticsDeliveryCost: 0,
   };
+  readonly pickupRatePerKm = 50;
+  readonly deliveryRatePerKm = 250;
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
     { value: "new", label: "Новая" },
@@ -161,6 +170,33 @@ export class CalendarComponent {
             conflict: false,
           }));
 
+        const logisticsEntries = this.state
+          .orders()
+          .filter(
+            (o) =>
+              o.logisticsEnabled &&
+              o.logisticsProvider === "own_trawl" &&
+              o.logisticsTrailerId &&
+              this.state.orderBlocksSchedule(o) &&
+              this.isEquipmentTypeVisible(o.logisticsTrailerId) &&
+              o.startDate <= ds &&
+              o.endDate >= ds,
+          )
+          .map((o) => ({
+            id: o.id,
+            eq:
+              this.state.byId(this.state.equipment(), o.logisticsTrailerId)
+                ?.name || "Трал",
+            cl:
+              this.state.byId(this.state.clients(), o.clientId)?.name ||
+              "Логистика",
+            type: "logistics",
+            statusClass: "logistics",
+            equipmentId: o.logisticsTrailerId,
+            blocksSchedule: this.state.orderBlocksSchedule(o),
+            conflict: false,
+          }));
+
         const repairEntries = this.state
           .repairs()
           .filter(
@@ -182,7 +218,7 @@ export class CalendarComponent {
             conflict: false,
           }));
 
-        const entries = [...rentEntries, ...repairEntries];
+        const entries = [...rentEntries, ...logisticsEntries, ...repairEntries];
         const cnt: Record<string, number> = {};
         entries.forEach((e) => {
           const shouldCount =
@@ -224,6 +260,29 @@ export class CalendarComponent {
               startDate: segment.startDate,
               endDate: segment.endDate,
             })),
+          ),
+        ...this.state
+          .orders()
+          .filter(
+            (o) =>
+              o.logisticsEnabled &&
+              o.logisticsProvider === "own_trawl" &&
+              o.logisticsTrailerId === eq.id &&
+              o.status !== "cancelled",
+          )
+          .flatMap((o) =>
+            this.orderLogisticsSegments(o, rangeStart, rangeEnd).map(
+              (segment) => ({
+                id: o.id,
+                type: "logistics" as const,
+                status: o.status,
+                title:
+                  this.state.byId(this.state.clients(), o.clientId)?.name ||
+                  "Логистика",
+                startDate: segment.startDate,
+                endDate: segment.endDate,
+              }),
+            ),
           ),
         ...this.state
           .repairs()
@@ -303,6 +362,13 @@ export class CalendarComponent {
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
       operatorIdleDates: [...(order.operatorIdleDates || [])],
+      logisticsEnabled: Boolean(order.logisticsEnabled),
+      logisticsProvider: order.logisticsProvider || "own_trawl",
+      logisticsTrailerId: order.logisticsTrailerId || "",
+      logisticsPickupKm: Number(order.logisticsPickupKm || 0),
+      logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
+      logisticsPickupCost: Number(order.logisticsPickupCost || 0),
+      logisticsDeliveryCost: Number(order.logisticsDeliveryCost || 0),
     };
     this.formOpen.set(true);
   }
@@ -315,6 +381,30 @@ export class CalendarComponent {
   onEquipmentChange(): void {
     const eq = this.state.byId(this.state.equipment(), this.form.equipmentId);
     if (eq && !this.form.rate) this.form.rate = eq.defaultRate || 0;
+  }
+
+  trawlEquipment() {
+    return this.state.equipment().filter((eq) =>
+      (eq.type || "").trim().toLowerCase().includes("трал"),
+    );
+  }
+
+  recalcLogisticsCost(kind: "pickup" | "delivery"): void {
+    if (kind === "pickup") {
+      this.form.logisticsPickupCost =
+        Number(this.form.logisticsPickupKm || 0) * this.pickupRatePerKm;
+    } else {
+      this.form.logisticsDeliveryCost =
+        Number(this.form.logisticsDeliveryKm || 0) * this.deliveryRatePerKm;
+    }
+  }
+
+  logisticsTotal(): number {
+    if (!this.form.logisticsEnabled) return 0;
+    return (
+      Number(this.form.logisticsPickupCost || 0) +
+      Number(this.form.logisticsDeliveryCost || 0)
+    );
   }
 
   async save(): Promise<void> {
@@ -414,6 +504,13 @@ export class CalendarComponent {
       notes: "",
       equipmentIdleDates: [],
       operatorIdleDates: [],
+      logisticsEnabled: false,
+      logisticsProvider: "own_trawl",
+      logisticsTrailerId: "",
+      logisticsPickupKm: 0,
+      logisticsDeliveryKm: 0,
+      logisticsPickupCost: 0,
+      logisticsDeliveryCost: 0,
     };
   }
 
@@ -421,6 +518,10 @@ export class CalendarComponent {
     const inPeriod = new Set(this.orderDates());
     return {
       ...this.form,
+      logisticsTrailerId:
+        this.form.logisticsEnabled && this.form.logisticsProvider === "own_trawl"
+          ? this.form.logisticsTrailerId
+          : "",
       equipmentIdleDates: this.form.equipmentIdleDates
         .filter((date) => inPeriod.has(date))
         .sort(),
@@ -475,5 +576,27 @@ export class CalendarComponent {
       else segments.push({ startDate: date, endDate: date });
     }
     return segments;
+  }
+
+  private orderLogisticsSegments(
+    order: Order,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): { startDate: string; endDate: string }[] {
+    const from = new Date(Math.max(
+      new Date(order.startDate + "T00:00:00").getTime(),
+      rangeStart.getTime(),
+    ));
+    const to = new Date(Math.min(
+      new Date(order.endDate + "T00:00:00").getTime(),
+      rangeEnd.getTime(),
+    ));
+    if (from > to) return [];
+    return [
+      {
+        startDate: from.toISOString().slice(0, 10),
+        endDate: to.toISOString().slice(0, 10),
+      },
+    ];
   }
 }

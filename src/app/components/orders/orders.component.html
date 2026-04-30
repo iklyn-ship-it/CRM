@@ -165,6 +165,88 @@
             </details>
           </div>
         }
+        <div class="logistics-box">
+          <label class="toggle-line">
+            <input
+              type="checkbox"
+              [(ngModel)]="form.logisticsEnabled"
+              name="logisticsEnabled"
+            />
+            <span>Логистика</span>
+          </label>
+          @if (form.logisticsEnabled) {
+            <div class="logistics-grid">
+              <div class="field">
+                <label>Перевозчик</label>
+                <select
+                  [(ngModel)]="form.logisticsProvider"
+                  name="logisticsProvider"
+                >
+                  <option value="own_trawl">Наш трал</option>
+                  <option value="third_party">Сторонний перевозчик</option>
+                </select>
+              </div>
+              @if (form.logisticsProvider === "own_trawl") {
+                <div class="field">
+                  <label>Выбрать трал</label>
+                  <select
+                    [(ngModel)]="form.logisticsTrailerId"
+                    name="logisticsTrailerId"
+                  >
+                    <option value="">— выбрать трал —</option>
+                    @for (trawl of trawlEquipment(); track trawl.id) {
+                      <option [value]="trawl.id">{{ trawl.name }}</option>
+                    }
+                  </select>
+                </div>
+              }
+              <div class="field">
+                <label>Подача, км × ₴{{ pickupRatePerKm }}</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.logisticsPickupKm"
+                  name="logisticsPickupKm"
+                  (ngModelChange)="recalcLogisticsCost('pickup')"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость подачи, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.logisticsPickupCost"
+                  name="logisticsPickupCost"
+                />
+              </div>
+              <div class="field">
+                <label>Доставка, км × ₴{{ deliveryRatePerKm }}</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.logisticsDeliveryKm"
+                  name="logisticsDeliveryKm"
+                  (ngModelChange)="recalcLogisticsCost('delivery')"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость доставки, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.logisticsDeliveryCost"
+                  name="logisticsDeliveryCost"
+                />
+              </div>
+            </div>
+            <div class="logistics-total">
+              Итого логистика: {{ utils.money(logisticsTotal()) }}
+              @if (form.logisticsProvider === "own_trawl") {
+                <span>Резерв трала появится в календаре на период заявки.</span>
+              }
+            </div>
+          }
+        </div>
         <div class="field">
           <label>Локация</label
           ><input
@@ -285,6 +367,25 @@
             <span>Комментарий</span>
             <strong>{{ selected.notes || "—" }}</strong>
           </div>
+          @if (selected.logisticsEnabled) {
+            <div class="detail-wide">
+              <span>Логистика</span>
+              <strong>
+                {{
+                  selected.logisticsProvider === "own_trawl"
+                    ? "Наш трал"
+                    : "Сторонний перевозчик"
+                }}
+                @if (selected.logisticsTrailerId) {
+                  • {{ eqName(selected.logisticsTrailerId) }}
+                }
+                • подача {{ selected.logisticsPickupKm || 0 }} км /
+                {{ utils.money(selected.logisticsPickupCost || 0) }}
+                • доставка {{ selected.logisticsDeliveryKm || 0 }} км /
+                {{ utils.money(selected.logisticsDeliveryCost || 0) }}
+              </strong>
+            </div>
+          }
         </div>
         <div class="actions">
           <button type="button" class="btn primary" (click)="editSelected(selected)">

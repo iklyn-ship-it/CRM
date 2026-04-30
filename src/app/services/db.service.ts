@@ -97,6 +97,13 @@ export class DbService {
       operatorIdleDates: Array.isArray(order.operatorIdleDates)
         ? order.operatorIdleDates
         : [],
+      logisticsEnabled: Boolean(order.logisticsEnabled),
+      logisticsProvider: order.logisticsProvider || "own_trawl",
+      logisticsTrailerId: order.logisticsTrailerId || "",
+      logisticsPickupKm: Number(order.logisticsPickupKm || 0),
+      logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
+      logisticsPickupCost: Number(order.logisticsPickupCost || 0),
+      logisticsDeliveryCost: Number(order.logisticsDeliveryCost || 0),
     } as Order;
   }
 
@@ -494,6 +501,13 @@ export class DbService {
       endDate: "Дата окончания",
       equipmentIdleDates: "Простой техники",
       operatorIdleDates: "Простой оператора",
+      logisticsEnabled: "Логистика",
+      logisticsProvider: "Перевозчик",
+      logisticsTrailerId: "Трал",
+      logisticsPickupKm: "Км подачи",
+      logisticsDeliveryKm: "Км доставки",
+      logisticsPickupCost: "Стоимость подачи",
+      logisticsDeliveryCost: "Стоимость доставки",
       location: "Локация",
       rate: "Тариф",
       workStatus: "Состояние сотрудника",
