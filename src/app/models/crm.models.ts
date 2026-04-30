@@ -39,6 +39,8 @@ export interface Order {
   status: OrderStatus;
   notes: string;
   createdAt: string;
+  equipmentIdleDates: string[];
+  operatorIdleDates: string[];
 }
 
 export type OrderStatus = 'new' | 'confirmed' | 'active' | 'completed' | 'cancelled';

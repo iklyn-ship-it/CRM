@@ -89,7 +89,7 @@ export class StateService {
         if (
           a.equipmentId &&
           a.equipmentId === b.equipmentId &&
-          this.utils.overlap(a.startDate, a.endDate, b.startDate, b.endDate)
+          this.ordersOverlapByWorkDays(a, b, "equipment")
         ) {
           list.push([a.id, b.id, a.equipmentId]);
         }
@@ -110,7 +110,7 @@ export class StateService {
         if (
           a.operatorId &&
           a.operatorId === b.operatorId &&
-          this.utils.overlap(a.startDate, a.endDate, b.startDate, b.endDate)
+          this.ordersOverlapByWorkDays(a, b, "operator")
         ) {
           list.push([a.id, b.id, a.operatorId]);
         }
@@ -134,7 +134,13 @@ export class StateService {
                 o.endDate,
                 r.startDate,
                 r.endDate,
-              ),
+              ) &&
+              this.utils
+                .datesInclusive(
+                  o.startDate > r.startDate ? o.startDate : r.startDate,
+                  o.endDate < r.endDate ? o.endDate : r.endDate,
+                )
+                .some((date) => this.orderWorksOnDate(o, "equipment", date)),
           )
           .forEach((o) => list.push([r.id, o.id, r.equipmentId]));
       });
@@ -175,10 +181,7 @@ export class StateService {
   }
 
   orderPlan(order: Order): number {
-    return (
-      this.utils.daysInclusive(order.startDate, order.endDate) *
-      Number(order.rate || 0)
-    );
+    return this.orderEquipmentWorkDays(order) * Number(order.rate || 0);
   }
 
   orderOps(orderId: string): FinanceOperation[] {
@@ -219,9 +222,7 @@ export class StateService {
     const endDate = toDate && toDate < order.endDate ? toDate : order.endDate;
     if (startDate > endDate) return 0;
 
-    return (
-      this.utils.daysInclusive(startDate, endDate) * Number(operator.rate || 0)
-    );
+    return this.orderOperatorWorkDays(order, startDate, endDate) * Number(operator.rate || 0);
   }
 
   orderRemaining(order: Order): number {
@@ -234,6 +235,55 @@ export class StateService {
 
   orderBlocksSchedule(order: Order): boolean {
     return order.status !== "cancelled" && !this.isCompletedAndPaid(order);
+  }
+
+  orderEquipmentWorkDays(order: Order, fromDate = "", toDate = ""): number {
+    return this.orderWorkDates(order, "equipment", fromDate, toDate).length;
+  }
+
+  orderOperatorWorkDays(order: Order, fromDate = "", toDate = ""): number {
+    return this.orderWorkDates(order, "operator", fromDate, toDate).length;
+  }
+
+  orderWorksOnDate(order: Order, kind: "equipment" | "operator", date: string): boolean {
+    if (!this.orderBlocksSchedule(order)) return false;
+    if (date < order.startDate || date > order.endDate) return false;
+    const idle = kind === "equipment" ? order.equipmentIdleDates : order.operatorIdleDates;
+    return !new Set(idle || []).has(date);
+  }
+
+  ordersOverlapByWorkDays(
+    a: Order,
+    b: Order,
+    kind: "equipment" | "operator",
+  ): boolean {
+    if (!this.orderBlocksSchedule(a) || !this.orderBlocksSchedule(b)) {
+      return false;
+    }
+    const from = a.startDate > b.startDate ? a.startDate : b.startDate;
+    const to = a.endDate < b.endDate ? a.endDate : b.endDate;
+    if (from > to) return false;
+    return this.utils
+      .datesInclusive(from, to)
+      .some((date) => this.orderWorksOnDate(a, kind, date) && this.orderWorksOnDate(b, kind, date));
+  }
+
+  private orderWorkDates(
+    order: Order,
+    kind: "equipment" | "operator",
+    fromDate = "",
+    toDate = "",
+  ): string[] {
+    const startDate =
+      fromDate && fromDate > order.startDate ? fromDate : order.startDate;
+    const endDate = toDate && toDate < order.endDate ? toDate : order.endDate;
+    if (!startDate || !endDate || startDate > endDate) return [];
+    const idle = new Set(
+      (kind === "equipment"
+        ? order.equipmentIdleDates
+        : order.operatorIdleDates) || [],
+    );
+    return this.utils.datesInclusive(startDate, endDate).filter((date) => !idle.has(date));
   }
 
   repairExpense(repairId: string): number {
@@ -256,9 +306,7 @@ export class StateService {
     const used = this.orders().some(
       (o) =>
         o.equipmentId === eq.id &&
-        this.orderBlocksSchedule(o) &&
-        o.startDate <= now &&
-        o.endDate >= now,
+        this.orderWorksOnDate(o, "equipment", now),
     );
     return used ? "busy" : "free";
   }
@@ -268,9 +316,7 @@ export class StateService {
     const busy = this.orders().some(
       (o) =>
         o.operatorId === operatorId &&
-        this.orderBlocksSchedule(o) &&
-        o.startDate <= now &&
-        o.endDate >= now,
+        this.orderWorksOnDate(o, "operator", now),
     );
     return busy ? "busy" : "free";
   }
@@ -282,10 +328,16 @@ export class StateService {
     const monthEnd = new Date(year, month + 1, 0);
     const dim = monthEnd.getDate();
     const busyDays = new Set<string>();
+    const orderPeriods = this.orders()
+      .filter((o) => o.equipmentId === eqId && this.orderBlocksSchedule(o))
+      .flatMap((o) =>
+        this.utils
+          .datesInclusive(o.startDate, o.endDate)
+          .filter((date) => this.orderWorksOnDate(o, "equipment", date))
+          .map((date) => ({ s: date, e: date })),
+      );
     const periods = [
-      ...this.orders()
-        .filter((o) => o.equipmentId === eqId && o.status !== "cancelled")
-        .map((o) => ({ s: o.startDate, e: o.endDate })),
+      ...orderPeriods,
       ...this.repairs()
         .filter((r) => r.equipmentId === eqId && r.status !== "cancelled")
         .map((r) => ({ s: r.startDate, e: r.endDate })),

@@ -32,6 +32,19 @@ export class UtilsService {
     );
   }
 
+  datesInclusive(s: string, e: string): string[] {
+    if (!s || !e || s > e) return [];
+    const dates: string[] = [];
+    for (
+      let day = new Date(s + 'T00:00:00');
+      day <= new Date(e + 'T00:00:00');
+      day.setDate(day.getDate() + 1)
+    ) {
+      dates.push(day.toISOString().slice(0, 10));
+    }
+    return dates;
+  }
+
   overlap(a1: string, a2: string, b1: string, b2: string): boolean {
     return new Date(a1) <= new Date(b2) && new Date(b1) <= new Date(a2);
   }

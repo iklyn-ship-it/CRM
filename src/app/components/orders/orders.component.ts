@@ -21,6 +21,7 @@ export class OrdersComponent {
   search = signal("");
   filterStatus = signal("");
   formOpen = signal(false);
+  selectedOrder = signal<Order | null>(null);
   editingId = "";
 
   form = {
@@ -33,6 +34,8 @@ export class OrdersComponent {
     rate: 0,
     status: "new" as OrderStatus,
     notes: "",
+    equipmentIdleDates: [] as string[],
+    operatorIdleDates: [] as string[],
   };
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
@@ -55,7 +58,7 @@ export class OrdersComponent {
     return new Set(conf.flatMap((x) => [x[0], x[1]]));
   });
 
-  readonly formOperatorConflict = computed(() => {
+  formOperatorConflict(): Order | null {
     if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
       return null;
     }
@@ -65,15 +68,14 @@ export class OrdersComponent {
           order.id !== this.editingId &&
           this.state.orderBlocksSchedule(order) &&
           order.operatorId === this.form.operatorId &&
-          this.utils.overlap(
-            this.form.startDate,
-            this.form.endDate,
-            order.startDate,
-            order.endDate,
+          this.state.ordersOverlapByWorkDays(
+            this.formDraftOrder(),
+            order,
+            "operator",
           ),
       ) || null
     );
-  });
+  }
 
   readonly filteredOrders = computed(() => {
     const q = this.search().toLowerCase();
@@ -122,12 +124,21 @@ export class OrdersComponent {
 
   openCreate(): void {
     this.clearForm();
+    this.selectedOrder.set(null);
     this.formOpen.set(true);
   }
 
   closeForm(): void {
     this.clearForm();
     this.formOpen.set(false);
+  }
+
+  viewOrder(order: Order): void {
+    this.selectedOrder.set(order);
+  }
+
+  closeDetails(): void {
+    this.selectedOrder.set(null);
   }
 
   onEquipmentChange(): void {
@@ -147,18 +158,20 @@ export class OrdersComponent {
       return;
     }
     if (this.editingId) {
-      await this.db.update("orders", this.editingId, this.form);
+      await this.db.update("orders", this.editingId, this.prepareForm());
     } else {
       await this.db.insert("orders", {
         id: this.utils.uid("ord"),
-        ...this.form,
+        ...this.prepareForm(),
       });
     }
     this.clearForm();
     this.formOpen.set(false);
+    this.selectedOrder.set(null);
   }
 
   edit(order: Order): void {
+    this.selectedOrder.set(null);
     this.editingId = order.id;
     this.form = {
       clientId: order.clientId,
@@ -170,6 +183,8 @@ export class OrdersComponent {
       rate: order.rate,
       status: order.status,
       notes: order.notes,
+      equipmentIdleDates: [...(order.equipmentIdleDates || [])],
+      operatorIdleDates: [...(order.operatorIdleDates || [])],
     };
     this.formOpen.set(true);
   }
@@ -197,6 +212,59 @@ export class OrdersComponent {
       rate: 0,
       status: "new",
       notes: "",
+      equipmentIdleDates: [],
+      operatorIdleDates: [],
+    };
+  }
+
+  editSelected(order: Order): void {
+    this.edit(order);
+  }
+
+  orderDates(): string[] {
+    return this.utils.datesInclusive(this.form.startDate, this.form.endDate);
+  }
+
+  isIdleDate(kind: "equipment" | "operator", date: string): boolean {
+    const dates =
+      kind === "equipment"
+        ? this.form.equipmentIdleDates
+        : this.form.operatorIdleDates;
+    return dates.includes(date);
+  }
+
+  toggleIdleDate(kind: "equipment" | "operator", date: string): void {
+    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const dates = new Set(this.form[key]);
+    if (dates.has(date)) dates.delete(date);
+    else dates.add(date);
+    this.form[key] = [...dates].sort();
+  }
+
+  idleDatesLabel(dates: string[]): string {
+    return dates.length
+      ? dates.map((date) => this.utils.fmtDate(date)).join(", ")
+      : "нет";
+  }
+
+  private formDraftOrder(): Order {
+    return {
+      id: this.editingId || "draft",
+      createdAt: "",
+      ...this.prepareForm(),
+    };
+  }
+
+  private prepareForm(): Omit<Order, "id" | "createdAt"> {
+    const inPeriod = new Set(this.orderDates());
+    return {
+      ...this.form,
+      equipmentIdleDates: this.form.equipmentIdleDates
+        .filter((date) => inPeriod.has(date))
+        .sort(),
+      operatorIdleDates: this.form.operatorIdleDates
+        .filter((date) => inPeriod.has(date))
+        .sort(),
     };
   }
 }

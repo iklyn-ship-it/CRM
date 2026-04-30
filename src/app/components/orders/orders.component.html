@@ -83,6 +83,44 @@
             required
           />
         </div>
+        @if (orderDates().length) {
+          <div class="field">
+            <label>Дни, когда техника не работала</label>
+            <div class="idle-date-grid">
+              @for (date of orderDates(); track date) {
+                <button
+                  type="button"
+                  class="idle-date-chip"
+                  [class.active]="isIdleDate('equipment', date)"
+                  (click)="toggleIdleDate('equipment', date)"
+                >
+                  {{ utils.fmtDate(date) }}
+                </button>
+              }
+            </div>
+            <div class="small">
+              Эти дни не считаются в план заявки и не занимают технику.
+            </div>
+          </div>
+          <div class="field">
+            <label>Дни, когда оператор не работал</label>
+            <div class="idle-date-grid">
+              @for (date of orderDates(); track date) {
+                <button
+                  type="button"
+                  class="idle-date-chip"
+                  [class.active]="isIdleDate('operator', date)"
+                  (click)="toggleIdleDate('operator', date)"
+                >
+                  {{ utils.fmtDate(date) }}
+                </button>
+              }
+            </div>
+            <div class="small">
+              Эти дни не считаются в зарплату оператора и не занимают оператора.
+            </div>
+          </div>
+        }
         <div class="field">
           <label>Локация</label
           ><input
@@ -125,6 +163,93 @@
           </button>
         </div>
       </form>
+      </div>
+    </div>
+  }
+
+  @if (selectedOrder(); as selected) {
+    <div class="order-form-backdrop" (click)="closeDetails()">
+      <div
+        class="card panel order-form-modal"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="modal-head">
+          <h3 style="margin: 0">Заявка {{ selected.id | slice: -5 }}</h3>
+          <button type="button" class="btn ghost" (click)="closeDetails()">
+            Закрыть
+          </button>
+        </div>
+        <div class="order-detail-grid">
+          <div>
+            <span>Клиент</span>
+            <strong>{{ clientName(selected.clientId) }}</strong>
+          </div>
+          <div>
+            <span>Техника</span>
+            <strong>{{ eqName(selected.equipmentId) }}</strong>
+          </div>
+          <div>
+            <span>Оператор</span>
+            <strong>{{ operatorName(selected.operatorId) }}</strong>
+          </div>
+          <div>
+            <span>Период</span>
+            <strong>
+              {{ utils.fmtDate(selected.startDate) }} -
+              {{ utils.fmtDate(selected.endDate) }}
+            </strong>
+          </div>
+          <div>
+            <span>Рабочие дни техники</span>
+            <strong>{{ state.orderEquipmentWorkDays(selected) }}</strong>
+          </div>
+          <div>
+            <span>Рабочие дни оператора</span>
+            <strong>{{ state.orderOperatorWorkDays(selected) }}</strong>
+          </div>
+          <div>
+            <span>План</span>
+            <strong>{{ utils.money(state.orderPlan(selected)) }}</strong>
+          </div>
+          <div>
+            <span>Прибыль</span>
+            <strong>{{ utils.money(state.orderProfit(selected.id)) }}</strong>
+          </div>
+          <div>
+            <span>Статус</span>
+            <strong>{{ statusLabel(selected.status) }}</strong>
+          </div>
+          <div>
+            <span>Создана</span>
+            <strong>
+              {{
+                selected.createdAt
+                  ? utils.fmtDate(selected.createdAt.slice(0, 10))
+                  : "—"
+              }}
+            </strong>
+          </div>
+          <div class="detail-wide">
+            <span>Простой техники</span>
+            <strong>{{ idleDatesLabel(selected.equipmentIdleDates || []) }}</strong>
+          </div>
+          <div class="detail-wide">
+            <span>Простой оператора</span>
+            <strong>{{ idleDatesLabel(selected.operatorIdleDates || []) }}</strong>
+          </div>
+          <div class="detail-wide">
+            <span>Комментарий</span>
+            <strong>{{ selected.notes || "—" }}</strong>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn primary" (click)="editSelected(selected)">
+            Редактировать
+          </button>
+          <button type="button" class="btn ghost" (click)="closeDetails()">
+            Закрыть
+          </button>
+        </div>
       </div>
     </div>
   }
@@ -177,7 +302,7 @@
           </thead>
           <tbody>
             @for (o of filteredOrders(); track o.id) {
-              <tr>
+              <tr class="clickable-row" (click)="viewOrder(o)">
                 <td>{{ o.id | slice: -5 }}</td>
                 <td>{{ o.createdAt ? utils.fmtDate(o.createdAt.slice(0, 10)) : "—" }}</td>
                 <td>
@@ -208,7 +333,7 @@
                     statusLabel(o.status)
                   }}</span>
                 </td>
-                <td>
+                <td (click)="$event.stopPropagation()">
                   <button class="btn ghost" (click)="edit(o)">Ред.</button>
                   <button class="btn ghost" (click)="remove(o.id)">
                     Удалить

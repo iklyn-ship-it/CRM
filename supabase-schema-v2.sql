@@ -51,6 +51,8 @@ create table if not exists public.orders (
   rate         numeric not null default 0,
   status       text not null default 'new',
   notes        text not null default '',
+  equipment_idle_dates jsonb not null default '[]'::jsonb,
+  operator_idle_dates  jsonb not null default '[]'::jsonb,
   created_at   timestamptz not null default now()
 );
 

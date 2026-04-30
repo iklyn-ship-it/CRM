@@ -87,6 +87,19 @@ export class DbService {
     } as Operator;
   }
 
+  private normalizeOrder(row: any): Order {
+    const order = toCamel(row) as any;
+    return {
+      ...order,
+      equipmentIdleDates: Array.isArray(order.equipmentIdleDates)
+        ? order.equipmentIdleDates
+        : [],
+      operatorIdleDates: Array.isArray(order.operatorIdleDates)
+        ? order.operatorIdleDates
+        : [],
+    } as Order;
+  }
+
   /** Load shared CRM data for all authenticated users. */
   async loadAll(): Promise<void> {
     this.loading.set(true);
@@ -134,7 +147,7 @@ export class DbService {
     this.clients.set((clients.data || []).map((r) => toCamel(r) as any));
     this.equipment.set((equipment.data || []).map((r) => toCamel(r) as any));
     this.operators.set((operators.data || []).map((r) => this.normalizeOperator(r)));
-    this.orders.set((orders.data || []).map((r) => toCamel(r) as any));
+    this.orders.set((orders.data || []).map((r) => this.normalizeOrder(r)));
     this.repairs.set((repairs.data || []).map((r) => toCamel(r) as any));
     this.operations.set((operations.data || []).map((r) => toCamel(r) as any));
     this.auditLogs.set((auditLogs.data || []).map((r) => toCamel(r) as any));
@@ -208,6 +221,8 @@ export class DbService {
     const normalizedRows =
       table === "operators"
         ? (data || []).map((r) => this.normalizeOperator(r))
+        : table === "orders"
+          ? (data || []).map((r) => this.normalizeOrder(r))
         : rows;
     const signalMap: Record<string, WritableSignal<any[]>> = {
       clients: this.clients,
@@ -477,6 +492,8 @@ export class DbService {
       operatorId: "Оператор",
       startDate: "Дата начала",
       endDate: "Дата окончания",
+      equipmentIdleDates: "Простой техники",
+      operatorIdleDates: "Простой оператора",
       location: "Локация",
       rate: "Тариф",
       workStatus: "Состояние сотрудника",

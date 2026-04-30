@@ -1,19 +1,24 @@
 import { Component, computed, signal, inject } from "@angular/core";
-import { NgClass } from "@angular/common";
+import { NgClass, SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
+import { Order, OrderStatus } from "../../models/crm.models";
 
 interface CalCell {
   date: Date;
   inMonth: boolean;
   ds: string;
+  weekend: boolean;
   entries: {
+    id: string;
     eq: string;
     cl: string;
     type: string;
     statusClass: string;
+    equipmentId: string;
+    blocksSchedule?: boolean;
     conflict: boolean;
   }[];
 }
@@ -21,7 +26,7 @@ interface CalCell {
 @Component({
   selector: "app-calendar",
   standalone: true,
-  imports: [NgClass, FormsModule],
+  imports: [NgClass, FormsModule, SlicePipe],
   templateUrl: "./calendar.component.html",
   styleUrl: "./calendar.component.css",
 })
@@ -34,6 +39,29 @@ export class CalendarComponent {
   // Local signal for calendar navigation (not persisted on every click)
   readonly viewDate = signal(new Date());
   readonly equipmentTypeFilter = signal("");
+  formOpen = signal(false);
+  editingId = "";
+  form = {
+    clientId: "",
+    equipmentId: "",
+    operatorId: "",
+    startDate: "",
+    endDate: "",
+    location: "",
+    rate: 0,
+    status: "new" as OrderStatus,
+    notes: "",
+    equipmentIdleDates: [] as string[],
+    operatorIdleDates: [] as string[],
+  };
+
+  readonly statuses: { value: OrderStatus; label: string }[] = [
+    { value: "new", label: "Новая" },
+    { value: "confirmed", label: "Подтверждена" },
+    { value: "active", label: "В работе" },
+    { value: "completed", label: "Завершена" },
+    { value: "cancelled", label: "Отменена" },
+  ];
 
   private normalizeType(value: string): string {
     return (value || "").trim();
@@ -62,19 +90,26 @@ export class CalendarComponent {
   }
 
   get monthLabel(): string {
-    return this.viewDate().toLocaleDateString("ru-RU", {
+    const start = this.rangeStart();
+    const end = this.rangeEnd();
+    const startLabel = start.toLocaleDateString("ru-RU", {
       month: "long",
       year: "numeric",
     });
+    const endLabel = end.toLocaleDateString("ru-RU", {
+      month: "long",
+      year: "numeric",
+    });
+    return `${startLabel} - ${endLabel}`;
   }
 
   prevMonth(): void {
     const d = this.viewDate();
-    this.viewDate.set(new Date(d.getFullYear(), d.getMonth() - 1, 1));
+    this.viewDate.set(new Date(d.getFullYear(), d.getMonth() - 3, 1));
   }
   nextMonth(): void {
     const d = this.viewDate();
-    this.viewDate.set(new Date(d.getFullYear(), d.getMonth() + 1, 1));
+    this.viewDate.set(new Date(d.getFullYear(), d.getMonth() + 3, 1));
   }
   currentMonth(): void {
     this.viewDate.set(new Date());
@@ -85,32 +120,34 @@ export class CalendarComponent {
   }
 
   readonly calendarCells = computed((): CalCell[] => {
-    const d = this.viewDate();
-    const y = d.getFullYear(),
-      m = d.getMonth();
-    const start = new Date(y, m, 1);
-    const startWeek = (start.getDay() + 6) % 7;
-    const dim = new Date(y, m + 1, 0).getDate();
-    const weeks = Math.ceil((startWeek + dim) / 7);
+    const rangeStart = this.rangeStart();
+    const rangeEnd = this.rangeEnd();
+    const firstGridDay = new Date(rangeStart);
+    firstGridDay.setDate(firstGridDay.getDate() - ((firstGridDay.getDay() + 6) % 7));
+    const lastGridDay = new Date(rangeEnd);
+    lastGridDay.setDate(lastGridDay.getDate() + (6 - ((lastGridDay.getDay() + 6) % 7)));
     const cells: CalCell[] = [];
 
-    for (let w = 0; w < weeks; w++) {
-      for (let i = 0; i < 7; i++) {
-        const cellNum = w * 7 + i + 1 - startWeek;
-        const cur = new Date(y, m, cellNum);
-        const inMonth = cur.getMonth() === m;
-        const ds = cur.toISOString().slice(0, 10);
+    for (
+      let cur = new Date(firstGridDay);
+      cur <= lastGridDay;
+      cur.setDate(cur.getDate() + 1)
+    ) {
+        const day = new Date(cur);
+        const inMonth = day >= rangeStart && day <= rangeEnd;
+        const ds = day.toISOString().slice(0, 10);
+        const weekend = [0, 6].includes(day.getDay());
 
         const rentEntries = this.state
           .orders()
           .filter(
             (o) =>
-              o.status !== "cancelled" &&
+              this.state.orderWorksOnDate(o, "equipment", ds) &&
               this.isEquipmentTypeVisible(o.equipmentId) &&
-              o.startDate <= ds &&
-              o.endDate >= ds,
+              o.status !== "cancelled",
           )
           .map((o) => ({
+            id: o.id,
             eq:
               this.state.byId(this.state.equipment(), o.equipmentId)?.name ||
               "Техника",
@@ -134,6 +171,7 @@ export class CalendarComponent {
               r.endDate >= ds,
           )
           .map((r) => ({
+            id: r.id,
             eq:
               this.state.byId(this.state.equipment(), r.equipmentId)?.name ||
               "Техника",
@@ -154,78 +192,265 @@ export class CalendarComponent {
           }
         });
         entries.forEach((e) => (e.conflict = cnt[e.equipmentId] > 1));
-        cells.push({ date: cur, inMonth, ds, entries: entries.slice(0, 5) });
-      }
+        cells.push({
+          date: day,
+          inMonth,
+          ds,
+          weekend,
+          entries: entries.slice(0, 5),
+        });
     }
     return cells;
   });
 
   readonly timelineEquipment = computed(() => {
-    const d = this.viewDate();
-    const y = d.getFullYear(),
-      m = d.getMonth();
-    const dim = new Date(y, m + 1, 0).getDate();
-    const start = new Date(y, m, 1),
-      end = new Date(y, m + 1, 0);
+    const days = this.timelineDays();
+    const rangeStart = this.rangeStart();
+    const rangeEnd = this.rangeEnd();
 
     return this.filteredEquipment().map((eq) => {
-      const events = [
+      const rangedEvents = [
         ...this.state
           .orders()
           .filter((o) => o.equipmentId === eq.id && o.status !== "cancelled")
-          .map((o) => ({
-            type: "rent" as const,
-            status: o.status,
-            title:
-              this.state.byId(this.state.clients(), o.clientId)?.name ||
-              "Аренда",
-            startDate: o.startDate,
-            endDate: o.endDate,
-          })),
+          .flatMap((o) =>
+            this.orderSegments(o, rangeStart, rangeEnd).map((segment) => ({
+              id: o.id,
+              type: "rent" as const,
+              status: o.status,
+              title:
+                this.state.byId(this.state.clients(), o.clientId)?.name ||
+                "Аренда",
+              startDate: segment.startDate,
+              endDate: segment.endDate,
+            })),
+          ),
         ...this.state
           .repairs()
           .filter((r) => r.equipmentId === eq.id && r.status !== "cancelled")
           .map((r) => ({
+            id: r.id,
             type: "repair" as const,
             status: r.status,
             title: r.tasks || "Ремонт",
             startDate: r.startDate,
             endDate: r.endDate,
           })),
-      ]
-        .map((ev) => {
-          const s = new Date(ev.startDate + "T00:00:00"),
-            e = new Date(ev.endDate + "T00:00:00");
-          const from = new Date(Math.max(s.getTime(), start.getTime())),
-            to = new Date(Math.min(e.getTime(), end.getTime()));
-          if (from > to) return null;
-          return {
+      ];
+      const events = rangedEvents.flatMap((ev) => {
+        const startIndex = days.findIndex((day) => day.ds === ev.startDate);
+        const endIndex = days.findIndex((day) => day.ds === ev.endDate);
+        if (startIndex < 0 || endIndex < 0) return [];
+        return [
+          {
             ...ev,
-            startDay: from.getDate(),
-            span: to.getDate() - from.getDate() + 1,
-          };
-        })
-        .filter(Boolean);
-      return { eq, events, dim };
+            startIndex,
+            span: endIndex - startIndex + 1,
+          },
+        ];
+      });
+      return { eq, events, dim: days.length };
     });
   });
 
   readonly timelineDays = computed(() => {
-    const d = this.viewDate();
-    const y = d.getFullYear(),
-      m = d.getMonth();
-    const dim = new Date(y, m + 1, 0).getDate();
-    return Array.from({ length: 31 }, (_, i) => {
-      const day = i + 1,
-        inMonth = day <= dim;
-      const date = inMonth ? new Date(y, m, day) : null;
+    const dates = this.utils.datesInclusive(
+      this.rangeStart().toISOString().slice(0, 10),
+      this.rangeEnd().toISOString().slice(0, 10),
+    );
+    return dates.map((ds) => {
+      const date = new Date(ds + "T00:00:00");
       return {
-        day,
-        inMonth,
-        weekday: date
-          ? date.toLocaleDateString("ru-RU", { weekday: "short" })
-          : "",
+        ds,
+        day: date.getDate(),
+        month: date.toLocaleDateString("ru-RU", { month: "short" }),
+        inMonth: true,
+        weekend: [0, 6].includes(date.getDay()),
+        weekday: date.toLocaleDateString("ru-RU", { weekday: "short" }),
       };
     });
   });
+
+  timelineGridColumns(): string {
+    return `240px repeat(${this.timelineDays().length}, minmax(34px, 34px))`;
+  }
+
+  barLeft(index: number): number {
+    return 240 + index * 34 + 2;
+  }
+
+  openOrder(orderId: string): void {
+    const order = this.state.byId(this.state.orders(), orderId);
+    if (!order) return;
+    this.edit(order);
+  }
+
+  editingOrder(): Order | null {
+    return this.state.byId(this.state.orders(), this.editingId) || null;
+  }
+
+  edit(order: Order): void {
+    this.editingId = order.id;
+    this.form = {
+      clientId: order.clientId,
+      equipmentId: order.equipmentId,
+      operatorId: order.operatorId,
+      startDate: order.startDate,
+      endDate: order.endDate,
+      location: order.location,
+      rate: order.rate,
+      status: order.status,
+      notes: order.notes,
+      equipmentIdleDates: [...(order.equipmentIdleDates || [])],
+      operatorIdleDates: [...(order.operatorIdleDates || [])],
+    };
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
+  }
+
+  onEquipmentChange(): void {
+    const eq = this.state.byId(this.state.equipment(), this.form.equipmentId);
+    if (eq && !this.form.rate) this.form.rate = eq.defaultRate || 0;
+  }
+
+  async save(): Promise<void> {
+    if (!this.editingId || !this.form.startDate || !this.form.endDate) return;
+    const operatorConflict = this.formOperatorConflict();
+    if (operatorConflict) {
+      alert(
+        `Оператор занят в другой заявке: ${this.clientName(operatorConflict.clientId)}, ${this.utils.fmtDate(operatorConflict.startDate)} - ${this.utils.fmtDate(operatorConflict.endDate)}.`,
+      );
+      return;
+    }
+    await this.db.update("orders", this.editingId, this.prepareForm());
+    this.closeForm();
+  }
+
+  formOperatorConflict(): Order | null {
+    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+      return null;
+    }
+    return (
+      this.state.orders().find(
+        (order) =>
+          order.id !== this.editingId &&
+          this.state.orderBlocksSchedule(order) &&
+          order.operatorId === this.form.operatorId &&
+          this.state.ordersOverlapByWorkDays(
+            this.formDraftOrder(),
+            order,
+            "operator",
+          ),
+      ) || null
+    );
+  }
+
+  orderDates(): string[] {
+    return this.utils.datesInclusive(this.form.startDate, this.form.endDate);
+  }
+
+  isIdleDate(kind: "equipment" | "operator", date: string): boolean {
+    const dates =
+      kind === "equipment"
+        ? this.form.equipmentIdleDates
+        : this.form.operatorIdleDates;
+    return dates.includes(date);
+  }
+
+  toggleIdleDate(kind: "equipment" | "operator", date: string): void {
+    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const dates = new Set(this.form[key]);
+    if (dates.has(date)) dates.delete(date);
+    else dates.add(date);
+    this.form[key] = [...dates].sort();
+  }
+
+  clientName(id: string): string {
+    return this.state.byId(this.state.clients(), id)?.name || "—";
+  }
+
+  operatorName(id: string): string {
+    return this.state.byId(this.state.operators(), id)?.name || "—";
+  }
+
+  private clearForm(): void {
+    this.editingId = "";
+    this.form = {
+      clientId: "",
+      equipmentId: "",
+      operatorId: "",
+      startDate: "",
+      endDate: "",
+      location: "",
+      rate: 0,
+      status: "new",
+      notes: "",
+      equipmentIdleDates: [],
+      operatorIdleDates: [],
+    };
+  }
+
+  private prepareForm(): Omit<Order, "id" | "createdAt"> {
+    const inPeriod = new Set(this.orderDates());
+    return {
+      ...this.form,
+      equipmentIdleDates: this.form.equipmentIdleDates
+        .filter((date) => inPeriod.has(date))
+        .sort(),
+      operatorIdleDates: this.form.operatorIdleDates
+        .filter((date) => inPeriod.has(date))
+        .sort(),
+    };
+  }
+
+  private formDraftOrder(): Order {
+    return {
+      id: this.editingId || "draft",
+      createdAt: "",
+      ...this.prepareForm(),
+    };
+  }
+
+  private rangeStart(): Date {
+    const d = this.viewDate();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  }
+
+  private rangeEnd(): Date {
+    const d = this.viewDate();
+    return new Date(d.getFullYear(), d.getMonth() + 3, 0);
+  }
+
+  private orderSegments(
+    order: Order,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): { startDate: string; endDate: string }[] {
+    const from = new Date(Math.max(
+      new Date(order.startDate + "T00:00:00").getTime(),
+      rangeStart.getTime(),
+    ));
+    const to = new Date(Math.min(
+      new Date(order.endDate + "T00:00:00").getTime(),
+      rangeEnd.getTime(),
+    ));
+    if (from > to) return [];
+    const dates = this.utils
+      .datesInclusive(from.toISOString().slice(0, 10), to.toISOString().slice(0, 10))
+      .filter((date) => this.state.orderWorksOnDate(order, "equipment", date));
+    const segments: { startDate: string; endDate: string }[] = [];
+    for (const date of dates) {
+      const last = segments[segments.length - 1];
+      const previous = last
+        ? this.utils.dateOffset(new Date(last.endDate + "T00:00:00"), 1)
+        : "";
+      if (last && previous === date) last.endDate = date;
+      else segments.push({ startDate: date, endDate: date });
+    }
+    return segments;
+  }
 }
