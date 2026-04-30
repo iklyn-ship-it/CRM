@@ -39,6 +39,7 @@ export class OperatorsComponent {
   journalOperatorFilter = signal("");
   journalFrom = signal("");
   journalTo = signal("");
+  formOpen = signal(false);
   editingId = "";
   form = {
     name: "",
@@ -180,6 +181,17 @@ export class OperatorsComponent {
         ...this.form,
       });
     this.clearForm();
+    this.formOpen.set(false);
+  }
+
+  openCreate(): void {
+    this.clearForm();
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
   }
 
   edit(op: Operator): void {
@@ -191,6 +203,7 @@ export class OperatorsComponent {
       rate: op.rate,
       workStatus: op.workStatus || "active",
     };
+    this.formOpen.set(true);
   }
 
   async setWorkStatus(

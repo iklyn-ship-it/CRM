@@ -1,7 +1,18 @@
-<div class="row equipment-page">
-  <div class="col-4">
-    <div class="card panel equipment-form-panel">
-      <h3 style="margin-top:0">{{ editingId ? 'Редактирование техники' : 'Добавить технику' }}</h3>
+<div class="section-heading">
+  <div>
+    <h2>Техника</h2>
+    <p>Парк техники, типы, ставки и загрузка.</p>
+  </div>
+  <button type="button" class="btn primary" (click)="openCreate()">+ Новая техника</button>
+</div>
+
+@if (formOpen()) {
+  <div class="form-backdrop" (click)="closeForm()">
+    <div class="card panel form-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3 style="margin:0">{{ editingId ? 'Редактирование техники' : 'Добавить технику' }}</h3>
+        <button type="button" class="btn ghost" (click)="closeForm()">Закрыть</button>
+      </div>
       <form (ngSubmit)="save()">
         <div class="field">
           <label>Название</label>
@@ -29,12 +40,15 @@
         </div>
         <div class="actions">
           <button type="submit" class="btn primary" [disabled]="!!duplicateName()">{{ editingId ? 'Сохранить изменения' : 'Сохранить технику' }}</button>
-          @if (editingId) { <button type="button" class="btn ghost" (click)="clearForm()">Отмена</button> }
+          <button type="button" class="btn ghost" (click)="closeForm()">Отмена</button>
         </div>
       </form>
     </div>
   </div>
-  <div class="col-8">
+}
+
+<div class="row equipment-page">
+  <div class="col-12">
     <div class="card panel equipment-list-panel">
       <div class="equipment-head">
         <div>

@@ -1,9 +1,20 @@
-<div class="row split-scroll-page">
-  <div class="col-4">
-    <div class="card panel sticky-side-panel">
-      <h3 style="margin-top: 0">
-        {{ editingId ? "Редактирование ремонта" : "Запланировать ремонт" }}
-      </h3>
+<div class="section-heading">
+  <div>
+    <h2>Ремонты</h2>
+    <p>Планирование ремонтов, статусы и пересечения с арендой.</p>
+  </div>
+  <button type="button" class="btn primary" (click)="openCreate()">+ Новый ремонт</button>
+</div>
+
+@if (formOpen()) {
+  <div class="form-backdrop" (click)="closeForm()">
+    <div class="card panel form-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3 style="margin: 0">
+          {{ editingId ? "Редактирование ремонта" : "Запланировать ремонт" }}
+        </h3>
+        <button type="button" class="btn ghost" (click)="closeForm()">Закрыть</button>
+      </div>
       <form (ngSubmit)="save()">
         <div class="field">
           <label>Техника</label>
@@ -53,16 +64,17 @@
           <button type="submit" class="btn primary">
             {{ editingId ? "Сохранить изменения" : "Сохранить ремонт" }}
           </button>
-          @if (editingId) {
-            <button type="button" class="btn ghost" (click)="clearForm()">
-              Отмена
-            </button>
-          }
+          <button type="button" class="btn ghost" (click)="closeForm()">
+            Отмена
+          </button>
         </div>
       </form>
     </div>
   </div>
-  <div class="col-8">
+}
+
+<div class="row">
+  <div class="col-12">
     <div class="card panel internal-scroll-panel">
       <div class="toolbar">
         <input

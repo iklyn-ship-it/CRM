@@ -36,6 +36,7 @@ export class FinanceComponent {
   search = signal("");
   filterType = signal("");
   orderFinanceStatusFilter = signal<"open" | "all" | OrderStatus>("open");
+  formOpen = signal(false);
   editingId = "";
   form = {
     date: "",
@@ -158,6 +159,18 @@ export class FinanceComponent {
       .sort((a, b) => b.date.localeCompare(a.date)),
   );
 
+  readonly financeSummary = computed(() => {
+    const income = this.state
+      .operations()
+      .filter((op) => op.type === "income")
+      .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+    const expense = this.state
+      .operations()
+      .filter((op) => op.type === "expense")
+      .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+    return { income, expense, balance: income - expense };
+  });
+
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
       new: "Новая",
@@ -216,6 +229,22 @@ export class FinanceComponent {
         ...this.form,
       });
     this.clearForm();
+    this.formOpen.set(false);
+  }
+
+  openCreate(type: "income" | "expense" = "income"): void {
+    this.clearForm();
+    this.form = {
+      ...this.form,
+      type,
+      category: type === "income" ? "Оплата клиента" : "Прочее",
+    };
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
   }
 
   edit(op: FinanceOperation): void {
@@ -236,6 +265,7 @@ export class FinanceComponent {
       repairId: op.repairId,
       comment: op.comment,
     };
+    this.formOpen.set(true);
   }
 
   async remove(id: string): Promise<void> {

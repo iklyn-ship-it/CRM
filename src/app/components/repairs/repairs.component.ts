@@ -20,6 +20,7 @@ export class RepairsComponent {
 
   search = signal("");
   filterStatus = signal("");
+  formOpen = signal(false);
   editingId = "";
   form = {
     equipmentId: "",
@@ -87,6 +88,17 @@ export class RepairsComponent {
         ...this.form,
       });
     this.clearForm();
+    this.formOpen.set(false);
+  }
+
+  openCreate(): void {
+    this.clearForm();
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
   }
 
   edit(r: Repair): void {
@@ -99,6 +111,7 @@ export class RepairsComponent {
       tasks: r.tasks,
       notes: r.notes,
     };
+    this.formOpen.set(true);
   }
 
   async remove(id: string): Promise<void> {

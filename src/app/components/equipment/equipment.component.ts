@@ -19,6 +19,7 @@ export class EquipmentComponent {
   utils = inject(UtilsService);
 
   typeFilter = signal("");
+  formOpen = signal(false);
   editingId = "";
   form = {
     name: "",
@@ -134,6 +135,17 @@ export class EquipmentComponent {
         ...this.form,
       });
     this.clearForm();
+    this.formOpen.set(false);
+  }
+
+  openCreate(): void {
+    this.clearForm();
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
   }
 
   async importGoogleFormEquipment(): Promise<void> {
@@ -165,6 +177,7 @@ export class EquipmentComponent {
       defaultRate: eq.defaultRate,
       status: eq.status,
     };
+    this.formOpen.set(true);
   }
 
   async remove(id: string): Promise<void> {

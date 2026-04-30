@@ -1,4 +1,4 @@
-import { Component, inject } from "@angular/core";
+import { Component, inject, signal } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
@@ -17,6 +17,7 @@ export class ClientsComponent {
   db = inject(DbService);
   utils = inject(UtilsService);
 
+  formOpen = signal(false);
   editingId = "";
   form = { name: "", phone: "", source: "", type: "Разовый", notes: "" };
 
@@ -87,6 +88,17 @@ export class ClientsComponent {
         ...this.form,
       });
     this.clearForm();
+    this.formOpen.set(false);
+  }
+
+  openCreate(): void {
+    this.clearForm();
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
   }
 
   edit(c: Client): void {
@@ -98,6 +110,7 @@ export class ClientsComponent {
       type: c.type,
       notes: c.notes,
     };
+    this.formOpen.set(true);
   }
 
   async remove(id: string): Promise<void> {
