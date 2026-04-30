@@ -173,7 +173,7 @@
       </div>
     </div>
 
-    <div class="card panel" style="margin-top: 16px">
+    <div class="card panel order-finance-panel">
       <div class="finance-section-head">
         <div>
           <h3 style="margin: 0">Финансы по заявкам</h3>
@@ -200,7 +200,7 @@
           }
         </div>
       </div>
-      <div class="order-finance-list">
+      <div class="order-finance-list order-finance-scroll">
         @for (row of orderFinanceRows(); track row.order.id) {
           <article class="order-finance-card">
             <div class="order-finance-head">
