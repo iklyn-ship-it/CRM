@@ -61,9 +61,41 @@
 }
 
 .idle-date-grid {
+  max-height: 168px;
+  overflow: auto;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.idle-date-picker {
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.idle-date-picker summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.idle-date-picker summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.idle-date-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
 }
 
 .idle-date-chip {

@@ -369,6 +369,29 @@ export class CalendarComponent {
     this.form[key] = [...dates].sort();
   }
 
+  excludeWeekendDates(kind: "equipment" | "operator"): void {
+    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const dates = new Set(this.form[key]);
+    this.orderDates()
+      .filter((date) => {
+        const day = new Date(date + "T00:00:00").getDay();
+        return day === 0 || day === 6;
+      })
+      .forEach((date) => dates.add(date));
+    this.form[key] = [...dates].sort();
+  }
+
+  clearIdleDates(kind: "equipment" | "operator"): void {
+    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    this.form[key] = [];
+  }
+
+  idleDatesCount(kind: "equipment" | "operator"): number {
+    return kind === "equipment"
+      ? this.form.equipmentIdleDates.length
+      : this.form.operatorIdleDates.length;
+  }
+
   clientName(id: string): string {
     return this.state.byId(this.state.clients(), id)?.name || "—";
   }

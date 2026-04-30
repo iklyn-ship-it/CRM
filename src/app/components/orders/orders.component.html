@@ -86,39 +86,83 @@
         @if (orderDates().length) {
           <div class="field">
             <label>Дни, когда техника не работала</label>
-            <div class="idle-date-grid">
-              @for (date of orderDates(); track date) {
+            <details class="idle-date-picker">
+              <summary>
+                Выбрано: {{ idleDatesCount("equipment") }}
+                <span>из {{ orderDates().length }} дней</span>
+              </summary>
+              <div class="idle-date-actions">
                 <button
                   type="button"
-                  class="idle-date-chip"
-                  [class.active]="isIdleDate('equipment', date)"
-                  (click)="toggleIdleDate('equipment', date)"
+                  class="btn ghost"
+                  (click)="excludeWeekendDates('equipment')"
                 >
-                  {{ utils.fmtDate(date) }}
+                  Исключить выходные дни
                 </button>
-              }
-            </div>
-            <div class="small">
-              Эти дни не считаются в план заявки и не занимают технику.
-            </div>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  (click)="clearIdleDates('equipment')"
+                >
+                  Очистить
+                </button>
+              </div>
+              <div class="idle-date-grid">
+                @for (date of orderDates(); track date) {
+                  <button
+                    type="button"
+                    class="idle-date-chip"
+                    [class.active]="isIdleDate('equipment', date)"
+                    (click)="toggleIdleDate('equipment', date)"
+                  >
+                    {{ utils.fmtDate(date) }}
+                  </button>
+                }
+              </div>
+              <div class="small">
+                Эти дни не считаются в план заявки и не занимают технику.
+              </div>
+            </details>
           </div>
           <div class="field">
             <label>Дни, когда оператор не работал</label>
-            <div class="idle-date-grid">
-              @for (date of orderDates(); track date) {
+            <details class="idle-date-picker">
+              <summary>
+                Выбрано: {{ idleDatesCount("operator") }}
+                <span>из {{ orderDates().length }} дней</span>
+              </summary>
+              <div class="idle-date-actions">
                 <button
                   type="button"
-                  class="idle-date-chip"
-                  [class.active]="isIdleDate('operator', date)"
-                  (click)="toggleIdleDate('operator', date)"
+                  class="btn ghost"
+                  (click)="excludeWeekendDates('operator')"
                 >
-                  {{ utils.fmtDate(date) }}
+                  Исключить выходные дни
                 </button>
-              }
-            </div>
-            <div class="small">
-              Эти дни не считаются в зарплату оператора и не занимают оператора.
-            </div>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  (click)="clearIdleDates('operator')"
+                >
+                  Очистить
+                </button>
+              </div>
+              <div class="idle-date-grid">
+                @for (date of orderDates(); track date) {
+                  <button
+                    type="button"
+                    class="idle-date-chip"
+                    [class.active]="isIdleDate('operator', date)"
+                    (click)="toggleIdleDate('operator', date)"
+                  >
+                    {{ utils.fmtDate(date) }}
+                  </button>
+                }
+              </div>
+              <div class="small">
+                Эти дни не считаются в зарплату оператора и не занимают оператора.
+              </div>
+            </details>
           </div>
         }
         <div class="field">

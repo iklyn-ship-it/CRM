@@ -46,6 +46,7 @@
   grid-template-columns: repeat(7, minmax(140px, 1fr));
   gap: 0;
   overflow: auto;
+  max-height: calc(100vh - 240px);
   border: 1px solid var(--line);
   border-radius: 16px;
 }
@@ -125,8 +126,10 @@
 /* Timeline */
 .timeline-wrap {
   overflow: auto;
+  max-height: calc(100vh - 230px);
   border: 1px solid var(--line);
   border-radius: 16px;
+  overscroll-behavior: contain;
 }
 
 .timeline-empty {
@@ -144,7 +147,7 @@
 .timeline-head {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 4;
 }
 .timeline-left,
 .timeline-day,
@@ -155,9 +158,13 @@
 .timeline-left {
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: 3;
   background: #111827;
   padding: 10px 12px;
+  box-shadow: 8px 0 18px rgba(2, 6, 23, 0.28);
+}
+.timeline-head .timeline-left {
+  z-index: 6;
 }
 .timeline-day {
   background: #111827;
@@ -180,10 +187,11 @@
 
 .reserve-bar {
   position: absolute;
-  top: 9px;
-  height: 34px;
-  border-radius: 999px;
-  padding: 6px 10px;
+  top: 11px;
+  height: 28px;
+  min-width: 30px;
+  border-radius: 8px;
+  padding: 5px 9px;
   font-size: 12px;
   overflow: hidden;
   white-space: nowrap;
@@ -195,6 +203,7 @@
 button.reserve-bar {
   cursor: pointer;
   text-align: left;
+  appearance: none;
 }
 .reserve-bar.rent {
   background: rgba(56, 189, 248, 0.18);
@@ -282,9 +291,41 @@ button.reserve-bar {
 }
 
 .idle-date-grid {
+  max-height: 168px;
+  overflow: auto;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.idle-date-picker {
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.idle-date-picker summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  color: #e5e7eb;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.idle-date-picker summary span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.idle-date-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 10px 0;
 }
 
 .idle-date-chip {
