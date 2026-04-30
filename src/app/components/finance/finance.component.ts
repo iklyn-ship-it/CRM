@@ -159,18 +159,6 @@ export class FinanceComponent {
       .sort((a, b) => b.date.localeCompare(a.date)),
   );
 
-  readonly financeSummary = computed(() => {
-    const income = this.state
-      .operations()
-      .filter((op) => op.type === "income")
-      .reduce((sum, op) => sum + Number(op.amount || 0), 0);
-    const expense = this.state
-      .operations()
-      .filter((op) => op.type === "expense")
-      .reduce((sum, op) => sum + Number(op.amount || 0), 0);
-    return { income, expense, balance: income - expense };
-  });
-
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
       new: "Новая",

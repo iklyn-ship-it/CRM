@@ -18,11 +18,13 @@
     <div class="card panel form-modal" (click)="$event.stopPropagation()">
       <div class="modal-head">
         <h3 style="margin: 0">
-        {{
-          editingId ? "Редактирование операции" : "Новая финансовая операция"
-        }}
+          {{
+            editingId ? "Редактирование операции" : "Новая финансовая операция"
+          }}
         </h3>
-        <button type="button" class="btn ghost" (click)="closeForm()">Закрыть</button>
+        <button type="button" class="btn ghost" (click)="closeForm()">
+          Закрыть
+        </button>
       </div>
       <form (ngSubmit)="save()">
         <div class="field">
@@ -110,26 +112,7 @@
 }
 
 <div class="row split-scroll-page">
-  <div class="col-4">
-    <div class="card panel finance-summary-panel">
-      <h3 style="margin-top: 0">Приходы и расходы</h3>
-      <div class="finance-summary-stack">
-        <div class="finance-summary-card income-metric">
-          <span>Приход</span>
-          <strong>{{ utils.money(financeSummary().income) }}</strong>
-        </div>
-        <div class="finance-summary-card expense-metric">
-          <span>Расход</span>
-          <strong>{{ utils.money(financeSummary().expense) }}</strong>
-        </div>
-        <div class="finance-summary-card">
-          <span>Баланс</span>
-          <strong>{{ utils.money(financeSummary().balance) }}</strong>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-8">
+  <div class="col-12">
     <div class="card panel internal-scroll-panel">
       <div class="toolbar">
         <input
