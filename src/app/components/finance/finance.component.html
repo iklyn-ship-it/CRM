@@ -111,8 +111,8 @@
   </div>
 }
 
-<div class="row split-scroll-page">
-  <div class="col-12">
+<div class="finance-parallel-grid">
+  <div class="finance-column">
     <div class="card panel internal-scroll-panel">
       <div class="toolbar">
         <input
@@ -193,7 +193,9 @@
         </table>
       </div>
     </div>
+  </div>
 
+  <div class="finance-column">
     <div class="card panel order-finance-panel">
       <div class="finance-section-head">
         <div>
@@ -319,82 +321,80 @@
         }
       </div>
     </div>
+  </div>
+</div>
 
-    @if (unlinkedOps().length) {
-      <div class="card panel" style="margin-top: 16px">
-        <h3 style="margin-top: 0">Операции без привязки</h3>
-        <div class="small" style="margin-bottom: 12px">
-          Эти приходы и расходы пока не относятся ни к заявке, ни к ремонту.
-          Их лучше привязать, чтобы финансовая картина по заявкам была точной.
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Дата</th>
-                <th>Тип</th>
-                <th>Категория</th>
-                <th>Сумма</th>
-                <th>Комментарий</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (op of unlinkedOps(); track op.id) {
-                <tr>
-                  <td>{{ utils.fmtDate(op.date) }}</td>
-                  <td>
-                    <span class="badge" [ngClass]="op.type">
-                      {{ op.type === "income" ? "Приход" : "Расход" }}
-                    </span>
-                  </td>
-                  <td>{{ op.category || "—" }}</td>
-                  <td>{{ utils.money(op.amount) }}</td>
-                  <td>{{ op.comment || "—" }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </div>
-    }
-
-    <div class="card panel" style="margin-top: 16px">
-      <h3 style="margin-top: 0">Финансы по ремонтам</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Ремонт</th>
-              <th>Техника</th>
-              <th>Расход</th>
-              <th>Комментарий</th>
-              <th>Статус</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of state.repairs(); track r.id) {
-              <tr>
-                <td>{{ r.id | slice: -5 }}</td>
-                <td>
-                  {{
-                    state.byId(state.equipment(), r.equipmentId)?.name || "—"
-                  }}
-                </td>
-                <td>{{ utils.money(state.repairExpense(r.id)) }}</td>
-                <td>{{ r.tasks || "—" }}</td>
-                <td>
-                  <span class="badge repairplan">{{ r.status }}</span>
-                </td>
-              </tr>
-            }
-            @if (!state.repairs().length) {
-              <tr>
-                <td colspan="5"><div class="empty">Нет ремонтов.</div></td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+@if (unlinkedOps().length) {
+  <div class="card panel" style="margin-top: 16px">
+    <h3 style="margin-top: 0">Операции без привязки</h3>
+    <div class="small" style="margin-bottom: 12px">
+      Эти приходы и расходы пока не относятся ни к заявке, ни к ремонту. Их
+      лучше привязать, чтобы финансовая картина по заявкам была точной.
     </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Тип</th>
+            <th>Категория</th>
+            <th>Сумма</th>
+            <th>Комментарий</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (op of unlinkedOps(); track op.id) {
+            <tr>
+              <td>{{ utils.fmtDate(op.date) }}</td>
+              <td>
+                <span class="badge" [ngClass]="op.type">
+                  {{ op.type === "income" ? "Приход" : "Расход" }}
+                </span>
+              </td>
+              <td>{{ op.category || "—" }}</td>
+              <td>{{ utils.money(op.amount) }}</td>
+              <td>{{ op.comment || "—" }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}
+
+<div class="card panel" style="margin-top: 16px">
+  <h3 style="margin-top: 0">Финансы по ремонтам</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ремонт</th>
+          <th>Техника</th>
+          <th>Расход</th>
+          <th>Комментарий</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of state.repairs(); track r.id) {
+          <tr>
+            <td>{{ r.id | slice: -5 }}</td>
+            <td>
+              {{ state.byId(state.equipment(), r.equipmentId)?.name || "—" }}
+            </td>
+            <td>{{ utils.money(state.repairExpense(r.id)) }}</td>
+            <td>{{ r.tasks || "—" }}</td>
+            <td>
+              <span class="badge repairplan">{{ r.status }}</span>
+            </td>
+          </tr>
+        }
+        @if (!state.repairs().length) {
+          <tr>
+            <td colspan="5"><div class="empty">Нет ремонтов.</div></td>
+          </tr>
+        }
+      </tbody>
+    </table>
   </div>
 </div>
