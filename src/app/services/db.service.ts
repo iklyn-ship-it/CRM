@@ -123,6 +123,16 @@ export class DbService {
     } as Order;
   }
 
+  private normalizeRepair(row: any): Repair {
+    const repair = toCamel(row) as any;
+    return {
+      ...repair,
+      laborCost: Number(repair.laborCost || 0),
+      partsCost: Number(repair.partsCost || 0),
+      responsible: repair.responsible || "",
+    } as Repair;
+  }
+
   /** Load shared CRM data for all authenticated users. */
   async loadAll(): Promise<void> {
     this.loading.set(true);
@@ -171,7 +181,7 @@ export class DbService {
     this.equipment.set((equipment.data || []).map((r) => toCamel(r) as any));
     this.operators.set((operators.data || []).map((r) => this.normalizeOperator(r)));
     this.orders.set((orders.data || []).map((r) => this.normalizeOrder(r)));
-    this.repairs.set((repairs.data || []).map((r) => toCamel(r) as any));
+    this.repairs.set((repairs.data || []).map((r) => this.normalizeRepair(r)));
     this.operations.set((operations.data || []).map((r) => toCamel(r) as any));
     this.auditLogs.set((auditLogs.data || []).map((r) => toCamel(r) as any));
 
@@ -246,6 +256,8 @@ export class DbService {
         ? (data || []).map((r) => this.normalizeOperator(r))
         : table === "orders"
           ? (data || []).map((r) => this.normalizeOrder(r))
+          : table === "repairs"
+            ? (data || []).map((r) => this.normalizeRepair(r))
         : rows;
     const signalMap: Record<string, WritableSignal<any[]>> = {
       clients: this.clients,
@@ -278,6 +290,16 @@ export class DbService {
       data = retry.data;
       error = retry.error;
     }
+    if (error && this.canRetryRepairWithoutCostFields(table, error)) {
+      const fallbackRow = this.withoutRepairCostColumns(row);
+      const retry = await this.supa.client
+        .from(table)
+        .insert(fallbackRow)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
     if (error) throw error;
     await this.writeAuditLog(table, "create", null, toCamel(data));
     await this.reloadTable(table);
@@ -301,6 +323,17 @@ export class DbService {
       .single();
     if (error && this.canRetryOrderWithoutFlexibleLogistics(table, error)) {
       const fallbackRow = this.withoutFlexibleLogisticsColumns(row);
+      const retry = await this.supa.client
+        .from(table)
+        .update(fallbackRow)
+        .eq("id", id)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
+    if (error && this.canRetryRepairWithoutCostFields(table, error)) {
+      const fallbackRow = this.withoutRepairCostColumns(row);
       const retry = await this.supa.client
         .from(table)
         .update(fallbackRow)
@@ -425,6 +458,22 @@ export class DbService {
     delete fallbackRow["logistics_distance_km"];
     delete fallbackRow["logistics_price_per_km"];
     delete fallbackRow["logistics_cost"];
+    return fallbackRow;
+  }
+
+  private canRetryRepairWithoutCostFields(table: string, error: any): boolean {
+    return (
+      table === "repairs" &&
+      error?.code === "42703" &&
+      /(labor_cost|parts_cost|responsible)/.test(error?.message || "")
+    );
+  }
+
+  private withoutRepairCostColumns(row: Record<string, any>): Record<string, any> {
+    const fallbackRow = { ...row };
+    delete fallbackRow["labor_cost"];
+    delete fallbackRow["parts_cost"];
+    delete fallbackRow["responsible"];
     return fallbackRow;
   }
 
@@ -571,6 +620,9 @@ export class DbService {
       location: "Локация",
       rate: "Тариф",
       workStatus: "Состояние сотрудника",
+      laborCost: "Стоимость работ",
+      partsCost: "Стоимость запчастей",
+      responsible: "Ответственный",
       tasks: "Работы",
       date: "Дата",
       category: "Категория",

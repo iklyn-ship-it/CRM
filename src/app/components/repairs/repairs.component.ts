@@ -27,6 +27,9 @@ export class RepairsComponent {
     startDate: "",
     endDate: "",
     status: "planned" as RepairStatus,
+    laborCost: 0,
+    partsCost: 0,
+    responsible: "",
     tasks: "",
     notes: "",
   };
@@ -47,6 +50,7 @@ export class RepairsComponent {
         ).toLowerCase();
         return (
           eq.includes(q) ||
+          (r.responsible || "").toLowerCase().includes(q) ||
           (r.tasks || "").toLowerCase().includes(q) ||
           (r.notes || "").toLowerCase().includes(q)
         );
@@ -76,6 +80,10 @@ export class RepairsComponent {
         cancelled: "cancelled",
       }[s] || "repairplan"
     );
+  }
+
+  repairTotal(r: Pick<Repair, "laborCost" | "partsCost">): number {
+    return Number(r.laborCost || 0) + Number(r.partsCost || 0);
   }
 
   async save(): Promise<void> {
@@ -108,6 +116,9 @@ export class RepairsComponent {
       startDate: r.startDate,
       endDate: r.endDate,
       status: r.status,
+      laborCost: Number(r.laborCost || 0),
+      partsCost: Number(r.partsCost || 0),
+      responsible: r.responsible || "",
       tasks: r.tasks,
       notes: r.notes,
     };
@@ -130,6 +141,9 @@ export class RepairsComponent {
       startDate: "",
       endDate: "",
       status: "planned",
+      laborCost: 0,
+      partsCost: 0,
+      responsible: "",
       tasks: "",
       notes: "",
     };

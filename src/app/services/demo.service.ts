@@ -135,6 +135,9 @@ export class DemoService {
       startDate: d(5),
       endDate: d(7),
       status: "planned",
+      laborCost: 4500,
+      partsCost: 8200,
+      responsible: "Сервисная бригада",
       tasks: "Замена троса и проверка стрелы",
       notes: "Нужны запчасти",
     });
@@ -144,6 +147,9 @@ export class DemoService {
       startDate: d(-1),
       endDate: d(1),
       status: "active",
+      laborCost: 2500,
+      partsCost: 1800,
+      responsible: "Механик",
       tasks: "ТО и замена масла",
       notes: "Сервис по месту",
     });

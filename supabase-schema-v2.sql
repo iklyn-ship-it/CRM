@@ -76,6 +76,9 @@ create table if not exists public.repairs (
   start_date   text not null default '',
   end_date     text not null default '',
   status       text not null default 'planned',
+  labor_cost   numeric not null default 0,
+  parts_cost   numeric not null default 0,
+  responsible  text not null default '',
   tasks        text not null default '',
   notes        text not null default '',
   created_at   timestamptz not null default now()

@@ -63,6 +63,9 @@ export interface Repair {
   startDate: string;
   endDate: string;
   status: RepairStatus;
+  laborCost: number;
+  partsCost: number;
+  responsible: string;
   tasks: string;
   notes: string;
 }

@@ -53,6 +53,41 @@
           </select>
         </div>
         <div class="field">
+          <label>Стоимость работ, ₴</label>
+          <input
+            type="number"
+            min="0"
+            [(ngModel)]="form.laborCost"
+            name="laborCost"
+          />
+        </div>
+        <div class="field">
+          <label>Стоимость запчастей, ₴</label>
+          <input
+            type="number"
+            min="0"
+            [(ngModel)]="form.partsCost"
+            name="partsCost"
+          />
+        </div>
+        <div class="field">
+          <label>Сумма ремонта</label>
+          <input
+            type="text"
+            [value]="utils.money(repairTotal(form))"
+            readonly
+          />
+        </div>
+        <div class="field">
+          <label>Ответственный за ремонт</label>
+          <input
+            type="text"
+            [(ngModel)]="form.responsible"
+            name="responsible"
+            placeholder="Кто отвечает за ремонт"
+          />
+        </div>
+        <div class="field">
           <label>Что необходимо сделать</label
           ><textarea [(ngModel)]="form.tasks" name="tasks"></textarea>
         </div>
@@ -81,7 +116,7 @@
           type="text"
           [value]="search()"
           (input)="search.set($any($event.target).value)"
-          placeholder="Поиск: техника, работы..."
+          placeholder="Поиск: техника, работы, ответственный..."
         />
         <select
           [value]="filterStatus()"
@@ -107,6 +142,8 @@
               <th>Период</th>
               <th>Техника</th>
               <th>Работы</th>
+              <th>Ответственный</th>
+              <th>Сумма</th>
               <th>Комментарий</th>
               <th>Статус</th>
               <th></th>
@@ -130,6 +167,14 @@
                 </td>
                 <td>{{ eqName(r.equipmentId) }}</td>
                 <td>{{ r.tasks || "—" }}</td>
+                <td>{{ r.responsible || "—" }}</td>
+                <td>
+                  <strong>{{ utils.money(repairTotal(r)) }}</strong>
+                  <div class="small">
+                    работы {{ utils.money(r.laborCost || 0) }} • запчасти
+                    {{ utils.money(r.partsCost || 0) }}
+                  </div>
+                </td>
                 <td>{{ r.notes || "—" }}</td>
                 <td>
                   <span class="badge" [ngClass]="statusBadgeClass(r.status)">{{
@@ -146,7 +191,7 @@
             }
             @if (!filteredRepairs().length) {
               <tr>
-                <td colspan="7"><div class="empty">Ремонтов пока нет.</div></td>
+                <td colspan="9"><div class="empty">Ремонтов пока нет.</div></td>
               </tr>
             }
           </tbody>
