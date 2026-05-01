@@ -228,9 +228,10 @@ export class StateService {
 
   orderLogisticsCost(order: Order): number {
     if (!order.logisticsEnabled) return 0;
-    return (
-      Number(order.logisticsPickupCost || 0) +
-      Number(order.logisticsDeliveryCost || 0)
+    return Number(
+      order.logisticsCost ||
+        Number(order.logisticsPickupCost || 0) +
+          Number(order.logisticsDeliveryCost || 0),
     );
   }
 

@@ -89,6 +89,14 @@ export class DbService {
 
   private normalizeOrder(row: any): Order {
     const order = toCamel(row) as any;
+    const fallbackDistance = Number(order.logisticsDeliveryKm || 0);
+    const fallbackCost =
+      Number(order.logisticsPickupCost || 0) +
+      Number(order.logisticsDeliveryCost || 0);
+    const logisticsDistanceKm = Number(
+      order.logisticsDistanceKm || fallbackDistance,
+    );
+    const logisticsCost = Number(order.logisticsCost || fallbackCost);
     return {
       ...order,
       equipmentIdleDates: Array.isArray(order.equipmentIdleDates)
@@ -102,6 +110,12 @@ export class DbService {
       logisticsTrailerId: order.logisticsTrailerId || "",
       logisticsStartDate: order.logisticsStartDate || order.startDate || "",
       logisticsEndDate: order.logisticsEndDate || order.endDate || "",
+      logisticsDistanceKm,
+      logisticsPricePerKm: Number(
+        order.logisticsPricePerKm ||
+          (logisticsDistanceKm ? logisticsCost / logisticsDistanceKm : 0),
+      ),
+      logisticsCost,
       logisticsPickupKm: Number(order.logisticsPickupKm || 0),
       logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
       logisticsPickupCost: Number(order.logisticsPickupCost || 0),
@@ -249,11 +263,21 @@ export class DbService {
 
   async insert(table: string, record: Record<string, any>): Promise<any> {
     const row = toSnake({ ...record, userId: this.supa.userId });
-    const { data, error } = await this.supa.client
+    let { data, error } = await this.supa.client
       .from(table)
       .insert(row)
       .select()
       .single();
+    if (error && this.canRetryOrderWithoutFlexibleLogistics(table, error)) {
+      const fallbackRow = this.withoutFlexibleLogisticsColumns(row);
+      const retry = await this.supa.client
+        .from(table)
+        .insert(fallbackRow)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
     if (error) throw error;
     await this.writeAuditLog(table, "create", null, toCamel(data));
     await this.reloadTable(table);
@@ -269,12 +293,23 @@ export class DbService {
     const row = toSnake(changes);
     delete row["id"];
     delete row["user_id"];
-    const { data, error } = await this.supa.client
+    let { data, error } = await this.supa.client
       .from(table)
       .update(row)
       .eq("id", id)
       .select()
       .single();
+    if (error && this.canRetryOrderWithoutFlexibleLogistics(table, error)) {
+      const fallbackRow = this.withoutFlexibleLogisticsColumns(row);
+      const retry = await this.supa.client
+        .from(table)
+        .update(fallbackRow)
+        .eq("id", id)
+        .select()
+        .single();
+      data = retry.data;
+      error = retry.error;
+    }
     if (error) throw error;
     await this.writeAuditLog(table, "update", previous, toCamel(data));
     await this.reloadTable(table);
@@ -373,6 +408,24 @@ export class DbService {
 
   private isAuditableTable(table: string): boolean {
     return (this.auditableTables as readonly string[]).includes(table);
+  }
+
+  private canRetryOrderWithoutFlexibleLogistics(table: string, error: any): boolean {
+    return (
+      table === "orders" &&
+      error?.code === "42703" &&
+      /logistics_(distance_km|price_per_km|cost)/.test(error?.message || "")
+    );
+  }
+
+  private withoutFlexibleLogisticsColumns(
+    row: Record<string, any>,
+  ): Record<string, any> {
+    const fallbackRow = { ...row };
+    delete fallbackRow["logistics_distance_km"];
+    delete fallbackRow["logistics_price_per_km"];
+    delete fallbackRow["logistics_cost"];
+    return fallbackRow;
   }
 
   private async writeAuditLog(
@@ -508,6 +561,9 @@ export class DbService {
       logisticsTrailerId: "Трал",
       logisticsStartDate: "Дата начала логистики",
       logisticsEndDate: "Дата окончания логистики",
+      logisticsDistanceKm: "Км логистики",
+      logisticsPricePerKm: "Цена за км",
+      logisticsCost: "Стоимость логистики",
       logisticsPickupKm: "Км подачи",
       logisticsDeliveryKm: "Км доставки",
       logisticsPickupCost: "Стоимость подачи",

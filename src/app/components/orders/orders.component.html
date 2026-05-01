@@ -184,6 +184,7 @@
                 >
                   <option value="own_trawl">Наш трал</option>
                   <option value="third_party">Сторонний перевозчик</option>
+                  <option value="self_drive">Своим ходом</option>
                 </select>
               </div>
               @if (form.logisticsProvider === "own_trawl") {
@@ -219,41 +220,32 @@
                 />
               </div>
               <div class="field">
-                <label>Подача, км × ₴{{ pickupRatePerKm }}</label>
+                <label>Километры логистики</label>
                 <input
                   type="number"
                   min="0"
-                  [(ngModel)]="form.logisticsPickupKm"
-                  name="logisticsPickupKm"
-                  (ngModelChange)="recalcLogisticsCost('pickup')"
+                  [(ngModel)]="form.logisticsDistanceKm"
+                  name="logisticsDistanceKm"
+                  (ngModelChange)="recalcLogisticsCost()"
                 />
               </div>
               <div class="field">
-                <label>Стоимость подачи, ₴</label>
+                <label>Цена за 1 км, ₴</label>
                 <input
                   type="number"
                   min="0"
-                  [(ngModel)]="form.logisticsPickupCost"
-                  name="logisticsPickupCost"
+                  [(ngModel)]="form.logisticsPricePerKm"
+                  name="logisticsPricePerKm"
+                  (ngModelChange)="recalcLogisticsCost()"
                 />
               </div>
               <div class="field">
-                <label>Доставка, км × ₴{{ deliveryRatePerKm }}</label>
+                <label>Сумма за доставку, ₴</label>
                 <input
                   type="number"
                   min="0"
-                  [(ngModel)]="form.logisticsDeliveryKm"
-                  name="logisticsDeliveryKm"
-                  (ngModelChange)="recalcLogisticsCost('delivery')"
-                />
-              </div>
-              <div class="field">
-                <label>Стоимость доставки, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.logisticsDeliveryCost"
-                  name="logisticsDeliveryCost"
+                  [(ngModel)]="form.logisticsCost"
+                  name="logisticsCost"
                 />
               </div>
             </div>
@@ -389,21 +381,16 @@
             <div class="detail-wide">
               <span>Логистика</span>
               <strong>
-                {{
-                  selected.logisticsProvider === "own_trawl"
-                    ? "Наш трал"
-                    : "Сторонний перевозчик"
-                }}
+                {{ logisticsProviderLabel(selected) }}
                 @if (selected.logisticsTrailerId) {
                   • {{ eqName(selected.logisticsTrailerId) }}
                 }
                 • {{ utils.fmtDate(selected.logisticsStartDate || selected.startDate) }}
                 -
                 {{ utils.fmtDate(selected.logisticsEndDate || selected.endDate) }}
-                • подача {{ selected.logisticsPickupKm || 0 }} км /
-                {{ utils.money(selected.logisticsPickupCost || 0) }}
-                • доставка {{ selected.logisticsDeliveryKm || 0 }} км /
-                {{ utils.money(selected.logisticsDeliveryCost || 0) }}
+                • {{ selected.logisticsDistanceKm || selected.logisticsDeliveryKm || 0 }} км
+                × {{ utils.money(selected.logisticsPricePerKm || 0) }}/км
+                • {{ utils.money(state.orderLogisticsCost(selected)) }}
               </strong>
             </div>
           }

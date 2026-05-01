@@ -42,10 +42,13 @@ export interface Order {
   equipmentIdleDates: string[];
   operatorIdleDates: string[];
   logisticsEnabled: boolean;
-  logisticsProvider: 'own_trawl' | 'third_party';
+  logisticsProvider: 'own_trawl' | 'third_party' | 'self_drive';
   logisticsTrailerId: string;
   logisticsStartDate: string;
   logisticsEndDate: string;
+  logisticsDistanceKm: number;
+  logisticsPricePerKm: number;
+  logisticsCost: number;
   logisticsPickupKm: number;
   logisticsDeliveryKm: number;
   logisticsPickupCost: number;

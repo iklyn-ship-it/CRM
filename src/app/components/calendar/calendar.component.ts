@@ -54,17 +54,18 @@ export class CalendarComponent {
     equipmentIdleDates: [] as string[],
     operatorIdleDates: [] as string[],
     logisticsEnabled: false,
-    logisticsProvider: "own_trawl" as "own_trawl" | "third_party",
+    logisticsProvider: "own_trawl" as "own_trawl" | "third_party" | "self_drive",
     logisticsTrailerId: "",
     logisticsStartDate: "",
     logisticsEndDate: "",
+    logisticsDistanceKm: 0,
+    logisticsPricePerKm: 0,
+    logisticsCost: 0,
     logisticsPickupKm: 0,
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
     logisticsDeliveryCost: 0,
   };
-  readonly pickupRatePerKm = 50;
-  readonly deliveryRatePerKm = 250;
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
     { value: "new", label: "Новая" },
@@ -362,6 +363,14 @@ export class CalendarComponent {
 
   edit(order: Order): void {
     this.editingId = order.id;
+    const logisticsDistanceKm = Number(
+      order.logisticsDistanceKm || order.logisticsDeliveryKm || 0,
+    );
+    const logisticsCost = Number(
+      order.logisticsCost ||
+        Number(order.logisticsPickupCost || 0) +
+          Number(order.logisticsDeliveryCost || 0),
+    );
     this.form = {
       clientId: order.clientId,
       equipmentId: order.equipmentId,
@@ -379,6 +388,12 @@ export class CalendarComponent {
       logisticsTrailerId: order.logisticsTrailerId || "",
       logisticsStartDate: order.logisticsStartDate || order.startDate || "",
       logisticsEndDate: order.logisticsEndDate || order.endDate || "",
+      logisticsDistanceKm,
+      logisticsPricePerKm: Number(
+        order.logisticsPricePerKm ||
+          (logisticsDistanceKm ? logisticsCost / logisticsDistanceKm : 0),
+      ),
+      logisticsCost,
       logisticsPickupKm: Number(order.logisticsPickupKm || 0),
       logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
       logisticsPickupCost: Number(order.logisticsPickupCost || 0),
@@ -403,22 +418,15 @@ export class CalendarComponent {
     );
   }
 
-  recalcLogisticsCost(kind: "pickup" | "delivery"): void {
-    if (kind === "pickup") {
-      this.form.logisticsPickupCost =
-        Number(this.form.logisticsPickupKm || 0) * this.pickupRatePerKm;
-    } else {
-      this.form.logisticsDeliveryCost =
-        Number(this.form.logisticsDeliveryKm || 0) * this.deliveryRatePerKm;
-    }
+  recalcLogisticsCost(): void {
+    this.form.logisticsCost =
+      Number(this.form.logisticsDistanceKm || 0) *
+      Number(this.form.logisticsPricePerKm || 0);
   }
 
   logisticsTotal(): number {
     if (!this.form.logisticsEnabled) return 0;
-    return (
-      Number(this.form.logisticsPickupCost || 0) +
-      Number(this.form.logisticsDeliveryCost || 0)
-    );
+    return Number(this.form.logisticsCost || 0);
   }
 
   validateLogistics(): boolean {
@@ -547,6 +555,9 @@ export class CalendarComponent {
       logisticsTrailerId: "",
       logisticsStartDate: "",
       logisticsEndDate: "",
+      logisticsDistanceKm: 0,
+      logisticsPricePerKm: 0,
+      logisticsCost: 0,
       logisticsPickupKm: 0,
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
@@ -568,6 +579,10 @@ export class CalendarComponent {
       logisticsEndDate: this.form.logisticsEnabled
         ? this.form.logisticsEndDate || this.form.endDate
         : "",
+      logisticsPickupKm: 0,
+      logisticsDeliveryKm: this.form.logisticsDistanceKm,
+      logisticsPickupCost: 0,
+      logisticsDeliveryCost: this.form.logisticsCost,
       equipmentIdleDates: this.form.equipmentIdleDates
         .filter((date) => inPeriod.has(date))
         .sort(),
