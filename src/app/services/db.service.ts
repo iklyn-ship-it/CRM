@@ -444,10 +444,11 @@ export class DbService {
   }
 
   private canRetryOrderWithoutFlexibleLogistics(table: string, error: any): boolean {
+    const message = `${error?.message || ""} ${error?.details || ""}`;
     return (
       table === "orders" &&
-      error?.code === "42703" &&
-      /logistics_(distance_km|price_per_km|cost)/.test(error?.message || "")
+      ["42703", "PGRST204"].includes(error?.code) &&
+      /logistics_(distance_km|price_per_km|cost)/.test(message)
     );
   }
 
@@ -462,10 +463,11 @@ export class DbService {
   }
 
   private canRetryRepairWithoutCostFields(table: string, error: any): boolean {
+    const message = `${error?.message || ""} ${error?.details || ""}`;
     return (
       table === "repairs" &&
-      error?.code === "42703" &&
-      /(labor_cost|parts_cost|responsible)/.test(error?.message || "")
+      ["42703", "PGRST204"].includes(error?.code) &&
+      /(labor_cost|parts_cost|responsible)/.test(message)
     );
   }
 
