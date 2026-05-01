@@ -84,7 +84,10 @@
                 <td>{{ operatorName(order.operatorId) }}</td>
                 <td>
                   {{ utils.fmtDate(order.startDate) }}
-                  <div class="small">{{ utils.fmtDate(order.endDate) }}</div>
+                  <div class="small">
+                    {{ utils.fmtDate(order.endDate) }} •
+                    {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+                  </div>
                 </td>
                 <td>
                   <span class="badge" [ngClass]="order.status">
@@ -165,7 +168,10 @@
                       <td>{{ operatorName(order.operatorId) }}</td>
                       <td>
                         {{ utils.fmtDate(order.startDate) }}
-                        <div class="small">{{ utils.fmtDate(order.endDate) }}</div>
+                        <div class="small">
+                          {{ utils.fmtDate(order.endDate) }} •
+                          {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+                        </div>
                       </td>
                       <td>
                         <span class="badge" [ngClass]="order.status">
