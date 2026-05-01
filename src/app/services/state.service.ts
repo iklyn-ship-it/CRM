@@ -201,7 +201,7 @@ export class StateService {
     const order = this.byId(this.orders(), orderId);
     return (
       this.orderManualExpense(orderId) +
-      (order ? this.orderOperatorCost(order) + this.orderLogisticsCost(order) : 0)
+      (order ? this.orderOperatorCost(order) : 0)
     );
   }
 
