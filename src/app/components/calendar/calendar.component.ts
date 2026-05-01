@@ -90,8 +90,18 @@ export class CalendarComponent {
     const type = this.equipmentTypeFilter();
     return this.state
       .equipment()
-      .filter((eq) => !type || this.normalizeType(eq.type) === type);
+      .filter((eq) => !type || this.normalizeType(eq.type) === type)
+      .sort((a, b) => {
+        const aIsTrawl = this.isTrawl(a.type);
+        const bIsTrawl = this.isTrawl(b.type);
+        if (aIsTrawl !== bIsTrawl) return aIsTrawl ? -1 : 1;
+        return a.name.localeCompare(b.name, "ru");
+      });
   });
+
+  private isTrawl(type: string): boolean {
+    return this.normalizeType(type).toLowerCase().includes("трал");
+  }
 
   private isEquipmentTypeVisible(equipmentId: string): boolean {
     const type = this.equipmentTypeFilter();
@@ -439,7 +449,12 @@ export class CalendarComponent {
       );
       return;
     }
-    await this.db.update("orders", this.editingId, this.prepareForm());
+    try {
+      await this.db.update("orders", this.editingId, this.prepareForm());
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+      return;
+    }
     this.closeForm();
   }
 
@@ -560,6 +575,23 @@ export class CalendarComponent {
         .filter((date) => inPeriod.has(date))
         .sort(),
     };
+  }
+
+  private saveErrorMessage(error: unknown): string {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message || "")
+        : "";
+    if (
+      message.includes("equipment_idle_dates") ||
+      message.includes("operator_idle_dates")
+    ) {
+      return "База Supabase еще не готова для сохранения дней простоя. Выполни SQL-файл supabase-order-idle-dates.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("logistics_")) {
+      return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
   }
 
   private formDraftOrder(): Order {

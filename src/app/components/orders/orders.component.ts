@@ -210,13 +210,18 @@ export class OrdersComponent {
       );
       return;
     }
-    if (this.editingId) {
-      await this.db.update("orders", this.editingId, this.prepareForm());
-    } else {
-      await this.db.insert("orders", {
-        id: this.utils.uid("ord"),
-        ...this.prepareForm(),
-      });
+    try {
+      if (this.editingId) {
+        await this.db.update("orders", this.editingId, this.prepareForm());
+      } else {
+        await this.db.insert("orders", {
+          id: this.utils.uid("ord"),
+          ...this.prepareForm(),
+        });
+      }
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+      return;
     }
     this.clearForm();
     this.formOpen.set(false);
@@ -370,5 +375,22 @@ export class OrdersComponent {
         .filter((date) => inPeriod.has(date))
         .sort(),
     };
+  }
+
+  private saveErrorMessage(error: unknown): string {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message || "")
+        : "";
+    if (
+      message.includes("equipment_idle_dates") ||
+      message.includes("operator_idle_dates")
+    ) {
+      return "База Supabase еще не готова для сохранения дней простоя. Выполни SQL-файл supabase-order-idle-dates.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("logistics_")) {
+      return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
   }
 }
