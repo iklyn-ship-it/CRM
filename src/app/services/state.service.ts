@@ -182,7 +182,9 @@ export class StateService {
   }
 
   orderPlan(order: Order): number {
-    return this.orderEquipmentWorkDays(order) * Number(order.rate || 0);
+    const rentalPlan =
+      this.orderEquipmentWorkDays(order) * Number(order.rate || 0);
+    return rentalPlan + this.orderLogisticsCost(order);
   }
 
   orderOps(orderId: string): FinanceOperation[] {
