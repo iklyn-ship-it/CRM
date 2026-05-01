@@ -52,6 +52,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "reports",
+        loadComponent: () =>
+          import("./components/reports/reports.component").then(
+            (m) => m.ReportsComponent,
+          ),
+      },
+      {
         path: "equipment",
         loadComponent: () =>
           import("./components/equipment/equipment.component").then(

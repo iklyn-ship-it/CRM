@@ -19,6 +19,17 @@ interface MonthlyFinancePoint {
   profit: number;
 }
 
+interface ConflictDetail {
+  id: string;
+  kind: string;
+  resource: string;
+  primary: string;
+  secondary: string;
+  period: string;
+  location: string;
+  money: number;
+}
+
 type DashboardChart = "orders" | "money" | "cashflow" | "equipment";
 
 @Component({
@@ -50,6 +61,7 @@ export class DashboardComponent {
   readonly alerts = computed(() => {
     const msgs: { kind: string; text: string }[] = [];
     const conf = this.state.orderConflicts();
+    const operatorConf = this.state.operatorConflicts();
     const repConf = this.state.repairConflicts();
     if (conf.length)
       msgs.push({
@@ -57,6 +69,11 @@ export class DashboardComponent {
         text: `Есть ${conf.length} конфликт(ов) по пересечению заявок.`,
       });
     else msgs.push({ kind: "ok", text: "Конфликтов по аренде нет." });
+    if (operatorConf.length)
+      msgs.push({
+        kind: "alert",
+        text: `Есть ${operatorConf.length} конфликт(ов) по операторам.`,
+      });
     if (repConf.length)
       msgs.push({
         kind: "alert",
@@ -68,6 +85,25 @@ export class DashboardComponent {
         text: "Конфликтов между ремонтом и арендой нет.",
       });
     return msgs;
+  });
+
+  readonly conflictDetails = computed((): ConflictDetail[] => {
+    const orderConflicts = this.state.orderConflicts().map(([aId, bId, eqId]) =>
+      this.orderConflictDetail(aId, bId, eqId),
+    );
+    const operatorConflicts = this.state
+      .operatorConflicts()
+      .map(([aId, bId, operatorId]) =>
+        this.operatorConflictDetail(aId, bId, operatorId),
+      );
+    const repairConflicts = this.state
+      .repairConflicts()
+      .map(([repairId, orderId, eqId]) =>
+        this.repairConflictDetail(repairId, orderId, eqId),
+      );
+    return [...orderConflicts, ...operatorConflicts, ...repairConflicts].filter(
+      Boolean,
+    ) as ConflictDetail[];
   });
 
   readonly periodOperations = computed(() =>
@@ -588,5 +624,91 @@ export class DashboardComponent {
   private minDate(a: string, b: string): string {
     if (!b) return a;
     return a < b ? a : b;
+  }
+
+  private orderConflictDetail(
+    firstId: string,
+    secondId: string,
+    equipmentId: string,
+  ): ConflictDetail | null {
+    const first = this.state.byId(this.state.orders(), firstId);
+    const second = this.state.byId(this.state.orders(), secondId);
+    if (!first || !second) return null;
+    const overlapStart = this.maxDate(first.startDate, second.startDate);
+    const overlapEnd = this.minDate(first.endDate, second.endDate);
+    return {
+      id: `orders-${firstId}-${secondId}-${equipmentId}`,
+      kind: "Заявки на одну технику",
+      resource: this.equipmentName(equipmentId),
+      primary: this.orderTitle(first),
+      secondary: this.orderTitle(second),
+      period: this.periodText(overlapStart, overlapEnd),
+      location: [first.location, second.location].filter(Boolean).join(" / ") || "—",
+      money: this.state.orderPlan(first) + this.state.orderPlan(second),
+    };
+  }
+
+  private operatorConflictDetail(
+    firstId: string,
+    secondId: string,
+    operatorId: string,
+  ): ConflictDetail | null {
+    const first = this.state.byId(this.state.orders(), firstId);
+    const second = this.state.byId(this.state.orders(), secondId);
+    if (!first || !second) return null;
+    const overlapStart = this.maxDate(first.startDate, second.startDate);
+    const overlapEnd = this.minDate(first.endDate, second.endDate);
+    return {
+      id: `operators-${firstId}-${secondId}-${operatorId}`,
+      kind: "Оператор занят в двух заявках",
+      resource: this.operatorName(operatorId),
+      primary: this.orderTitle(first),
+      secondary: this.orderTitle(second),
+      period: this.periodText(overlapStart, overlapEnd),
+      location: [first.location, second.location].filter(Boolean).join(" / ") || "—",
+      money: this.state.orderPlan(first) + this.state.orderPlan(second),
+    };
+  }
+
+  private repairConflictDetail(
+    repairId: string,
+    orderId: string,
+    equipmentId: string,
+  ): ConflictDetail | null {
+    const repair = this.state.byId(this.state.repairs(), repairId);
+    const order = this.state.byId(this.state.orders(), orderId);
+    if (!repair || !order) return null;
+    const overlapStart = this.maxDate(repair.startDate, order.startDate);
+    const overlapEnd = this.minDate(repair.endDate, order.endDate);
+    return {
+      id: `repair-${repairId}-${orderId}-${equipmentId}`,
+      kind: "Аренда пересекается с ремонтом",
+      resource: this.equipmentName(equipmentId),
+      primary: this.orderTitle(order),
+      secondary: `Ремонт ${repair.id.slice(-5)}: ${repair.tasks || "без описания"}`,
+      period: this.periodText(overlapStart, overlapEnd),
+      location: order.location || "—",
+      money: this.state.orderPlan(order),
+    };
+  }
+
+  private orderTitle(order: { id: string; clientId: string; equipmentId: string }): string {
+    return `${order.id.slice(-5)} • ${this.clientName(order.clientId)} • ${this.equipmentName(order.equipmentId)}`;
+  }
+
+  private periodText(startDate: string, endDate: string): string {
+    return `${this.utils.fmtDate(startDate)} — ${this.utils.fmtDate(endDate)}`;
+  }
+
+  private clientName(id: string): string {
+    return this.state.byId(this.state.clients(), id)?.name || "Клиент не указан";
+  }
+
+  private equipmentName(id: string): string {
+    return this.state.byId(this.state.equipment(), id)?.name || "Техника не указана";
+  }
+
+  private operatorName(id: string): string {
+    return this.state.byId(this.state.operators(), id)?.name || "Оператор не указан";
   }
 }

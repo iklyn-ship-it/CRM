@@ -86,6 +86,32 @@
   <div [class]="a.kind" style="margin-bottom: 8px">{{ a.text }}</div>
 }
 
+@if (conflictDetails().length) {
+  <details class="card panel conflict-details">
+    <summary>
+      <span>Где именно конфликт</span>
+      <strong>{{ conflictDetails().length }} конфликт(ов)</strong>
+    </summary>
+    <div class="conflict-list">
+      @for (conflict of conflictDetails(); track conflict.id) {
+        <div class="conflict-card">
+          <div>
+            <span class="badge cancelled">{{ conflict.kind }}</span>
+            <h4>{{ conflict.resource }}</h4>
+            <p>{{ conflict.primary }}</p>
+            <p>{{ conflict.secondary }}</p>
+          </div>
+          <div class="conflict-meta">
+            <span>{{ conflict.period }}</span>
+            <span>{{ conflict.location }}</span>
+            <strong>{{ utils.money(conflict.money) }}</strong>
+          </div>
+        </div>
+      }
+    </div>
+  </details>
+}
+
 <div class="dashboard-controls card">
   <div>
     <div class="control-title">Графики</div>
