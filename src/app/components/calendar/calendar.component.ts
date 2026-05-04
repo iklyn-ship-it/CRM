@@ -160,7 +160,7 @@ export class CalendarComponent {
     ) {
         const day = new Date(cur);
         const inMonth = day >= rangeStart && day <= rangeEnd;
-        const ds = day.toISOString().slice(0, 10);
+        const ds = this.utils.dateKey(day);
         const weekend = [0, 6].includes(day.getDay());
 
         const rentEntries = this.state
@@ -332,30 +332,49 @@ export class CalendarComponent {
         ...this.state
           .repairs()
           .filter((r) => r.equipmentId === eq.id && r.status !== "cancelled")
-          .map((r) => ({
-            id: r.id,
-            type: "repair" as const,
-            status: r.status,
-            title: r.tasks || "Ремонт",
-            startDate: r.startDate,
-            endDate: r.endDate,
-            conflict: false,
-          })),
+          .flatMap((r) => {
+            const segment = this.rangeSegment(r.startDate, r.endDate, rangeStart, rangeEnd);
+            return segment
+              ? [
+                  {
+                    id: r.id,
+                    type: "repair" as const,
+                    status: r.status,
+                    title: r.tasks || "Ремонт",
+                    startDate: segment.startDate,
+                    endDate: segment.endDate,
+                    conflict: false,
+                  },
+                ]
+              : [];
+          }),
         ...this.state
           .transports()
           .filter(
             (transport) =>
               transport.equipmentId === eq.id && transport.status !== "cancelled",
           )
-          .map((transport) => ({
-            id: transport.id,
-            type: "transport" as const,
-            status: transport.status,
-            title: this.transportTitle(transport),
-            startDate: transport.startDate,
-            endDate: transport.endDate,
-            conflict: this.transportHasConflict(transport.id),
-          })),
+          .flatMap((transport) => {
+            const segment = this.rangeSegment(
+              transport.startDate,
+              transport.endDate,
+              rangeStart,
+              rangeEnd,
+            );
+            return segment
+              ? [
+                  {
+                    id: transport.id,
+                    type: "transport" as const,
+                    status: transport.status,
+                    title: this.transportTitle(transport),
+                    startDate: segment.startDate,
+                    endDate: segment.endDate,
+                    conflict: this.transportHasConflict(transport.id),
+                  },
+                ]
+              : [];
+          }),
       ];
       const events = rangedEvents.flatMap((ev) => {
         const startIndex = days.findIndex((day) => day.ds === ev.startDate);
@@ -375,8 +394,8 @@ export class CalendarComponent {
 
   readonly timelineDays = computed(() => {
     const dates = this.utils.datesInclusive(
-      this.rangeStart().toISOString().slice(0, 10),
-      this.rangeEnd().toISOString().slice(0, 10),
+      this.utils.dateKey(this.rangeStart()),
+      this.utils.dateKey(this.rangeEnd()),
     );
     return dates.map((ds) => {
       const date = new Date(ds + "T00:00:00");
@@ -842,16 +861,16 @@ export class CalendarComponent {
     rangeEnd: Date,
   ): { startDate: string; endDate: string }[] {
     const from = new Date(Math.max(
-      new Date(this.state.orderLogisticsStart(order) + "T00:00:00").getTime(),
+      new Date(order.startDate + "T00:00:00").getTime(),
       rangeStart.getTime(),
     ));
     const to = new Date(Math.min(
-      new Date(this.state.orderLogisticsEnd(order) + "T00:00:00").getTime(),
+      new Date(order.endDate + "T00:00:00").getTime(),
       rangeEnd.getTime(),
     ));
     if (from > to) return [];
     const dates = this.utils
-      .datesInclusive(from.toISOString().slice(0, 10), to.toISOString().slice(0, 10))
+      .datesInclusive(this.utils.dateKey(from), this.utils.dateKey(to))
       .filter((date) => this.state.orderWorksOnDate(order, "equipment", date));
     const segments: { startDate: string; endDate: string }[] = [];
     for (const date of dates) {
@@ -865,24 +884,45 @@ export class CalendarComponent {
     return segments;
   }
 
+  private rangeSegment(
+    startDate: string,
+    endDate: string,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): { startDate: string; endDate: string } | null {
+    const from = new Date(Math.max(
+      new Date(startDate + "T00:00:00").getTime(),
+      rangeStart.getTime(),
+    ));
+    const to = new Date(Math.min(
+      new Date(endDate + "T00:00:00").getTime(),
+      rangeEnd.getTime(),
+    ));
+    if (from > to) return null;
+    return {
+      startDate: this.utils.dateKey(from),
+      endDate: this.utils.dateKey(to),
+    };
+  }
+
   private orderLogisticsSegments(
     order: Order,
     rangeStart: Date,
     rangeEnd: Date,
   ): { startDate: string; endDate: string }[] {
     const from = new Date(Math.max(
-      new Date(order.startDate + "T00:00:00").getTime(),
+      new Date(this.state.orderLogisticsStart(order) + "T00:00:00").getTime(),
       rangeStart.getTime(),
     ));
     const to = new Date(Math.min(
-      new Date(order.endDate + "T00:00:00").getTime(),
+      new Date(this.state.orderLogisticsEnd(order) + "T00:00:00").getTime(),
       rangeEnd.getTime(),
     ));
     if (from > to) return [];
     return [
       {
-        startDate: from.toISOString().slice(0, 10),
-        endDate: to.toISOString().slice(0, 10),
+        startDate: this.utils.dateKey(from),
+        endDate: this.utils.dateKey(to),
       },
     ];
   }

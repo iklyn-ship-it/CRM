@@ -595,7 +595,7 @@ export class DashboardComponent {
         const cursor = new Date(`${start}T00:00:00`);
         const last = new Date(`${end}T00:00:00`);
         while (cursor <= last) {
-          busyDays.add(cursor.toISOString().slice(0, 10));
+          busyDays.add(this.utils.dateKey(cursor));
           cursor.setDate(cursor.getDate() + 1);
         }
       });

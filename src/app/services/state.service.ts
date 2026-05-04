@@ -569,7 +569,7 @@ export class StateService {
           day <= to;
           day.setDate(day.getDate() + 1)
         ) {
-          busyDays.add(day.toISOString().slice(0, 10));
+          busyDays.add(this.utils.dateKey(day));
         }
       }
     });
