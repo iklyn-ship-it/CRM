@@ -4,6 +4,8 @@
 create table if not exists public.transports (
   id                       text primary key,
   user_id                  uuid not null references auth.users(id) on delete cascade,
+  shipper_client_id        text not null default '',
+  consignee_client_id      text not null default '',
   shipper                  text not null default '',
   consignee                text not null default '',
   start_date               text not null default '',
@@ -23,6 +25,10 @@ create table if not exists public.transports (
   delivery_cost            numeric not null default 0,
   created_at               timestamptz not null default now()
 );
+
+alter table if exists public.transports
+  add column if not exists shipper_client_id text not null default '',
+  add column if not exists consignee_client_id text not null default '';
 
 alter table public.transports enable row level security;
 

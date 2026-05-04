@@ -22,23 +22,29 @@
         <div class="transport-form-grid">
           <div class="field">
             <label>Грузоотправитель</label>
-            <input
-              type="text"
-              [(ngModel)]="form.shipper"
-              name="shipper"
-              placeholder="Кто отправляет груз"
+            <select
+              [(ngModel)]="form.shipperClientId"
+              name="shipperClientId"
               required
-            />
+            >
+              <option value="">— выбрать клиента —</option>
+              @for (client of state.clients(); track client.id) {
+                <option [value]="client.id">{{ client.name }}</option>
+              }
+            </select>
           </div>
           <div class="field">
             <label>Грузополучатель</label>
-            <input
-              type="text"
-              [(ngModel)]="form.consignee"
-              name="consignee"
-              placeholder="Кто принимает груз"
+            <select
+              [(ngModel)]="form.consigneeClientId"
+              name="consigneeClientId"
               required
-            />
+            >
+              <option value="">— выбрать клиента —</option>
+              @for (client of state.clients(); track client.id) {
+                <option [value]="client.id">{{ client.name }}</option>
+              }
+            </select>
           </div>
           <div class="field">
             <label>Дата начала перевозки</label>
@@ -250,8 +256,8 @@
               <div class="small">→ {{ item.unloadingPoint || "—" }}</div>
             </td>
             <td>
-              {{ item.shipper || "—" }}
-              <div class="small">{{ item.consignee || "—" }}</div>
+              {{ shipperName(item) }}
+              <div class="small">{{ consigneeName(item) }}</div>
             </td>
             <td>
               {{ equipmentName(item.equipmentId) }}

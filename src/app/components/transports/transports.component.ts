@@ -42,6 +42,8 @@ export class TransportsComponent {
         [
           item.shipper,
           item.consignee,
+          this.clientName(item.shipperClientId),
+          this.clientName(item.consigneeClientId),
           item.loadingPoint,
           item.unloadingPoint,
           item.cargoName,
@@ -114,6 +116,22 @@ export class TransportsComponent {
     return this.state.byId(this.state.operators(), id)?.name || "—";
   }
 
+  clientName(id: string): string {
+    return this.state.byId(this.state.clients(), id)?.name || "—";
+  }
+
+  shipperName(item: Transport): string {
+    return item.shipperClientId
+      ? this.clientName(item.shipperClientId)
+      : item.shipper || "—";
+  }
+
+  consigneeName(item: Transport): string {
+    return item.consigneeClientId
+      ? this.clientName(item.consigneeClientId)
+      : item.consignee || "—";
+  }
+
   openCreate(): void {
     this.clearForm();
     this.formOpen.set(true);
@@ -127,6 +145,8 @@ export class TransportsComponent {
   edit(item: Transport): void {
     this.editingId = item.id;
     this.form = {
+      shipperClientId: item.shipperClientId || "",
+      consigneeClientId: item.consigneeClientId || "",
       shipper: item.shipper || "",
       consignee: item.consignee || "",
       startDate: item.startDate || "",
@@ -150,6 +170,10 @@ export class TransportsComponent {
 
   async save(): Promise<void> {
     if (!this.form.startDate || !this.form.endDate) return;
+    if (!this.form.shipperClientId || !this.form.consigneeClientId) {
+      alert("Выбери грузоотправителя и грузополучателя из клиентов.");
+      return;
+    }
     if (this.form.startDate > this.form.endDate) {
       alert("Дата начала перевозки не может быть позже даты окончания.");
       return;
@@ -188,6 +212,8 @@ export class TransportsComponent {
     return {
       shipper: "",
       consignee: "",
+      shipperClientId: "",
+      consigneeClientId: "",
       startDate: "",
       endDate: "",
       loadingPoint: "",

@@ -76,6 +76,8 @@ export type RepairStatus = 'planned' | 'active' | 'completed' | 'cancelled';
 
 export interface Transport {
   id: string;
+  shipperClientId: string;
+  consigneeClientId: string;
   shipper: string;
   consignee: string;
   startDate: string;

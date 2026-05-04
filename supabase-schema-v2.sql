@@ -90,6 +90,8 @@ create table if not exists public.repairs (
 create table if not exists public.transports (
   id                       text primary key,
   user_id                  uuid not null references auth.users(id) on delete cascade,
+  shipper_client_id        text not null default '',
+  consignee_client_id      text not null default '',
   shipper                  text not null default '',
   consignee                text not null default '',
   start_date               text not null default '',

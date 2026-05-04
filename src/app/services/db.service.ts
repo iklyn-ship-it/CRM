@@ -159,6 +159,8 @@ export class DbService {
     const transport = toCamel(row) as any;
     return {
       ...transport,
+      shipperClientId: transport.shipperClientId || "",
+      consigneeClientId: transport.consigneeClientId || "",
       pickupPricePerKm: Number(transport.pickupPricePerKm || 50),
       deliveryPricePerKm: Number(transport.deliveryPricePerKm || 250),
       pickupKm: Number(transport.pickupKm || 0),
@@ -663,6 +665,8 @@ export class DbService {
       endDate: "Дата окончания",
       shipper: "Грузоотправитель",
       consignee: "Грузополучатель",
+      shipperClientId: "Грузоотправитель",
+      consigneeClientId: "Грузополучатель",
       loadingPoint: "Пункт погрузки",
       unloadingPoint: "Пункт выгрузки",
       cargoName: "Груз",
