@@ -233,7 +233,34 @@ export class CalendarComponent {
             conflict: false,
           }));
 
-        const entries = [...rentEntries, ...logisticsEntries, ...repairEntries];
+        const transportEntries = this.state
+          .transports()
+          .filter(
+            (transport) =>
+              transport.status !== "cancelled" &&
+              this.isEquipmentTypeVisible(transport.equipmentId) &&
+              transport.startDate <= ds &&
+              transport.endDate >= ds,
+          )
+          .map((transport) => ({
+            id: transport.id,
+            eq:
+              this.state.byId(this.state.equipment(), transport.equipmentId)
+                ?.name || "Трал",
+            cl: this.transportTitle(transport),
+            type: "transport",
+            statusClass: "transport",
+            equipmentId: transport.equipmentId,
+            blocksSchedule: true,
+            conflict: false,
+          }));
+
+        const entries = [
+          ...rentEntries,
+          ...logisticsEntries,
+          ...transportEntries,
+          ...repairEntries,
+        ];
         const cnt: Record<string, number> = {};
         entries.forEach((e) => {
           const shouldCount =
@@ -309,6 +336,20 @@ export class CalendarComponent {
             title: r.tasks || "Ремонт",
             startDate: r.startDate,
             endDate: r.endDate,
+          })),
+        ...this.state
+          .transports()
+          .filter(
+            (transport) =>
+              transport.equipmentId === eq.id && transport.status !== "cancelled",
+          )
+          .map((transport) => ({
+            id: transport.id,
+            type: "transport" as const,
+            status: transport.status,
+            title: this.transportTitle(transport),
+            startDate: transport.startDate,
+            endDate: transport.endDate,
           })),
       ];
       const events = rangedEvents.flatMap((ev) => {
@@ -693,6 +734,24 @@ export class CalendarComponent {
       Number(this.form.logisticsPickupKm || 0) +
       Number(this.form.logisticsDeliveryKm || 0);
     this.form.logisticsCost = this.logisticsSubtotal();
+  }
+
+  private transportTitle(transport: {
+    shipperClientId: string;
+    consigneeClientId: string;
+    shipper: string;
+    consignee: string;
+    cargoName: string;
+  }): string {
+    const shipper =
+      this.state.byId(this.state.clients(), transport.shipperClientId)?.name ||
+      transport.shipper ||
+      "Отправитель";
+    const consignee =
+      this.state.byId(this.state.clients(), transport.consigneeClientId)?.name ||
+      transport.consignee ||
+      "Получатель";
+    return `${shipper} → ${consignee}${transport.cargoName ? ` • ${transport.cargoName}` : ""}`;
   }
 
   private orderSegments(
