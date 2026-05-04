@@ -4,7 +4,7 @@ import { NgClass, SlicePipe } from "@angular/common";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { Order, OrderStatus } from "../../models/crm.models";
+import { Order, OrderStatus, Transport } from "../../models/crm.models";
 
 @Component({
   selector: "app-orders",
@@ -63,13 +63,25 @@ export class OrdersComponent {
   readonly filterStatuses = [{ value: "", label: "Все" }, ...this.statuses];
 
   readonly conflictSet = computed(() => {
-    const conf = this.state.orderConflicts();
-    return new Set(conf.flatMap((x) => [x[0], x[1]]));
+    const orderConflicts = this.state.orderConflicts().flatMap((x) => [
+      x[0],
+      x[1],
+    ]);
+    const transportConflicts = this.state
+      .orderTransportConflicts()
+      .map(([orderId]) => orderId);
+    return new Set([...orderConflicts, ...transportConflicts]);
   });
 
   readonly operatorConflictSet = computed(() => {
-    const conf = this.state.operatorConflicts();
-    return new Set(conf.flatMap((x) => [x[0], x[1]]));
+    const orderConflicts = this.state.operatorConflicts().flatMap((x) => [
+      x[0],
+      x[1],
+    ]);
+    const transportConflicts = this.state
+      .orderTransportOperatorConflicts()
+      .map(([orderId]) => orderId);
+    return new Set([...orderConflicts, ...transportConflicts]);
   });
 
   formOperatorConflict(): Order | null {
@@ -88,6 +100,40 @@ export class OrdersComponent {
             "operator",
           ),
       ) || null
+    );
+  }
+
+  formTransportOperatorConflict(): Transport | null {
+    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+      return null;
+    }
+    const draft = this.formDraftOrder();
+    return (
+      this.state.transports().find(
+        (transport) =>
+          this.state.transportBlocksSchedule(transport) &&
+          transport.driverId === this.form.operatorId &&
+          this.state.orderTransportOverlapByOperator(draft, transport),
+      ) || null
+    );
+  }
+
+  formTransportEquipmentConflict(): Transport | null {
+    if (!this.form.startDate || !this.form.endDate) return null;
+    const draft = this.formDraftOrder();
+    return (
+      this.state.transports().find((transport) => {
+        if (!this.state.transportBlocksSchedule(transport)) return false;
+        return this.state.orderEquipmentReservationIds(draft).some(
+          (equipmentId) =>
+            equipmentId === transport.equipmentId &&
+            this.state.orderTransportOverlapByEquipment(
+              draft,
+              transport,
+              equipmentId,
+            ),
+        );
+      }) || null
     );
   }
 
@@ -212,12 +258,26 @@ export class OrdersComponent {
   async save(): Promise<void> {
     if (!this.form.startDate || !this.form.endDate) return;
     if (!this.validateLogistics()) return;
+    const transportEquipmentConflict = this.formTransportEquipmentConflict();
+    if (transportEquipmentConflict) {
+      alert(
+        `Техника занята в перевозке: ${this.eqName(transportEquipmentConflict.equipmentId)}, ${this.utils.fmtDate(transportEquipmentConflict.startDate)} - ${this.utils.fmtDate(transportEquipmentConflict.endDate)}.`,
+      );
+      return;
+    }
     const operatorConflict = this.formOperatorConflict();
     if (operatorConflict) {
       const conflictEquipment =
         this.eqName(operatorConflict.equipmentId) || "другая техника";
       alert(
         `Оператор занят в другой заявке: ${conflictEquipment}, ${this.utils.fmtDate(operatorConflict.startDate)} - ${this.utils.fmtDate(operatorConflict.endDate)}.`,
+      );
+      return;
+    }
+    const transportOperatorConflict = this.formTransportOperatorConflict();
+    if (transportOperatorConflict) {
+      alert(
+        `Оператор занят в перевозке: ${this.utils.fmtDate(transportOperatorConflict.startDate)} - ${this.utils.fmtDate(transportOperatorConflict.endDate)}.`,
       );
       return;
     }

@@ -45,6 +45,14 @@
               <option [value]="e.id">{{ e.name }}</option>
             }
           </select>
+          @if (formTransportEquipmentConflict(); as conflict) {
+            <div class="operator-busy-warning">
+              Техника занята в перевозке:
+              {{ eqName(conflict.equipmentId) }} •
+              {{ utils.fmtDate(conflict.startDate) }} -
+              {{ utils.fmtDate(conflict.endDate) }}
+            </div>
+          }
         </div>
         <div class="field">
           <label>Оператор</label>
@@ -60,6 +68,13 @@
             <div class="operator-busy-warning">
               Оператор занят в другой заявке:
               {{ eqName(conflict.equipmentId) }} •
+              {{ utils.fmtDate(conflict.startDate) }} -
+              {{ utils.fmtDate(conflict.endDate) }}
+            </div>
+          }
+          @if (formTransportOperatorConflict(); as conflict) {
+            <div class="operator-busy-warning">
+              Оператор занят в перевозке:
               {{ utils.fmtDate(conflict.startDate) }} -
               {{ utils.fmtDate(conflict.endDate) }}
             </div>

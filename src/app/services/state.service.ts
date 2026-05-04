@@ -6,6 +6,7 @@ import {
   Equipment,
   Order,
   FinanceOperation,
+  Transport,
 } from "../models/crm.models";
 
 /**
@@ -149,6 +150,85 @@ export class StateService {
     return list;
   });
 
+  readonly orderTransportConflicts = computed((): [string, string, string][] => {
+    const list: [string, string, string][] = [];
+    const transports = this.transports().filter((t) => this.transportBlocksSchedule(t));
+    this.orders()
+      .filter((order) => this.orderBlocksSchedule(order))
+      .forEach((order) => {
+        transports.forEach((transport) => {
+          for (const equipmentId of this.orderEquipmentReservationIds(order)) {
+            if (
+              transport.equipmentId === equipmentId &&
+              this.orderTransportOverlapByEquipment(order, transport, equipmentId)
+            ) {
+              list.push([order.id, transport.id, equipmentId]);
+            }
+          }
+        });
+      });
+    return list;
+  });
+
+  readonly transportConflicts = computed((): [string, string, string][] => {
+    const list: [string, string, string][] = [];
+    const transports = this.transports().filter(
+      (t) => this.transportBlocksSchedule(t) && t.equipmentId,
+    );
+    for (let i = 0; i < transports.length; i++) {
+      for (let j = i + 1; j < transports.length; j++) {
+        const a = transports[i],
+          b = transports[j];
+        if (
+          a.equipmentId === b.equipmentId &&
+          this.transportsOverlap(a, b)
+        ) {
+          list.push([a.id, b.id, a.equipmentId]);
+        }
+      }
+    }
+    return list;
+  });
+
+  readonly orderTransportOperatorConflicts = computed(
+    (): [string, string, string][] => {
+      const list: [string, string, string][] = [];
+      const transports = this.transports().filter(
+        (t) => this.transportBlocksSchedule(t) && t.driverId,
+      );
+      this.orders()
+        .filter((order) => this.orderBlocksSchedule(order) && order.operatorId)
+        .forEach((order) => {
+          transports.forEach((transport) => {
+            if (
+              order.operatorId === transport.driverId &&
+              this.orderTransportOverlapByOperator(order, transport)
+            ) {
+              list.push([order.id, transport.id, order.operatorId]);
+            }
+          });
+        });
+      return list;
+    },
+  );
+
+  readonly transportOperatorConflicts = computed((): [string, string, string][] => {
+    const list: [string, string, string][] = [];
+    const transports = this.transports().filter(
+      (t) => this.transportBlocksSchedule(t) && t.driverId,
+    );
+    for (let i = 0; i < transports.length; i++) {
+      for (let j = i + 1; j < transports.length; j++) {
+        const a = transports[i],
+          b = transports[j];
+        if (a.driverId === b.driverId && this.transportsOverlap(a, b)) {
+          list.push([a.id, b.id, a.driverId]);
+        }
+      }
+    }
+    return list;
+  });
+
   readonly equipmentAnalytics = computed((): EquipmentAnalytics[] => {
     return this.equipment()
       .map((eq) => {
@@ -238,6 +318,10 @@ export class StateService {
     );
   }
 
+  transportTotal(transport: Transport): number {
+    return Number(transport.pickupCost || 0) + Number(transport.deliveryCost || 0);
+  }
+
   orderUsesEquipmentOnDate(order: Order, equipmentId: string, date: string): boolean {
     if (order.equipmentId === equipmentId) {
       return this.orderWorksOnDate(order, "equipment", date);
@@ -258,6 +342,10 @@ export class StateService {
 
   orderLogisticsEnd(order: Order): string {
     return order.logisticsEndDate || order.endDate;
+  }
+
+  transportBlocksSchedule(transport: Transport): boolean {
+    return transport.status !== "cancelled" && transport.status !== "completed";
   }
 
   orderRemaining(order: Order): number {
@@ -319,6 +407,47 @@ export class StateService {
       );
   }
 
+  orderTransportOverlapByEquipment(
+    order: Order,
+    transport: Transport,
+    equipmentId: string,
+  ): boolean {
+    if (!this.orderBlocksSchedule(order) || !this.transportBlocksSchedule(transport)) {
+      return false;
+    }
+    const from = this.maxDate(
+      this.minDateForOrderEquipment(order, equipmentId),
+      transport.startDate,
+    );
+    const to = this.minDate(
+      this.maxDateForOrderEquipment(order, equipmentId),
+      transport.endDate,
+    );
+    if (from > to) return false;
+    return this.utils
+      .datesInclusive(from, to)
+      .some((date) => this.orderUsesEquipmentOnDate(order, equipmentId, date));
+  }
+
+  orderTransportOverlapByOperator(order: Order, transport: Transport): boolean {
+    if (!this.orderBlocksSchedule(order) || !this.transportBlocksSchedule(transport)) {
+      return false;
+    }
+    const from = this.maxDate(order.startDate, transport.startDate);
+    const to = this.minDate(order.endDate, transport.endDate);
+    if (from > to) return false;
+    return this.utils
+      .datesInclusive(from, to)
+      .some((date) => this.orderWorksOnDate(order, "operator", date));
+  }
+
+  transportsOverlap(a: Transport, b: Transport): boolean {
+    if (!this.transportBlocksSchedule(a) || !this.transportBlocksSchedule(b)) {
+      return false;
+    }
+    return this.utils.overlap(a.startDate, a.endDate, b.startDate, b.endDate);
+  }
+
   orderEquipmentReservationIds(order: Order): string[] {
     return [
       order.equipmentId,
@@ -365,20 +494,33 @@ export class StateService {
         r.endDate >= now,
     );
     if (activeRepair || eq.status === "repair") return "repair";
-    const used = this.orders().some(
-      (o) =>
-        this.orderUsesEquipmentOnDate(o, eq.id, now),
-    );
+    const used =
+      this.orders().some((o) => this.orderUsesEquipmentOnDate(o, eq.id, now)) ||
+      this.transports().some(
+        (t) =>
+          this.transportBlocksSchedule(t) &&
+          t.equipmentId === eq.id &&
+          t.startDate <= now &&
+          t.endDate >= now,
+      );
     return used ? "busy" : "free";
   }
 
   runtimeOperatorStatus(operatorId: string): "free" | "busy" {
     const now = this.utils.todayStr();
-    const busy = this.orders().some(
-      (o) =>
-        o.operatorId === operatorId &&
-        this.orderWorksOnDate(o, "operator", now),
-    );
+    const busy =
+      this.orders().some(
+        (o) =>
+          o.operatorId === operatorId &&
+          this.orderWorksOnDate(o, "operator", now),
+      ) ||
+      this.transports().some(
+        (t) =>
+          this.transportBlocksSchedule(t) &&
+          t.driverId === operatorId &&
+          t.startDate <= now &&
+          t.endDate >= now,
+      );
     return busy ? "busy" : "free";
   }
 
@@ -405,6 +547,13 @@ export class StateService {
       );
     const periods = [
       ...orderPeriods,
+      ...this.transports()
+        .filter(
+          (transport) =>
+            transport.equipmentId === eqId &&
+            this.transportBlocksSchedule(transport),
+        )
+        .map((transport) => ({ s: transport.startDate, e: transport.endDate })),
       ...this.repairs()
         .filter((r) => r.equipmentId === eqId && r.status !== "cancelled")
         .map((r) => ({ s: r.startDate, e: r.endDate })),
@@ -425,5 +574,27 @@ export class StateService {
       }
     });
     return Math.round((busyDays.size / dim) * 100);
+  }
+
+  private maxDate(a: string, b: string): string {
+    if (!a) return b;
+    if (!b) return a;
+    return a > b ? a : b;
+  }
+
+  private minDate(a: string, b: string): string {
+    if (!a) return b;
+    if (!b) return a;
+    return a < b ? a : b;
+  }
+
+  private minDateForOrderEquipment(order: Order, equipmentId: string): string {
+    if (order.equipmentId === equipmentId) return order.startDate;
+    return this.orderLogisticsStart(order);
+  }
+
+  private maxDateForOrderEquipment(order: Order, equipmentId: string): string {
+    if (order.equipmentId === equipmentId) return order.endDate;
+    return this.orderLogisticsEnd(order);
   }
 }

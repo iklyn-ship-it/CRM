@@ -262,6 +262,12 @@
             <td>
               {{ equipmentName(item.equipmentId) }}
               <div class="small">{{ driverName(item.driverId) }}</div>
+              @if (transportEquipmentConflictSet().has(item.id)) {
+                <div class="small text-danger">Конфликт по тралу</div>
+              }
+              @if (transportOperatorConflictSet().has(item.id)) {
+                <div class="small text-danger">Конфликт по водителю</div>
+              }
             </td>
             <td>
               {{ item.cargoName || "—" }}

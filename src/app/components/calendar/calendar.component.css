@@ -310,6 +310,15 @@ button.reserve-bar {
   color: var(--txt);
 }
 
+.readonly-box {
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.68);
+  color: #e5e7eb;
+  white-space: pre-wrap;
+}
+
 .idle-date-grid {
   max-height: 168px;
   overflow: auto;

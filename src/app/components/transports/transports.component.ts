@@ -59,6 +59,26 @@ export class TransportsComponent {
     return rows.sort((a, b) => b.startDate.localeCompare(a.startDate));
   });
 
+  readonly transportEquipmentConflictSet = computed(() => {
+    const orderConflicts = this.state
+      .orderTransportConflicts()
+      .map(([, transportId]) => transportId);
+    const transportConflicts = this.state
+      .transportConflicts()
+      .flatMap(([firstId, secondId]) => [firstId, secondId]);
+    return new Set([...orderConflicts, ...transportConflicts]);
+  });
+
+  readonly transportOperatorConflictSet = computed(() => {
+    const orderConflicts = this.state
+      .orderTransportOperatorConflicts()
+      .map(([, transportId]) => transportId);
+    const transportConflicts = this.state
+      .transportOperatorConflicts()
+      .flatMap(([firstId, secondId]) => [firstId, secondId]);
+    return new Set([...orderConflicts, ...transportConflicts]);
+  });
+
   trawlEquipment() {
     return this.state
       .equipment()
@@ -178,6 +198,11 @@ export class TransportsComponent {
       alert("Дата начала перевозки не может быть позже даты окончания.");
       return;
     }
+    const conflictWarnings = this.transportConflictWarnings();
+    if (conflictWarnings.length) {
+      alert(conflictWarnings.join("\n"));
+      return;
+    }
     try {
       if (this.editingId) {
         await this.db.update("transports", this.editingId, this.form);
@@ -229,6 +254,78 @@ export class TransportsComponent {
       deliveryKm: 0,
       pickupCost: 0,
       deliveryCost: 0,
+    };
+  }
+
+  private transportConflictWarnings(): string[] {
+    const draft = this.formDraftTransport();
+    if (!this.state.transportBlocksSchedule(draft)) return [];
+    const warnings: string[] = [];
+
+    if (draft.equipmentId) {
+      const orderConflict = this.state.orders().find(
+        (order) =>
+          this.state.orderBlocksSchedule(order) &&
+          this.state.orderEquipmentReservationIds(order).includes(draft.equipmentId) &&
+          this.state.orderTransportOverlapByEquipment(
+            order,
+            draft,
+            draft.equipmentId,
+          ),
+      );
+      if (orderConflict) {
+        warnings.push(
+          `Трал занят в заявке: ${this.clientName(orderConflict.clientId)}, ${this.utils.fmtDate(orderConflict.startDate)} - ${this.utils.fmtDate(orderConflict.endDate)}.`,
+        );
+      }
+
+      const transportConflict = this.state.transports().find(
+        (transport) =>
+          transport.id !== this.editingId &&
+          transport.equipmentId === draft.equipmentId &&
+          this.state.transportsOverlap(transport, draft),
+      );
+      if (transportConflict) {
+        warnings.push(
+          `Трал занят в другой перевозке: ${this.shipperName(transportConflict)} → ${this.consigneeName(transportConflict)}, ${this.utils.fmtDate(transportConflict.startDate)} - ${this.utils.fmtDate(transportConflict.endDate)}.`,
+        );
+      }
+    }
+
+    if (draft.driverId) {
+      const orderConflict = this.state.orders().find(
+        (order) =>
+          this.state.orderBlocksSchedule(order) &&
+          order.operatorId === draft.driverId &&
+          this.state.orderTransportOverlapByOperator(order, draft),
+      );
+      if (orderConflict) {
+        warnings.push(
+          `Водитель/оператор занят в заявке: ${this.clientName(orderConflict.clientId)}, ${this.utils.fmtDate(orderConflict.startDate)} - ${this.utils.fmtDate(orderConflict.endDate)}.`,
+        );
+      }
+
+      const transportConflict = this.state.transports().find(
+        (transport) =>
+          transport.id !== this.editingId &&
+          transport.driverId === draft.driverId &&
+          this.state.transportsOverlap(transport, draft),
+      );
+      if (transportConflict) {
+        warnings.push(
+          `Водитель занят в другой перевозке: ${this.shipperName(transportConflict)} → ${this.consigneeName(transportConflict)}, ${this.utils.fmtDate(transportConflict.startDate)} - ${this.utils.fmtDate(transportConflict.endDate)}.`,
+        );
+      }
+    }
+
+    return warnings;
+  }
+
+  private formDraftTransport(): Transport {
+    return {
+      id: this.editingId || "draft",
+      createdAt: "",
+      ...this.form,
     };
   }
 

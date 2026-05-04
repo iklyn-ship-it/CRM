@@ -51,7 +51,7 @@
             <button
               type="button"
               class="event"
-              [class.clickable-event]="e.type === 'rent' || e.type === 'logistics'"
+              [class.clickable-event]="e.type === 'rent' || e.type === 'logistics' || e.type === 'transport'"
               [ngClass]="[
                 e.type === 'repair'
                   ? 'repair'
@@ -62,7 +62,7 @@
                     : e.statusClass,
                 e.conflict ? 'conflict' : ''
               ]"
-              (click)="e.type === 'rent' || e.type === 'logistics' ? openOrder(e.id) : null"
+              (click)="e.type === 'transport' ? openTransport(e.id) : (e.type === 'rent' || e.type === 'logistics' ? openOrder(e.id) : null)"
             >
               {{ e.eq }}<br><span class="small">
                 {{
@@ -104,12 +104,16 @@
               <button
                 type="button"
                 class="reserve-bar"
-                [class.clickable-event]="ev.type === 'rent' || ev.type === 'logistics'"
-                [ngClass]="[ev.type, ev.type === 'rent' ? 'status-' + ev.status : '']"
+                [class.clickable-event]="ev.type === 'rent' || ev.type === 'logistics' || ev.type === 'transport'"
+                [ngClass]="[
+                  ev.type,
+                  ev.type === 'rent' ? 'status-' + ev.status : '',
+                  ev.conflict ? 'conflict' : ''
+                ]"
                 [style.left.px]="barLeft(ev.startIndex)"
                 [style.width.px]="ev.span * 34 - 4"
                 style="position:absolute; top:9px"
-                (click)="ev.type === 'rent' || ev.type === 'logistics' ? openOrder(ev.id) : null"
+                (click)="ev.type === 'transport' ? openTransport(ev.id) : (ev.type === 'rent' || ev.type === 'logistics' ? openOrder(ev.id) : null)"
               >
                 {{
                   ev.type === 'repair'
@@ -182,6 +186,14 @@
                 <option [value]="e.id">{{ e.name }}</option>
               }
             </select>
+            @if (formTransportEquipmentConflict(); as conflict) {
+              <div class="calendar-busy-warning">
+                Техника занята в перевозке:
+                {{ equipmentName(conflict.equipmentId) }} •
+                {{ utils.fmtDate(conflict.startDate) }} -
+                {{ utils.fmtDate(conflict.endDate) }}
+              </div>
+            }
           </div>
           <div class="field">
             <label>Оператор</label>
@@ -195,6 +207,13 @@
               <div class="calendar-busy-warning">
                 Оператор занят в другой заявке:
                 {{ clientName(conflict.clientId) }} •
+                {{ utils.fmtDate(conflict.startDate) }} -
+                {{ utils.fmtDate(conflict.endDate) }}
+              </div>
+            }
+            @if (formTransportOperatorConflict(); as conflict) {
+              <div class="calendar-busy-warning">
+                Оператор занят в перевозке:
                 {{ utils.fmtDate(conflict.startDate) }} -
                 {{ utils.fmtDate(conflict.endDate) }}
               </div>
@@ -441,6 +460,70 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  }
+
+  @if (selectedTransport(); as transport) {
+    <div class="calendar-modal-backdrop" (click)="closeTransport()">
+      <div class="card panel calendar-order-modal" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <h3 style="margin: 0">Перевозка {{ transport.id | slice: -5 }}</h3>
+          <button type="button" class="btn ghost" (click)="closeTransport()">
+            Закрыть
+          </button>
+        </div>
+        <div class="calendar-order-summary">
+          <div>
+            <span>Отправитель</span>
+            <strong>{{ clientName(transport.shipperClientId) }}</strong>
+          </div>
+          <div>
+            <span>Получатель</span>
+            <strong>{{ clientName(transport.consigneeClientId) }}</strong>
+          </div>
+          <div>
+            <span>Трал</span>
+            <strong>{{ equipmentName(transport.equipmentId) }}</strong>
+          </div>
+          <div>
+            <span>Водитель</span>
+            <strong>{{ operatorName(transport.driverId) }}</strong>
+          </div>
+        </div>
+        <div class="calendar-order-summary">
+          <div>
+            <span>Период</span>
+            <strong>
+              {{ utils.fmtDate(transport.startDate) }} -
+              {{ utils.fmtDate(transport.endDate) }}
+            </strong>
+          </div>
+          <div>
+            <span>Маршрут</span>
+            <strong>{{ transport.loadingPoint || "—" }} → {{ transport.unloadingPoint || "—" }}</strong>
+          </div>
+          <div>
+            <span>Груз</span>
+            <strong>{{ transport.cargoName || "—" }}</strong>
+          </div>
+          <div>
+            <span>Стоимость</span>
+            <strong>{{ utils.money(transportTotal(transport)) }}</strong>
+          </div>
+        </div>
+        @if (transport.notes) {
+          <div class="field">
+            <label>Комментарий</label>
+            <div class="readonly-box">{{ transport.notes }}</div>
+          </div>
+        }
+        <div class="actions">
+          <a class="btn primary" href="/transports">Открыть раздел перевозок</a>
+          <button type="button" class="btn ghost" (click)="closeTransport()">
+            Закрыть
+          </button>
+        </div>
       </div>
     </div>
   }

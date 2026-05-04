@@ -4,7 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { Order, OrderStatus } from "../../models/crm.models";
+import { Order, OrderStatus, Transport } from "../../models/crm.models";
 
 interface CalCell {
   date: Date;
@@ -40,6 +40,7 @@ export class CalendarComponent {
   readonly viewDate = signal(new Date());
   readonly equipmentTypeFilter = signal("");
   formOpen = signal(false);
+  selectedTransport = signal<Transport | null>(null);
   editingId = "";
   form = {
     clientId: "",
@@ -301,6 +302,7 @@ export class CalendarComponent {
                 "Аренда",
               startDate: segment.startDate,
               endDate: segment.endDate,
+              conflict: false,
             })),
           ),
         ...this.state
@@ -323,6 +325,7 @@ export class CalendarComponent {
                   "Логистика",
                 startDate: segment.startDate,
                 endDate: segment.endDate,
+                conflict: false,
               }),
             ),
           ),
@@ -336,6 +339,7 @@ export class CalendarComponent {
             title: r.tasks || "Ремонт",
             startDate: r.startDate,
             endDate: r.endDate,
+            conflict: false,
           })),
         ...this.state
           .transports()
@@ -350,6 +354,7 @@ export class CalendarComponent {
             title: this.transportTitle(transport),
             startDate: transport.startDate,
             endDate: transport.endDate,
+            conflict: this.transportHasConflict(transport.id),
           })),
       ];
       const events = rangedEvents.flatMap((ev) => {
@@ -398,6 +403,16 @@ export class CalendarComponent {
     const order = this.state.byId(this.state.orders(), orderId);
     if (!order) return;
     this.edit(order);
+  }
+
+  openTransport(transportId: string): void {
+    const transport = this.state.byId(this.state.transports(), transportId);
+    if (!transport) return;
+    this.selectedTransport.set(transport);
+  }
+
+  closeTransport(): void {
+    this.selectedTransport.set(null);
   }
 
   editingOrder(): Order | null {
@@ -520,10 +535,24 @@ export class CalendarComponent {
   async save(): Promise<void> {
     if (!this.editingId || !this.form.startDate || !this.form.endDate) return;
     if (!this.validateLogistics()) return;
+    const transportEquipmentConflict = this.formTransportEquipmentConflict();
+    if (transportEquipmentConflict) {
+      alert(
+        `Техника занята в перевозке: ${this.equipmentName(transportEquipmentConflict.equipmentId)}, ${this.utils.fmtDate(transportEquipmentConflict.startDate)} - ${this.utils.fmtDate(transportEquipmentConflict.endDate)}.`,
+      );
+      return;
+    }
     const operatorConflict = this.formOperatorConflict();
     if (operatorConflict) {
       alert(
         `Оператор занят в другой заявке: ${this.clientName(operatorConflict.clientId)}, ${this.utils.fmtDate(operatorConflict.startDate)} - ${this.utils.fmtDate(operatorConflict.endDate)}.`,
+      );
+      return;
+    }
+    const transportOperatorConflict = this.formTransportOperatorConflict();
+    if (transportOperatorConflict) {
+      alert(
+        `Оператор занят в перевозке: ${this.utils.fmtDate(transportOperatorConflict.startDate)} - ${this.utils.fmtDate(transportOperatorConflict.endDate)}.`,
       );
       return;
     }
@@ -552,6 +581,40 @@ export class CalendarComponent {
             "operator",
           ),
       ) || null
+    );
+  }
+
+  formTransportOperatorConflict(): Transport | null {
+    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+      return null;
+    }
+    const draft = this.formDraftOrder();
+    return (
+      this.state.transports().find(
+        (transport) =>
+          this.state.transportBlocksSchedule(transport) &&
+          transport.driverId === this.form.operatorId &&
+          this.state.orderTransportOverlapByOperator(draft, transport),
+      ) || null
+    );
+  }
+
+  formTransportEquipmentConflict(): Transport | null {
+    if (!this.form.startDate || !this.form.endDate) return null;
+    const draft = this.formDraftOrder();
+    return (
+      this.state.transports().find((transport) => {
+        if (!this.state.transportBlocksSchedule(transport)) return false;
+        return this.state.orderEquipmentReservationIds(draft).some(
+          (equipmentId) =>
+            equipmentId === transport.equipmentId &&
+            this.state.orderTransportOverlapByEquipment(
+              draft,
+              transport,
+              equipmentId,
+            ),
+        );
+      }) || null
     );
   }
 
@@ -604,6 +667,14 @@ export class CalendarComponent {
 
   operatorName(id: string): string {
     return this.state.byId(this.state.operators(), id)?.name || "—";
+  }
+
+  equipmentName(id: string): string {
+    return this.state.byId(this.state.equipment(), id)?.name || "—";
+  }
+
+  transportTotal(transport: Transport): number {
+    return this.state.transportTotal(transport);
   }
 
   private clearForm(): void {
@@ -752,6 +823,17 @@ export class CalendarComponent {
       transport.consignee ||
       "Получатель";
     return `${shipper} → ${consignee}${transport.cargoName ? ` • ${transport.cargoName}` : ""}`;
+  }
+
+  private transportHasConflict(transportId: string): boolean {
+    return (
+      this.state.orderTransportConflicts().some(([, id]) => id === transportId) ||
+      this.state.transportConflicts().some(([a, b]) => a === transportId || b === transportId) ||
+      this.state.orderTransportOperatorConflicts().some(([, id]) => id === transportId) ||
+      this.state.transportOperatorConflicts().some(
+        ([a, b]) => a === transportId || b === transportId,
+      )
+    );
   }
 
   private orderSegments(

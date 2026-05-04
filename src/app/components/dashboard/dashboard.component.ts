@@ -3,7 +3,7 @@ import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
 import { SupabaseService } from "../../services/supabase.service";
-import { EquipmentAnalytics } from "../../models/crm.models";
+import { EquipmentAnalytics, Transport } from "../../models/crm.models";
 
 interface ChartPoint {
   label: string;
@@ -63,6 +63,14 @@ export class DashboardComponent {
     const conf = this.state.orderConflicts();
     const operatorConf = this.state.operatorConflicts();
     const repConf = this.state.repairConflicts();
+    const transportEqConf = [
+      ...this.state.orderTransportConflicts(),
+      ...this.state.transportConflicts(),
+    ];
+    const transportOperatorConf = [
+      ...this.state.orderTransportOperatorConflicts(),
+      ...this.state.transportOperatorConflicts(),
+    ];
     if (conf.length)
       msgs.push({
         kind: "alert",
@@ -84,6 +92,16 @@ export class DashboardComponent {
         kind: "ok",
         text: "Конфликтов между ремонтом и арендой нет.",
       });
+    if (transportEqConf.length)
+      msgs.push({
+        kind: "alert",
+        text: `Есть ${transportEqConf.length} конфликт(ов) по тралам в перевозках.`,
+      });
+    if (transportOperatorConf.length)
+      msgs.push({
+        kind: "alert",
+        text: `Есть ${transportOperatorConf.length} конфликт(ов) по водителям перевозок.`,
+      });
     return msgs;
   });
 
@@ -101,9 +119,35 @@ export class DashboardComponent {
       .map(([repairId, orderId, eqId]) =>
         this.repairConflictDetail(repairId, orderId, eqId),
       );
-    return [...orderConflicts, ...operatorConflicts, ...repairConflicts].filter(
-      Boolean,
-    ) as ConflictDetail[];
+    const orderTransportConflicts = this.state
+      .orderTransportConflicts()
+      .map(([orderId, transportId, eqId]) =>
+        this.orderTransportConflictDetail(orderId, transportId, eqId),
+      );
+    const transportConflicts = this.state
+      .transportConflicts()
+      .map(([firstId, secondId, eqId]) =>
+        this.transportConflictDetail(firstId, secondId, eqId),
+      );
+    const orderTransportOperatorConflicts = this.state
+      .orderTransportOperatorConflicts()
+      .map(([orderId, transportId, operatorId]) =>
+        this.orderTransportOperatorConflictDetail(orderId, transportId, operatorId),
+      );
+    const transportOperatorConflicts = this.state
+      .transportOperatorConflicts()
+      .map(([firstId, secondId, operatorId]) =>
+        this.transportOperatorConflictDetail(firstId, secondId, operatorId),
+      );
+    return [
+      ...orderConflicts,
+      ...operatorConflicts,
+      ...repairConflicts,
+      ...orderTransportConflicts,
+      ...transportConflicts,
+      ...orderTransportOperatorConflicts,
+      ...transportOperatorConflicts,
+    ].filter(Boolean) as ConflictDetail[];
   });
 
   readonly periodOperations = computed(() =>
@@ -692,8 +736,122 @@ export class DashboardComponent {
     };
   }
 
+  private orderTransportConflictDetail(
+    orderId: string,
+    transportId: string,
+    equipmentId: string,
+  ): ConflictDetail | null {
+    const order = this.state.byId(this.state.orders(), orderId);
+    const transport = this.state.byId(this.state.transports(), transportId);
+    if (!order || !transport) return null;
+    const overlapStart = this.maxDate(
+      order.equipmentId === equipmentId
+        ? order.startDate
+        : this.state.orderLogisticsStart(order),
+      transport.startDate,
+    );
+    const overlapEnd = this.minDate(
+      order.equipmentId === equipmentId
+        ? order.endDate
+        : this.state.orderLogisticsEnd(order),
+      transport.endDate,
+    );
+    return {
+      id: `order-transport-${orderId}-${transportId}-${equipmentId}`,
+      kind: "Трал занят в заявке и перевозке",
+      resource: this.equipmentName(equipmentId),
+      primary: this.orderTitle(order),
+      secondary: this.transportTitle(transport),
+      period: this.periodText(overlapStart, overlapEnd),
+      location: [order.location, transport.loadingPoint, transport.unloadingPoint]
+        .filter(Boolean)
+        .join(" / ") || "—",
+      money: this.state.orderPlan(order) + this.state.transportTotal(transport),
+    };
+  }
+
+  private transportConflictDetail(
+    firstId: string,
+    secondId: string,
+    equipmentId: string,
+  ): ConflictDetail | null {
+    const first = this.state.byId(this.state.transports(), firstId);
+    const second = this.state.byId(this.state.transports(), secondId);
+    if (!first || !second) return null;
+    const overlapStart = this.maxDate(first.startDate, second.startDate);
+    const overlapEnd = this.minDate(first.endDate, second.endDate);
+    return {
+      id: `transport-${firstId}-${secondId}-${equipmentId}`,
+      kind: "Трал занят в двух перевозках",
+      resource: this.equipmentName(equipmentId),
+      primary: this.transportTitle(first),
+      secondary: this.transportTitle(second),
+      period: this.periodText(overlapStart, overlapEnd),
+      location: [first.loadingPoint, second.loadingPoint].filter(Boolean).join(" / ") || "—",
+      money: this.state.transportTotal(first) + this.state.transportTotal(second),
+    };
+  }
+
+  private orderTransportOperatorConflictDetail(
+    orderId: string,
+    transportId: string,
+    operatorId: string,
+  ): ConflictDetail | null {
+    const order = this.state.byId(this.state.orders(), orderId);
+    const transport = this.state.byId(this.state.transports(), transportId);
+    if (!order || !transport) return null;
+    const overlapStart = this.maxDate(order.startDate, transport.startDate);
+    const overlapEnd = this.minDate(order.endDate, transport.endDate);
+    return {
+      id: `order-transport-driver-${orderId}-${transportId}-${operatorId}`,
+      kind: "Оператор занят в заявке и перевозке",
+      resource: this.operatorName(operatorId),
+      primary: this.orderTitle(order),
+      secondary: this.transportTitle(transport),
+      period: this.periodText(overlapStart, overlapEnd),
+      location: [order.location, transport.loadingPoint, transport.unloadingPoint]
+        .filter(Boolean)
+        .join(" / ") || "—",
+      money: this.state.orderPlan(order) + this.state.transportTotal(transport),
+    };
+  }
+
+  private transportOperatorConflictDetail(
+    firstId: string,
+    secondId: string,
+    operatorId: string,
+  ): ConflictDetail | null {
+    const first = this.state.byId(this.state.transports(), firstId);
+    const second = this.state.byId(this.state.transports(), secondId);
+    if (!first || !second) return null;
+    const overlapStart = this.maxDate(first.startDate, second.startDate);
+    const overlapEnd = this.minDate(first.endDate, second.endDate);
+    return {
+      id: `transport-driver-${firstId}-${secondId}-${operatorId}`,
+      kind: "Водитель занят в двух перевозках",
+      resource: this.operatorName(operatorId),
+      primary: this.transportTitle(first),
+      secondary: this.transportTitle(second),
+      period: this.periodText(overlapStart, overlapEnd),
+      location: [first.loadingPoint, second.loadingPoint].filter(Boolean).join(" / ") || "—",
+      money: this.state.transportTotal(first) + this.state.transportTotal(second),
+    };
+  }
+
   private orderTitle(order: { id: string; clientId: string; equipmentId: string }): string {
     return `${order.id.slice(-5)} • ${this.clientName(order.clientId)} • ${this.equipmentName(order.equipmentId)}`;
+  }
+
+  private transportTitle(transport: Transport): string {
+    const shipper =
+      this.clientName(transport.shipperClientId) ||
+      transport.shipper ||
+      "Отправитель";
+    const consignee =
+      this.clientName(transport.consigneeClientId) ||
+      transport.consignee ||
+      "Получатель";
+    return `${transport.id.slice(-5)} • ${shipper} → ${consignee}`;
   }
 
   private periodText(startDate: string, endDate: string): string {
