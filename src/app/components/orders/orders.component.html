@@ -220,12 +220,12 @@
                 />
               </div>
               <div class="field">
-                <label>Цена за 1 км, ₴</label>
+                <label>Цена за 1 км подачи, ₴ (50 грн)</label>
                 <input
                   type="number"
                   min="0"
-                  [(ngModel)]="form.logisticsPricePerKm"
-                  name="logisticsPricePerKm"
+                  [(ngModel)]="form.logisticsPickupPricePerKm"
+                  name="logisticsPickupPricePerKm"
                   (ngModelChange)="recalcLogisticsCost()"
                 />
               </div>
@@ -246,6 +246,16 @@
                   min="0"
                   [(ngModel)]="form.logisticsPickupCost"
                   name="logisticsPickupCost"
+                />
+              </div>
+              <div class="field">
+                <label>Цена за 1 км доставки, ₴ (250 грн)</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.logisticsDeliveryPricePerKm"
+                  name="logisticsDeliveryPricePerKm"
+                  (ngModelChange)="recalcLogisticsCost()"
                 />
               </div>
               <div class="field">
@@ -270,6 +280,7 @@
             </div>
             <div class="logistics-total">
               Итого логистика: {{ utils.money(logisticsTotal()) }}
+              <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
               @if (form.logisticsProvider === "own_trawl") {
                 <span>Резерв трала появится в календаре на даты логистики.</span>
               }
@@ -409,8 +420,10 @@
                 {{ utils.fmtDate(selected.logisticsEndDate || selected.endDate) }}
                 • подача {{ selected.logisticsPickupKm || 0 }} км /
                 {{ utils.money(selected.logisticsPickupCost || 0) }}
+                ({{ utils.money(selected.logisticsPickupPricePerKm || 50) }}/км)
                 • доставка {{ selected.logisticsDeliveryKm || selected.logisticsDistanceKm || 0 }} км /
                 {{ utils.money(selected.logisticsDeliveryCost || 0) }}
+                ({{ utils.money(selected.logisticsDeliveryPricePerKm || 250) }}/км)
                 • {{ utils.money(state.orderLogisticsCost(selected)) }}
               </strong>
             </div>

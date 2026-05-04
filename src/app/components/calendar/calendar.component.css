@@ -409,6 +409,12 @@ button.reserve-bar {
   font-weight: 500;
 }
 
+.logistics-total strong {
+  display: block;
+  margin-top: 6px;
+  color: #f8fafc;
+}
+
 @media (max-width: 720px) {
   .calendar-order-summary {
     grid-template-columns: 1fr;

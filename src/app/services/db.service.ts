@@ -120,6 +120,18 @@ export class DbService {
           (logisticsDistanceKm ? logisticsCost / logisticsDistanceKm : 0),
       ),
       logisticsCost,
+      logisticsPickupPricePerKm: Number(
+        order.logisticsPickupPricePerKm ||
+          (order.logisticsPickupKm
+            ? pickupCost / Number(order.logisticsPickupKm || 1)
+            : 50),
+      ),
+      logisticsDeliveryPricePerKm: Number(
+        order.logisticsDeliveryPricePerKm ||
+          (order.logisticsDeliveryKm
+            ? deliveryCost / Number(order.logisticsDeliveryKm || 1)
+            : 250),
+      ),
       logisticsPickupKm: Number(order.logisticsPickupKm || 0),
       logisticsDeliveryKm: Number(
         order.logisticsDeliveryKm || logisticsDistanceKm,
@@ -454,7 +466,9 @@ export class DbService {
     return (
       table === "orders" &&
       ["42703", "PGRST204"].includes(error?.code) &&
-      /logistics_(distance_km|price_per_km|cost)/.test(message)
+      /logistics_(distance_km|price_per_km|cost|pickup_price_per_km|delivery_price_per_km)/.test(
+        message,
+      )
     );
   }
 
@@ -465,6 +479,8 @@ export class DbService {
     delete fallbackRow["logistics_distance_km"];
     delete fallbackRow["logistics_price_per_km"];
     delete fallbackRow["logistics_cost"];
+    delete fallbackRow["logistics_pickup_price_per_km"];
+    delete fallbackRow["logistics_delivery_price_per_km"];
     return fallbackRow;
   }
 
@@ -621,6 +637,8 @@ export class DbService {
       logisticsDistanceKm: "Км логистики",
       logisticsPricePerKm: "Цена за км",
       logisticsCost: "Стоимость логистики",
+      logisticsPickupPricePerKm: "Цена км подачи",
+      logisticsDeliveryPricePerKm: "Цена км доставки",
       logisticsPickupKm: "Км подачи",
       logisticsDeliveryKm: "Км доставки",
       logisticsPickupCost: "Стоимость подачи",

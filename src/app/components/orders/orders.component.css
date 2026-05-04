@@ -106,6 +106,12 @@
   font-weight: 500;
 }
 
+.logistics-total strong {
+  display: block;
+  margin-top: 6px;
+  color: #f8fafc;
+}
+
 .idle-date-grid {
   max-height: 168px;
   overflow: auto;

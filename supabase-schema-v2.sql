@@ -61,6 +61,8 @@ create table if not exists public.orders (
   logistics_distance_km numeric not null default 0,
   logistics_price_per_km numeric not null default 0,
   logistics_cost numeric not null default 0,
+  logistics_pickup_price_per_km numeric not null default 50,
+  logistics_delivery_price_per_km numeric not null default 250,
   logistics_pickup_km numeric not null default 0,
   logistics_delivery_km numeric not null default 0,
   logistics_pickup_cost numeric not null default 0,

@@ -44,6 +44,8 @@ export class OrdersComponent {
     logisticsDistanceKm: 0,
     logisticsPricePerKm: 0,
     logisticsCost: 0,
+    logisticsPickupPricePerKm: 50,
+    logisticsDeliveryPricePerKm: 250,
     logisticsPickupKm: 0,
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
@@ -164,17 +166,23 @@ export class OrdersComponent {
   }
 
   recalcLogisticsCost(): void {
-    const pricePerKm = Number(this.form.logisticsPricePerKm || 0);
     this.form.logisticsPickupCost =
-      Number(this.form.logisticsPickupKm || 0) * pricePerKm;
+      Number(this.form.logisticsPickupKm || 0) *
+      Number(this.form.logisticsPickupPricePerKm || 0);
     this.form.logisticsDeliveryCost =
-      Number(this.form.logisticsDeliveryKm || 0) * pricePerKm;
+      Number(this.form.logisticsDeliveryKm || 0) *
+      Number(this.form.logisticsDeliveryPricePerKm || 0);
     this.syncLogisticsTotals();
   }
 
   logisticsTotal(): number {
     if (!this.form.logisticsEnabled) return 0;
     return this.logisticsSubtotal();
+  }
+
+  orderDraftTotal(): number {
+    const rentalPlan = this.orderDates().length * Number(this.form.rate || 0);
+    return rentalPlan + this.logisticsTotal();
   }
 
   logisticsProviderLabel(order: Order): string {
@@ -269,6 +277,18 @@ export class OrdersComponent {
           (logisticsDistanceKm ? logisticsCost / logisticsDistanceKm : 0),
       ),
       logisticsCost,
+      logisticsPickupPricePerKm: Number(
+        order.logisticsPickupPricePerKm ||
+          (order.logisticsPickupKm
+            ? pickupCost / Number(order.logisticsPickupKm || 1)
+            : 50),
+      ),
+      logisticsDeliveryPricePerKm: Number(
+        order.logisticsDeliveryPricePerKm ||
+          (order.logisticsDeliveryKm
+            ? deliveryCost / Number(order.logisticsDeliveryKm || 1)
+            : 250),
+      ),
       logisticsPickupKm: Number(order.logisticsPickupKm || 0),
       logisticsDeliveryKm: Number(
         order.logisticsDeliveryKm || logisticsDistanceKm,
@@ -312,6 +332,8 @@ export class OrdersComponent {
       logisticsDistanceKm: 0,
       logisticsPricePerKm: 0,
       logisticsCost: 0,
+      logisticsPickupPricePerKm: 50,
+      logisticsDeliveryPricePerKm: 250,
       logisticsPickupKm: 0,
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
@@ -400,6 +422,15 @@ export class OrdersComponent {
           Number(this.form.logisticsDeliveryKm || 0)
         : 0,
       logisticsCost: this.form.logisticsEnabled ? this.logisticsSubtotal() : 0,
+      logisticsPricePerKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsDeliveryPricePerKm || 0)
+        : 0,
+      logisticsPickupPricePerKm: this.form.logisticsEnabled
+        ? this.form.logisticsPickupPricePerKm
+        : 50,
+      logisticsDeliveryPricePerKm: this.form.logisticsEnabled
+        ? this.form.logisticsDeliveryPricePerKm
+        : 250,
       logisticsPickupKm: this.form.logisticsEnabled
         ? this.form.logisticsPickupKm
         : 0,

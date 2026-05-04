@@ -10,6 +10,8 @@ alter table if exists public.orders
   add column if not exists logistics_distance_km numeric not null default 0,
   add column if not exists logistics_price_per_km numeric not null default 0,
   add column if not exists logistics_cost numeric not null default 0,
+  add column if not exists logistics_pickup_price_per_km numeric not null default 50,
+  add column if not exists logistics_delivery_price_per_km numeric not null default 250,
   add column if not exists logistics_pickup_km numeric not null default 0,
   add column if not exists logistics_delivery_km numeric not null default 0,
   add column if not exists logistics_pickup_cost numeric not null default 0,

@@ -49,6 +49,8 @@ export interface Order {
   logisticsDistanceKm: number;
   logisticsPricePerKm: number;
   logisticsCost: number;
+  logisticsPickupPricePerKm: number;
+  logisticsDeliveryPricePerKm: number;
   logisticsPickupKm: number;
   logisticsDeliveryKm: number;
   logisticsPickupCost: number;

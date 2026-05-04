@@ -332,12 +332,12 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Цена за 1 км, ₴</label>
+                  <label>Цена за 1 км подачи, ₴ (50 грн)</label>
                   <input
                     type="number"
                     min="0"
-                    [(ngModel)]="form.logisticsPricePerKm"
-                    name="logisticsPricePerKm"
+                    [(ngModel)]="form.logisticsPickupPricePerKm"
+                    name="logisticsPickupPricePerKm"
                     (ngModelChange)="recalcLogisticsCost()"
                   />
                 </div>
@@ -358,6 +358,16 @@
                     min="0"
                     [(ngModel)]="form.logisticsPickupCost"
                     name="logisticsPickupCost"
+                  />
+                </div>
+                <div class="field">
+                  <label>Цена за 1 км доставки, ₴ (250 грн)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryPricePerKm"
+                    name="logisticsDeliveryPricePerKm"
+                    (ngModelChange)="recalcLogisticsCost()"
                   />
                 </div>
                 <div class="field">
@@ -382,6 +392,7 @@
               </div>
               <div class="logistics-total">
                 Итого логистика: {{ utils.money(logisticsTotal()) }}
+                <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
                 @if (form.logisticsProvider === "own_trawl") {
                   <span>Резерв трала появится в календаре на даты логистики.</span>
                 }
