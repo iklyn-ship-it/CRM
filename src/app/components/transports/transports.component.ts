@@ -1,0 +1,221 @@
+import { Component, computed, inject, signal } from "@angular/core";
+import { NgClass, SlicePipe } from "@angular/common";
+import { FormsModule } from "@angular/forms";
+import { StateService } from "../../services/state.service";
+import { DbService } from "../../services/db.service";
+import { UtilsService } from "../../services/utils.service";
+import { Transport, TransportStatus } from "../../models/crm.models";
+
+@Component({
+  selector: "app-transports",
+  standalone: true,
+  imports: [FormsModule, NgClass, SlicePipe],
+  templateUrl: "./transports.component.html",
+  styleUrl: "./transports.component.css",
+})
+export class TransportsComponent {
+  state = inject(StateService);
+  db = inject(DbService);
+  utils = inject(UtilsService);
+
+  search = signal("");
+  filterStatus = signal("");
+  formOpen = signal(false);
+  editingId = "";
+
+  form = this.emptyForm();
+
+  readonly statuses: { value: TransportStatus; label: string }[] = [
+    { value: "new", label: "Новая" },
+    { value: "active", label: "В работе" },
+    { value: "completed", label: "Завершена" },
+    { value: "cancelled", label: "Отменена" },
+  ];
+
+  readonly filteredTransports = computed(() => {
+    const q = this.search().trim().toLowerCase();
+    const status = this.filterStatus();
+    let rows = [...this.state.transports()];
+    if (status) rows = rows.filter((item) => item.status === status);
+    if (q) {
+      rows = rows.filter((item) =>
+        [
+          item.shipper,
+          item.consignee,
+          item.loadingPoint,
+          item.unloadingPoint,
+          item.cargoName,
+          item.notes,
+          this.equipmentName(item.equipmentId),
+          this.driverName(item.driverId),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(q),
+      );
+    }
+    return rows.sort((a, b) => b.startDate.localeCompare(a.startDate));
+  });
+
+  trawlEquipment() {
+    return this.state
+      .equipment()
+      .filter((eq) => (eq.type || "").trim().toLowerCase().includes("трал"));
+  }
+
+  drivers() {
+    return this.state
+      .operators()
+      .filter((operator) => operator.workStatus !== "dismissed");
+  }
+
+  recalcPickup(): void {
+    this.form.pickupCost =
+      Number(this.form.pickupKm || 0) * Number(this.form.pickupPricePerKm || 0);
+  }
+
+  recalcDelivery(): void {
+    this.form.deliveryCost =
+      Number(this.form.deliveryKm || 0) *
+      Number(this.form.deliveryPricePerKm || 0);
+  }
+
+  transportTotal(item = this.form): number {
+    return Number(item.pickupCost || 0) + Number(item.deliveryCost || 0);
+  }
+
+  statusLabel(status: string): string {
+    return (
+      {
+        new: "Новая",
+        active: "В работе",
+        completed: "Завершена",
+        cancelled: "Отменена",
+      }[status] || status
+    );
+  }
+
+  statusBadgeClass(status: string): string {
+    return (
+      {
+        new: "new",
+        active: "active",
+        completed: "completed",
+        cancelled: "cancelled",
+      }[status] || "new"
+    );
+  }
+
+  equipmentName(id: string): string {
+    return this.state.byId(this.state.equipment(), id)?.name || "—";
+  }
+
+  driverName(id: string): string {
+    return this.state.byId(this.state.operators(), id)?.name || "—";
+  }
+
+  openCreate(): void {
+    this.clearForm();
+    this.formOpen.set(true);
+  }
+
+  closeForm(): void {
+    this.clearForm();
+    this.formOpen.set(false);
+  }
+
+  edit(item: Transport): void {
+    this.editingId = item.id;
+    this.form = {
+      shipper: item.shipper || "",
+      consignee: item.consignee || "",
+      startDate: item.startDate || "",
+      endDate: item.endDate || "",
+      loadingPoint: item.loadingPoint || "",
+      unloadingPoint: item.unloadingPoint || "",
+      equipmentId: item.equipmentId || "",
+      driverId: item.driverId || "",
+      cargoName: item.cargoName || "",
+      notes: item.notes || "",
+      status: item.status || "new",
+      pickupPricePerKm: Number(item.pickupPricePerKm || 50),
+      deliveryPricePerKm: Number(item.deliveryPricePerKm || 250),
+      pickupKm: Number(item.pickupKm || 0),
+      deliveryKm: Number(item.deliveryKm || 0),
+      pickupCost: Number(item.pickupCost || 0),
+      deliveryCost: Number(item.deliveryCost || 0),
+    };
+    this.formOpen.set(true);
+  }
+
+  async save(): Promise<void> {
+    if (!this.form.startDate || !this.form.endDate) return;
+    if (this.form.startDate > this.form.endDate) {
+      alert("Дата начала перевозки не может быть позже даты окончания.");
+      return;
+    }
+    try {
+      if (this.editingId) {
+        await this.db.update("transports", this.editingId, this.form);
+      } else {
+        await this.db.insert("transports", {
+          id: this.utils.uid("trn"),
+          ...this.form,
+        });
+      }
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+      return;
+    }
+    this.closeForm();
+  }
+
+  async remove(id: string): Promise<void> {
+    if (!confirm("Удалить перевозку?")) return;
+    try {
+      await this.db.remove("transports", id);
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+    }
+  }
+
+  clearForm(): void {
+    this.editingId = "";
+    this.form = this.emptyForm();
+  }
+
+  private emptyForm() {
+    return {
+      shipper: "",
+      consignee: "",
+      startDate: "",
+      endDate: "",
+      loadingPoint: "",
+      unloadingPoint: "",
+      equipmentId: "",
+      driverId: "",
+      cargoName: "",
+      notes: "",
+      status: "new" as TransportStatus,
+      pickupPricePerKm: 50,
+      deliveryPricePerKm: 250,
+      pickupKm: 0,
+      deliveryKm: 0,
+      pickupCost: 0,
+      deliveryCost: 0,
+    };
+  }
+
+  private saveErrorMessage(error: unknown): string {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message || "")
+        : "";
+    if (message.includes("transports")) {
+      return "База Supabase еще не готова для перевозок. Выполни SQL-файл supabase-transports.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    return message
+      ? `Не удалось сохранить перевозку: ${message}`
+      : "Не удалось сохранить перевозку.";
+  }
+}

@@ -17,6 +17,7 @@ export class SidebarComponent {
     { key: "repairs", label: "Ремонты" },
     { key: "calendar", label: "Календарь" },
     { key: "finance", label: "Финансы" },
+    { key: "transports", label: "Перевозки" },
     { key: "reports", label: "Отчеты" },
     { key: "equipment", label: "Техника" },
     { key: "clients", label: "Клиенты" },

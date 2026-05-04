@@ -74,6 +74,30 @@ export interface Repair {
 
 export type RepairStatus = 'planned' | 'active' | 'completed' | 'cancelled';
 
+export interface Transport {
+  id: string;
+  shipper: string;
+  consignee: string;
+  startDate: string;
+  endDate: string;
+  loadingPoint: string;
+  unloadingPoint: string;
+  equipmentId: string;
+  driverId: string;
+  cargoName: string;
+  notes: string;
+  status: TransportStatus;
+  pickupPricePerKm: number;
+  deliveryPricePerKm: number;
+  pickupKm: number;
+  deliveryKm: number;
+  pickupCost: number;
+  deliveryCost: number;
+  createdAt: string;
+}
+
+export type TransportStatus = 'new' | 'active' | 'completed' | 'cancelled';
+
 export interface FinanceOperation {
   id: string;
   date: string;
@@ -118,6 +142,7 @@ export interface CrmState {
   equipment: Equipment[];
   operators: Operator[];
   orders: Order[];
+  transports: Transport[];
   operations: FinanceOperation[];
   repairs: Repair[];
   calendarDate: string;

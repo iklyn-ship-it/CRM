@@ -3,7 +3,7 @@
 -- Run in Supabase SQL Editor after supabase-schema-v2.sql.
 --
 -- Result:
--- - clients, equipment, operators, orders, repairs, operations are visible
+-- - clients, equipment, operators, orders, repairs, transports, operations are visible
 --   and editable by every authenticated CRM user.
 -- - new records still store the user_id of the account that created them.
 -- - integrations are readable by every authenticated CRM user so new accounts
@@ -21,6 +21,7 @@ begin
     'operators',
     'orders',
     'repairs',
+    'transports',
     'operations',
     'integrations'
   ]

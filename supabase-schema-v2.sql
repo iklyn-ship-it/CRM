@@ -86,7 +86,31 @@ create table if not exists public.repairs (
   created_at   timestamptz not null default now()
 );
 
--- 6. Финансовые операции
+-- 6. Перевозки
+create table if not exists public.transports (
+  id                       text primary key,
+  user_id                  uuid not null references auth.users(id) on delete cascade,
+  shipper                  text not null default '',
+  consignee                text not null default '',
+  start_date               text not null default '',
+  end_date                 text not null default '',
+  loading_point            text not null default '',
+  unloading_point          text not null default '',
+  equipment_id             text not null default '',
+  driver_id                text not null default '',
+  cargo_name               text not null default '',
+  notes                    text not null default '',
+  status                   text not null default 'new',
+  pickup_price_per_km      numeric not null default 50,
+  delivery_price_per_km    numeric not null default 250,
+  pickup_km                numeric not null default 0,
+  delivery_km              numeric not null default 0,
+  pickup_cost              numeric not null default 0,
+  delivery_cost            numeric not null default 0,
+  created_at               timestamptz not null default now()
+);
+
+-- 7. Финансовые операции
 create table if not exists public.operations (
   id         text primary key,
   user_id    uuid not null references auth.users(id) on delete cascade,
@@ -100,7 +124,7 @@ create table if not exists public.operations (
   created_at timestamptz not null default now()
 );
 
--- 7. Настройки интеграций (одна строка на пользователя)
+-- 8. Настройки интеграций (одна строка на пользователя)
 create table if not exists public.integrations (
   user_id              uuid primary key references auth.users(id) on delete cascade,
   google_sheets_url    text not null default '',
@@ -111,7 +135,7 @@ create table if not exists public.integrations (
   updated_at           timestamptz not null default now()
 );
 
--- 8. Пользовательские настройки (режим графика, календаря)
+-- 9. Пользовательские настройки (режим графика, календаря)
 create table if not exists public.user_settings (
   user_id       uuid primary key references auth.users(id) on delete cascade,
   chart_mode    text not null default 'bars',
@@ -128,7 +152,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array ARRAY['clients','equipment','operators','orders','repairs','operations','integrations','user_settings']
+  foreach t in array ARRAY['clients','equipment','operators','orders','repairs','transports','operations','integrations','user_settings']
   loop
     execute format('alter table public.%I enable row level security', t);
 
@@ -153,6 +177,8 @@ end $$;
 create index if not exists idx_orders_user     on public.orders(user_id);
 create index if not exists idx_orders_status   on public.orders(user_id, status);
 create index if not exists idx_repairs_user    on public.repairs(user_id);
+create index if not exists idx_transports_user on public.transports(user_id);
+create index if not exists idx_transports_dates on public.transports(user_id, start_date, end_date);
 create index if not exists idx_operations_user on public.operations(user_id);
 create index if not exists idx_clients_user    on public.clients(user_id);
 create index if not exists idx_equipment_user  on public.equipment(user_id);
@@ -166,6 +192,7 @@ alter publication supabase_realtime add table public.equipment;
 alter publication supabase_realtime add table public.operators;
 alter publication supabase_realtime add table public.orders;
 alter publication supabase_realtime add table public.repairs;
+alter publication supabase_realtime add table public.transports;
 alter publication supabase_realtime add table public.operations;
 alter publication supabase_realtime add table public.integrations;
 alter publication supabase_realtime add table public.user_settings;

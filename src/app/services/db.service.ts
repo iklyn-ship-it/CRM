@@ -7,6 +7,7 @@ import {
   Operator,
   Order,
   Repair,
+  Transport,
   FinanceOperation,
   AuditLog,
   AuditLogChange,
@@ -40,6 +41,7 @@ export class DbService {
     "operators",
     "orders",
     "repairs",
+    "transports",
     "operations",
     "audit_logs",
   ] as const;
@@ -49,6 +51,7 @@ export class DbService {
     "operators",
     "orders",
     "repairs",
+    "transports",
     "operations",
     "integrations",
   ] as const;
@@ -58,6 +61,7 @@ export class DbService {
   readonly operators = signal<Operator[]>([]);
   readonly orders = signal<Order[]>([]);
   readonly repairs = signal<Repair[]>([]);
+  readonly transports = signal<Transport[]>([]);
   readonly operations = signal<FinanceOperation[]>([]);
   readonly auditLogs = signal<AuditLog[]>([]);
   readonly integrations = signal<Integrations>({
@@ -151,6 +155,21 @@ export class DbService {
     } as Repair;
   }
 
+  private normalizeTransport(row: any): Transport {
+    const transport = toCamel(row) as any;
+    return {
+      ...transport,
+      pickupPricePerKm: Number(transport.pickupPricePerKm || 50),
+      deliveryPricePerKm: Number(transport.deliveryPricePerKm || 250),
+      pickupKm: Number(transport.pickupKm || 0),
+      deliveryKm: Number(transport.deliveryKm || 0),
+      pickupCost: Number(transport.pickupCost || 0),
+      deliveryCost: Number(transport.deliveryCost || 0),
+      status: transport.status || "new",
+      createdAt: transport.createdAt || "",
+    } as Transport;
+  }
+
   /** Load shared CRM data for all authenticated users. */
   async loadAll(): Promise<void> {
     this.loading.set(true);
@@ -166,6 +185,7 @@ export class DbService {
       operators,
       orders,
       repairs,
+      transports,
       operations,
       auditLogs,
       integ,
@@ -176,6 +196,7 @@ export class DbService {
       this.supa.client.from("operators").select("*"),
       this.supa.client.from("orders").select("*"),
       this.supa.client.from("repairs").select("*"),
+      this.supa.client.from("transports").select("*"),
       this.supa.client.from("operations").select("*"),
       this.supa.client
         .from("audit_logs")
@@ -200,6 +221,9 @@ export class DbService {
     this.operators.set((operators.data || []).map((r) => this.normalizeOperator(r)));
     this.orders.set((orders.data || []).map((r) => this.normalizeOrder(r)));
     this.repairs.set((repairs.data || []).map((r) => this.normalizeRepair(r)));
+    this.transports.set(
+      (transports.data || []).map((r) => this.normalizeTransport(r)),
+    );
     this.operations.set((operations.data || []).map((r) => toCamel(r) as any));
     this.auditLogs.set((auditLogs.data || []).map((r) => toCamel(r) as any));
 
@@ -276,6 +300,8 @@ export class DbService {
           ? (data || []).map((r) => this.normalizeOrder(r))
           : table === "repairs"
             ? (data || []).map((r) => this.normalizeRepair(r))
+            : table === "transports"
+              ? (data || []).map((r) => this.normalizeTransport(r))
         : rows;
     const signalMap: Record<string, WritableSignal<any[]>> = {
       clients: this.clients,
@@ -283,6 +309,7 @@ export class DbService {
       operators: this.operators,
       orders: this.orders,
       repairs: this.repairs,
+      transports: this.transports,
       operations: this.operations,
       audit_logs: this.auditLogs,
     };
@@ -424,6 +451,7 @@ export class DbService {
     this.operators.set([]);
     this.orders.set([]);
     this.repairs.set([]);
+    this.transports.set([]);
     this.operations.set([]);
     this.auditLogs.set([]);
     this.integrations.set({
@@ -452,6 +480,7 @@ export class DbService {
       operators: this.operators,
       orders: this.orders,
       repairs: this.repairs,
+      transports: this.transports,
       operations: this.operations,
     };
     return signalMap[table]?.() || [];
@@ -583,6 +612,7 @@ export class DbService {
       operators: "оператор",
       orders: "заявка",
       repairs: "ремонт",
+      transports: "перевозка",
       operations: "финансовая операция",
       integrations: "интеграция",
     };
@@ -605,6 +635,9 @@ export class DbService {
     if (table === "repairs") {
       return record["tasks"] || record["id"] || "без описания";
     }
+    if (table === "transports") {
+      return record["cargoName"] || record["shipper"] || record["id"] || "перевозка";
+    }
     if (table === "operations") {
       return record["category"] || record["id"] || "операция";
     }
@@ -625,8 +658,20 @@ export class DbService {
       clientId: "Клиент",
       equipmentId: "Техника",
       operatorId: "Оператор",
+      driverId: "Водитель",
       startDate: "Дата начала",
       endDate: "Дата окончания",
+      shipper: "Грузоотправитель",
+      consignee: "Грузополучатель",
+      loadingPoint: "Пункт погрузки",
+      unloadingPoint: "Пункт выгрузки",
+      cargoName: "Груз",
+      pickupPricePerKm: "Цена км подачи",
+      deliveryPricePerKm: "Цена км доставки",
+      pickupKm: "Км подачи",
+      deliveryKm: "Км доставки",
+      pickupCost: "Стоимость подачи",
+      deliveryCost: "Стоимость доставки",
       equipmentIdleDates: "Простой техники",
       operatorIdleDates: "Простой оператора",
       logisticsEnabled: "Логистика",

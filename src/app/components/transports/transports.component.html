@@ -1,0 +1,292 @@
+<div class="section-heading">
+  <div>
+    <h2>Перевозки</h2>
+    <p>Заявки на перевозки тралами: отправитель, получатель, маршрут и стоимость.</p>
+  </div>
+  <button type="button" class="btn primary" (click)="openCreate()">
+    + Новая перевозка
+  </button>
+</div>
+
+@if (formOpen()) {
+  <div class="form-backdrop" (click)="closeForm()">
+    <div class="card panel form-modal" (click)="$event.stopPropagation()">
+      <div class="modal-head">
+        <h3 style="margin: 0">
+          {{ editingId ? "Редактирование перевозки" : "Создать перевозку" }}
+        </h3>
+        <button type="button" class="btn ghost" (click)="closeForm()">Закрыть</button>
+      </div>
+
+      <form (ngSubmit)="save()">
+        <div class="transport-form-grid">
+          <div class="field">
+            <label>Грузоотправитель</label>
+            <input
+              type="text"
+              [(ngModel)]="form.shipper"
+              name="shipper"
+              placeholder="Кто отправляет груз"
+              required
+            />
+          </div>
+          <div class="field">
+            <label>Грузополучатель</label>
+            <input
+              type="text"
+              [(ngModel)]="form.consignee"
+              name="consignee"
+              placeholder="Кто принимает груз"
+              required
+            />
+          </div>
+          <div class="field">
+            <label>Дата начала перевозки</label>
+            <input
+              type="date"
+              [(ngModel)]="form.startDate"
+              name="startDate"
+              required
+            />
+          </div>
+          <div class="field">
+            <label>Дата окончания перевозки</label>
+            <input
+              type="date"
+              [(ngModel)]="form.endDate"
+              name="endDate"
+              required
+            />
+          </div>
+          <div class="field">
+            <label>Пункт погрузки</label>
+            <input
+              type="text"
+              [(ngModel)]="form.loadingPoint"
+              name="loadingPoint"
+              placeholder="Откуда забираем"
+            />
+          </div>
+          <div class="field">
+            <label>Пункт выгрузки</label>
+            <input
+              type="text"
+              [(ngModel)]="form.unloadingPoint"
+              name="unloadingPoint"
+              placeholder="Куда доставляем"
+            />
+          </div>
+          <div class="field">
+            <label>Техника (трал)</label>
+            <select [(ngModel)]="form.equipmentId" name="equipmentId">
+              <option value="">— выбрать трал —</option>
+              @for (item of trawlEquipment(); track item.id) {
+                <option [value]="item.id">{{ item.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Водитель</label>
+            <select [(ngModel)]="form.driverId" name="driverId">
+              <option value="">— выбрать водителя —</option>
+              @for (driver of drivers(); track driver.id) {
+                <option [value]="driver.id">{{ driver.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Цена за 1 км подачи, ₴ (50 грн)</label>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="form.pickupPricePerKm"
+              name="pickupPricePerKm"
+              (ngModelChange)="recalcPickup()"
+            />
+          </div>
+          <div class="field">
+            <label>Подача, км</label>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="form.pickupKm"
+              name="pickupKm"
+              (ngModelChange)="recalcPickup()"
+            />
+          </div>
+          <div class="field">
+            <label>Стоимость подачи, ₴</label>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="form.pickupCost"
+              name="pickupCost"
+            />
+          </div>
+          <div class="field">
+            <label>Цена за 1 км доставки, ₴ (250 грн)</label>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="form.deliveryPricePerKm"
+              name="deliveryPricePerKm"
+              (ngModelChange)="recalcDelivery()"
+            />
+          </div>
+          <div class="field">
+            <label>Доставка, км</label>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="form.deliveryKm"
+              name="deliveryKm"
+              (ngModelChange)="recalcDelivery()"
+            />
+          </div>
+          <div class="field">
+            <label>Стоимость доставки, ₴</label>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="form.deliveryCost"
+              name="deliveryCost"
+            />
+          </div>
+          <div class="field">
+            <label>Статус</label>
+            <select [(ngModel)]="form.status" name="status">
+              @for (status of statuses; track status.value) {
+                <option [value]="status.value">{{ status.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="field wide">
+            <label>Наименование груза</label>
+            <input
+              type="text"
+              [(ngModel)]="form.cargoName"
+              name="cargoName"
+              placeholder="Что перевозим"
+            />
+          </div>
+          <div class="field wide">
+            <label>Комментарии</label>
+            <textarea
+              [(ngModel)]="form.notes"
+              name="notes"
+              placeholder="Дополнительная информация по перевозке"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="transport-total">
+          Итого перевозка: {{ utils.money(transportTotal()) }}
+          <span>
+            Подача {{ utils.money(form.pickupCost) }} + доставка
+            {{ utils.money(form.deliveryCost) }}
+          </span>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="btn primary">
+            {{ editingId ? "Сохранить изменения" : "Сохранить перевозку" }}
+          </button>
+          <button type="button" class="btn ghost" (click)="closeForm()">
+            Отмена
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<div class="card panel internal-scroll-panel">
+  <div class="toolbar">
+    <input
+      type="text"
+      [value]="search()"
+      (input)="search.set($any($event.target).value)"
+      placeholder="Поиск: отправитель, получатель, маршрут, груз..."
+    />
+    <select
+      [value]="filterStatus()"
+      (change)="filterStatus.set($any($event.target).value)"
+    >
+      <option value="">Все статусы</option>
+      @for (status of statuses; track status.value) {
+        <option [value]="status.value">{{ status.label }}</option>
+      }
+    </select>
+  </div>
+
+  <div class="table-wrap internal-scroll-body">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Период</th>
+          <th>Маршрут</th>
+          <th>Стороны</th>
+          <th>Трал / водитель</th>
+          <th>Груз</th>
+          <th>Стоимость</th>
+          <th>Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of filteredTransports(); track item.id) {
+          <tr>
+            <td>{{ item.id | slice: -5 }}</td>
+            <td>
+              {{ utils.fmtDate(item.startDate) }}
+              <div class="small">
+                {{ utils.fmtDate(item.endDate) }} •
+                {{ utils.daysInclusive(item.startDate, item.endDate) }} дн.
+              </div>
+            </td>
+            <td>
+              {{ item.loadingPoint || "—" }}
+              <div class="small">→ {{ item.unloadingPoint || "—" }}</div>
+            </td>
+            <td>
+              {{ item.shipper || "—" }}
+              <div class="small">{{ item.consignee || "—" }}</div>
+            </td>
+            <td>
+              {{ equipmentName(item.equipmentId) }}
+              <div class="small">{{ driverName(item.driverId) }}</div>
+            </td>
+            <td>
+              {{ item.cargoName || "—" }}
+              <div class="small">{{ item.notes || "—" }}</div>
+            </td>
+            <td>
+              <strong>{{ utils.money(transportTotal(item)) }}</strong>
+              <div class="small">
+                подача {{ utils.money(item.pickupCost || 0) }} • доставка
+                {{ utils.money(item.deliveryCost || 0) }}
+              </div>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="statusBadgeClass(item.status)">
+                {{ statusLabel(item.status) }}
+              </span>
+            </td>
+            <td>
+              <button class="btn ghost" (click)="edit(item)">Ред.</button>
+              <button class="btn ghost" (click)="remove(item.id)">
+                Удалить
+              </button>
+            </td>
+          </tr>
+        }
+        @if (!filteredTransports().length) {
+          <tr>
+            <td colspan="9"><div class="empty">Перевозок пока нет.</div></td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
