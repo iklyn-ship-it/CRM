@@ -55,9 +55,25 @@ export interface Order {
   logisticsDeliveryKm: number;
   logisticsPickupCost: number;
   logisticsDeliveryCost: number;
+  breakdownEnabled: boolean;
+  breakdownDate: string;
+  breakdownEndDate: string;
+  breakdownStatus: BreakdownStatus;
+  breakdownDescription: string;
+  breakdownReporter: string;
+  breakdownResponsible: string;
+  breakdownFaultParty: BreakdownFaultParty;
+  breakdownAffectsPayment: boolean;
+  breakdownOperatorIdle: boolean;
+  breakdownLaborCost: number;
+  breakdownPartsCost: number;
+  breakdownCreateRepair: boolean;
+  breakdownRepairId: string;
 }
 
 export type OrderStatus = 'new' | 'confirmed' | 'active' | 'completed' | 'cancelled';
+export type BreakdownStatus = 'reported' | 'diagnostics' | 'repair' | 'resolved';
+export type BreakdownFaultParty = 'unknown' | 'ours' | 'client' | 'operator';
 
 export interface Repair {
   id: string;

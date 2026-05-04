@@ -67,6 +67,20 @@ create table if not exists public.orders (
   logistics_delivery_km numeric not null default 0,
   logistics_pickup_cost numeric not null default 0,
   logistics_delivery_cost numeric not null default 0,
+  breakdown_enabled boolean not null default false,
+  breakdown_date text not null default '',
+  breakdown_end_date text not null default '',
+  breakdown_status text not null default 'reported',
+  breakdown_description text not null default '',
+  breakdown_reporter text not null default '',
+  breakdown_responsible text not null default '',
+  breakdown_fault_party text not null default 'unknown',
+  breakdown_affects_payment boolean not null default true,
+  breakdown_operator_idle boolean not null default true,
+  breakdown_labor_cost numeric not null default 0,
+  breakdown_parts_cost numeric not null default 0,
+  breakdown_create_repair boolean not null default false,
+  breakdown_repair_id text not null default '',
   created_at   timestamptz not null default now()
 );
 

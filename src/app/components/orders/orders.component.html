@@ -302,6 +302,138 @@
             </div>
           }
         </div>
+        <div class="breakdown-box">
+          <label class="toggle-line">
+            <input
+              type="checkbox"
+              [(ngModel)]="form.breakdownEnabled"
+              name="breakdownEnabled"
+            />
+            <span>Поломка во время аренды</span>
+          </label>
+          @if (form.breakdownEnabled) {
+            <div class="breakdown-grid">
+              <div class="field">
+                <label>Дата поломки</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.breakdownDate"
+                  name="breakdownDate"
+                />
+              </div>
+              <div class="field">
+                <label>Дата устранения / до</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.breakdownEndDate"
+                  name="breakdownEndDate"
+                  [placeholder]="form.breakdownDate"
+                />
+              </div>
+              <div class="field">
+                <label>Статус поломки</label>
+                <select [(ngModel)]="form.breakdownStatus" name="breakdownStatus">
+                  @for (status of breakdownStatuses; track status.value) {
+                    <option [value]="status.value">{{ status.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>Ответственность</label>
+                <select
+                  [(ngModel)]="form.breakdownFaultParty"
+                  name="breakdownFaultParty"
+                >
+                  @for (party of breakdownFaultParties; track party.value) {
+                    <option [value]="party.value">{{ party.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>Кто сообщил</label>
+                <input
+                  type="text"
+                  [(ngModel)]="form.breakdownReporter"
+                  name="breakdownReporter"
+                  placeholder="Клиент / оператор / менеджер"
+                />
+              </div>
+              <div class="field">
+                <label>Ответственный за ремонт</label>
+                <input
+                  type="text"
+                  [(ngModel)]="form.breakdownResponsible"
+                  name="breakdownResponsible"
+                  placeholder="Кто ведет вопрос"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость работ, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.breakdownLaborCost"
+                  name="breakdownLaborCost"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость запчастей, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.breakdownPartsCost"
+                  name="breakdownPartsCost"
+                />
+              </div>
+              <div class="field detail-wide">
+                <label>Описание поломки</label>
+                <textarea
+                  [(ngModel)]="form.breakdownDescription"
+                  name="breakdownDescription"
+                  placeholder="Что произошло, симптомы, договоренности с клиентом"
+                ></textarea>
+              </div>
+            </div>
+            <div class="breakdown-options">
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="form.breakdownAffectsPayment"
+                  name="breakdownAffectsPayment"
+                />
+                <span>Влияет на оплату: дни поломки добавить в простой техники</span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="form.breakdownOperatorIdle"
+                  name="breakdownOperatorIdle"
+                />
+                <span>Оператор тоже простаивал</span>
+              </label>
+              <label>
+                <input
+                  type="checkbox"
+                  [(ngModel)]="form.breakdownCreateRepair"
+                  name="breakdownCreateRepair"
+                />
+                <span>Создать/обновить ремонт в разделе ремонтов</span>
+              </label>
+            </div>
+            <div class="breakdown-summary">
+              Поломка:
+              {{ breakdownDates().length || 0 }} дн.
+              @if (form.breakdownAffectsPayment) {
+                <span>Эти дни будут вычтены из плана аренды.</span>
+              } @else {
+                <span>План аренды не изменится.</span>
+              }
+              @if (form.breakdownRepairId) {
+                <strong>Связанный ремонт: {{ form.breakdownRepairId | slice: -5 }}</strong>
+              }
+            </div>
+          }
+        </div>
         <div class="field">
           <label>Локация</label
           ><input
@@ -441,6 +573,41 @@
                 ({{ utils.money(selected.logisticsDeliveryPricePerKm || 250) }}/км)
                 • {{ utils.money(state.orderLogisticsCost(selected)) }}
               </strong>
+            </div>
+          }
+          @if (selected.breakdownEnabled) {
+            <div class="detail-wide breakdown-detail">
+              <span>Поломка во время аренды</span>
+              <strong>
+                {{ breakdownStatusLabel(selected.breakdownStatus) }}
+                • {{ utils.fmtDate(selected.breakdownDate) }}
+                -
+                {{ utils.fmtDate(selected.breakdownEndDate || selected.breakdownDate) }}
+                • ответственность:
+                {{ breakdownFaultPartyLabel(selected.breakdownFaultParty) }}
+              </strong>
+              <p>
+                {{ selected.breakdownDescription || "Описание не указано" }}
+              </p>
+              <p>
+                Сообщил: {{ selected.breakdownReporter || "—" }} •
+                ответственный: {{ selected.breakdownResponsible || "—" }}
+              </p>
+              <p>
+                Ремонт:
+                работы {{ utils.money(selected.breakdownLaborCost || 0) }},
+                запчасти {{ utils.money(selected.breakdownPartsCost || 0) }}
+                @if (selected.breakdownRepairId) {
+                  • запись {{ selected.breakdownRepairId | slice: -5 }}
+                }
+              </p>
+              <p>
+                {{
+                  selected.breakdownAffectsPayment
+                    ? "Влияет на оплату и простой техники"
+                    : "Не влияет на оплату аренды"
+                }}
+              </p>
             </div>
           }
         </div>

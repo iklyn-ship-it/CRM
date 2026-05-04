@@ -117,6 +117,64 @@
   color: #f8fafc;
 }
 
+.breakdown-box {
+  padding: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.22);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(248, 113, 113, 0.08), transparent 45%),
+    rgba(15, 23, 42, 0.58);
+}
+
+.breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.breakdown-options {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.breakdown-options label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #e5e7eb;
+  font-weight: 700;
+}
+
+.breakdown-options input {
+  width: 18px;
+  height: 18px;
+}
+
+.breakdown-summary {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.42);
+  color: #fecaca;
+  font-weight: 800;
+}
+
+.breakdown-summary span,
+.breakdown-summary strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.breakdown-detail p {
+  margin: 6px 0 0;
+  color: #cbd5e1;
+}
+
 .idle-date-grid {
   max-height: 168px;
   overflow: auto;
@@ -221,6 +279,10 @@
   }
 
   .logistics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .breakdown-grid {
     grid-template-columns: 1fr;
   }
 }

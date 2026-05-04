@@ -4,7 +4,13 @@ import { NgClass, SlicePipe } from "@angular/common";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { Order, OrderStatus, Transport } from "../../models/crm.models";
+import {
+  BreakdownFaultParty,
+  BreakdownStatus,
+  Order,
+  OrderStatus,
+  Transport,
+} from "../../models/crm.models";
 
 @Component({
   selector: "app-orders",
@@ -50,6 +56,20 @@ export class OrdersComponent {
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
     logisticsDeliveryCost: 0,
+    breakdownEnabled: false,
+    breakdownDate: "",
+    breakdownEndDate: "",
+    breakdownStatus: "reported" as BreakdownStatus,
+    breakdownDescription: "",
+    breakdownReporter: "",
+    breakdownResponsible: "",
+    breakdownFaultParty: "unknown" as BreakdownFaultParty,
+    breakdownAffectsPayment: true,
+    breakdownOperatorIdle: true,
+    breakdownLaborCost: 0,
+    breakdownPartsCost: 0,
+    breakdownCreateRepair: false,
+    breakdownRepairId: "",
   };
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
@@ -61,6 +81,18 @@ export class OrdersComponent {
   ];
 
   readonly filterStatuses = [{ value: "", label: "Все" }, ...this.statuses];
+  readonly breakdownStatuses: { value: BreakdownStatus; label: string }[] = [
+    { value: "reported", label: "Зафиксирована" },
+    { value: "diagnostics", label: "Диагностика" },
+    { value: "repair", label: "Ремонт" },
+    { value: "resolved", label: "Устранена" },
+  ];
+  readonly breakdownFaultParties: { value: BreakdownFaultParty; label: string }[] = [
+    { value: "unknown", label: "Не установлено" },
+    { value: "ours", label: "Наша сторона" },
+    { value: "client", label: "Клиент" },
+    { value: "operator", label: "Оператор" },
+  ];
 
   readonly conflictSet = computed(() => {
     const orderConflicts = this.state.orderConflicts().flatMap((x) => [
@@ -240,7 +272,13 @@ export class OrdersComponent {
   }
 
   orderDraftTotal(): number {
-    const rentalPlan = this.orderDates().length * Number(this.form.rate || 0);
+    const idleDates = new Set([
+      ...this.form.equipmentIdleDates,
+      ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
+    ]);
+    const rentalPlan =
+      this.orderDates().filter((date) => !idleDates.has(date)).length *
+      Number(this.form.rate || 0);
     return rentalPlan + this.logisticsTotal();
   }
 
@@ -271,6 +309,7 @@ export class OrdersComponent {
   async save(): Promise<void> {
     if (!this.form.startDate || !this.form.endDate) return;
     if (!this.validateLogistics()) return;
+    if (!this.validateBreakdown()) return;
     const transportEquipmentConflict = this.formTransportEquipmentConflict();
     if (transportEquipmentConflict) {
       alert(
@@ -296,12 +335,17 @@ export class OrdersComponent {
     }
     try {
       if (this.editingId) {
-        await this.db.update("orders", this.editingId, this.prepareForm());
+        const orderPatch = this.prepareForm();
+        await this.db.update("orders", this.editingId, orderPatch);
+        await this.syncBreakdownRepair(this.editingId, orderPatch);
       } else {
+        const orderId = this.utils.uid("ord");
+        const orderPatch = this.prepareForm();
         await this.db.insert("orders", {
-          id: this.utils.uid("ord"),
-          ...this.prepareForm(),
+          id: orderId,
+          ...orderPatch,
         });
+        await this.syncBreakdownRepair(orderId, orderPatch);
       }
     } catch (error) {
       alert(this.saveErrorMessage(error));
@@ -368,6 +412,20 @@ export class OrdersComponent {
       ),
       logisticsPickupCost: pickupCost,
       logisticsDeliveryCost: deliveryCost,
+      breakdownEnabled: Boolean(order.breakdownEnabled),
+      breakdownDate: order.breakdownDate || "",
+      breakdownEndDate: order.breakdownEndDate || "",
+      breakdownStatus: order.breakdownStatus || "reported",
+      breakdownDescription: order.breakdownDescription || "",
+      breakdownReporter: order.breakdownReporter || "",
+      breakdownResponsible: order.breakdownResponsible || "",
+      breakdownFaultParty: order.breakdownFaultParty || "unknown",
+      breakdownAffectsPayment: Boolean(order.breakdownAffectsPayment),
+      breakdownOperatorIdle: Boolean(order.breakdownOperatorIdle),
+      breakdownLaborCost: Number(order.breakdownLaborCost || 0),
+      breakdownPartsCost: Number(order.breakdownPartsCost || 0),
+      breakdownCreateRepair: Boolean(order.breakdownCreateRepair),
+      breakdownRepairId: order.breakdownRepairId || "",
     };
     this.formOpen.set(true);
   }
@@ -411,6 +469,20 @@ export class OrdersComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      breakdownEnabled: false,
+      breakdownDate: "",
+      breakdownEndDate: "",
+      breakdownStatus: "reported",
+      breakdownDescription: "",
+      breakdownReporter: "",
+      breakdownResponsible: "",
+      breakdownFaultParty: "unknown",
+      breakdownAffectsPayment: true,
+      breakdownOperatorIdle: true,
+      breakdownLaborCost: 0,
+      breakdownPartsCost: 0,
+      breakdownCreateRepair: false,
+      breakdownRepairId: "",
     };
   }
 
@@ -467,6 +539,28 @@ export class OrdersComponent {
       : "нет";
   }
 
+  breakdownStatusLabel(status: string): string {
+    return (
+      this.breakdownStatuses.find((item) => item.value === status)?.label ||
+      "Зафиксирована"
+    );
+  }
+
+  breakdownFaultPartyLabel(value: string): string {
+    return (
+      this.breakdownFaultParties.find((item) => item.value === value)?.label ||
+      "Не установлено"
+    );
+  }
+
+  breakdownDates(): string[] {
+    if (!this.form.breakdownEnabled || !this.form.breakdownDate) return [];
+    return this.utils.datesInclusive(
+      this.form.breakdownDate,
+      this.form.breakdownEndDate || this.form.breakdownDate,
+    );
+  }
+
   private formDraftOrder(): Order {
     return {
       id: this.editingId || "draft",
@@ -478,6 +572,17 @@ export class OrdersComponent {
   private prepareForm(): Omit<Order, "id" | "createdAt"> {
     const inPeriod = new Set(this.orderDates());
     this.syncLogisticsTotals();
+    const breakdownIdleDates = this.form.breakdownAffectsPayment
+      ? this.breakdownDates().filter((date) => inPeriod.has(date))
+      : [];
+    const equipmentIdleDates = new Set([
+      ...this.form.equipmentIdleDates,
+      ...breakdownIdleDates,
+    ]);
+    const operatorIdleDates = new Set([
+      ...this.form.operatorIdleDates,
+      ...(this.form.breakdownOperatorIdle ? breakdownIdleDates : []),
+    ]);
     return {
       ...this.form,
       logisticsTrailerId:
@@ -516,13 +621,105 @@ export class OrdersComponent {
       logisticsDeliveryCost: this.form.logisticsEnabled
         ? this.form.logisticsDeliveryCost
         : 0,
-      equipmentIdleDates: this.form.equipmentIdleDates
+      breakdownDate: this.form.breakdownEnabled ? this.form.breakdownDate : "",
+      breakdownEndDate: this.form.breakdownEnabled
+        ? this.form.breakdownEndDate || this.form.breakdownDate
+        : "",
+      breakdownStatus: this.form.breakdownEnabled
+        ? this.form.breakdownStatus
+        : "reported",
+      breakdownDescription: this.form.breakdownEnabled
+        ? this.form.breakdownDescription
+        : "",
+      breakdownReporter: this.form.breakdownEnabled
+        ? this.form.breakdownReporter
+        : "",
+      breakdownResponsible: this.form.breakdownEnabled
+        ? this.form.breakdownResponsible
+        : "",
+      breakdownFaultParty: this.form.breakdownEnabled
+        ? this.form.breakdownFaultParty
+        : "unknown",
+      breakdownAffectsPayment: this.form.breakdownEnabled
+        ? this.form.breakdownAffectsPayment
+        : false,
+      breakdownOperatorIdle: this.form.breakdownEnabled
+        ? this.form.breakdownOperatorIdle
+        : false,
+      breakdownLaborCost: this.form.breakdownEnabled
+        ? Number(this.form.breakdownLaborCost || 0)
+        : 0,
+      breakdownPartsCost: this.form.breakdownEnabled
+        ? Number(this.form.breakdownPartsCost || 0)
+        : 0,
+      breakdownCreateRepair: this.form.breakdownEnabled
+        ? this.form.breakdownCreateRepair
+        : false,
+      breakdownRepairId: this.form.breakdownEnabled
+        ? this.form.breakdownRepairId
+        : "",
+      equipmentIdleDates: [...equipmentIdleDates]
         .filter((date) => inPeriod.has(date))
         .sort(),
-      operatorIdleDates: this.form.operatorIdleDates
+      operatorIdleDates: [...operatorIdleDates]
         .filter((date) => inPeriod.has(date))
         .sort(),
     };
+  }
+
+  private validateBreakdown(): boolean {
+    if (!this.form.breakdownEnabled) return true;
+    if (!this.form.breakdownDate) {
+      alert("Укажи дату поломки.");
+      return false;
+    }
+    const endDate = this.form.breakdownEndDate || this.form.breakdownDate;
+    if (this.form.breakdownDate > endDate) {
+      alert("Дата устранения поломки не может быть раньше даты поломки.");
+      return false;
+    }
+    if (this.form.breakdownDate < this.form.startDate || endDate > this.form.endDate) {
+      alert("Даты поломки должны быть внутри периода заявки.");
+      return false;
+    }
+    return true;
+  }
+
+  private async syncBreakdownRepair(
+    orderId: string,
+    order: Omit<Order, "id" | "createdAt">,
+  ): Promise<void> {
+    if (!order.breakdownEnabled || !order.breakdownCreateRepair) return;
+    const repairId = order.breakdownRepairId || this.utils.uid("rep");
+    const repair = {
+      equipmentId: order.equipmentId,
+      startDate: order.breakdownDate,
+      endDate: order.breakdownEndDate || order.breakdownDate,
+      status:
+        order.breakdownStatus === "resolved"
+          ? ("completed" as const)
+          : order.breakdownStatus === "reported"
+            ? ("planned" as const)
+            : ("active" as const),
+      laborCost: Number(order.breakdownLaborCost || 0),
+      partsCost: Number(order.breakdownPartsCost || 0),
+      responsible: order.breakdownResponsible,
+      tasks: `Поломка по заявке ${orderId.slice(-5)}: ${order.breakdownDescription || "без описания"}`,
+      notes: [
+        order.breakdownReporter ? `Сообщил: ${order.breakdownReporter}` : "",
+        `Ответственность: ${this.breakdownFaultPartyLabel(order.breakdownFaultParty)}`,
+        order.breakdownAffectsPayment ? "Влияет на оплату аренды" : "Не влияет на оплату аренды",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    };
+    if (order.breakdownRepairId && this.state.byId(this.state.repairs(), repairId)) {
+      await this.db.update("repairs", repairId, repair);
+    } else {
+      await this.db.insert("repairs", { id: repairId, ...repair });
+      this.form.breakdownRepairId = repairId;
+      await this.db.update("orders", orderId, { breakdownRepairId: repairId });
+    }
   }
 
   private logisticsSubtotal(): number {
@@ -552,6 +749,9 @@ export class OrdersComponent {
     }
     if (message.includes("logistics_")) {
       return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("breakdown_")) {
+      return "База Supabase еще не готова для сохранения поломок. Выполни SQL-файл supabase-order-breakdowns.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
   }

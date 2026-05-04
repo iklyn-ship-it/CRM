@@ -4,7 +4,13 @@ import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { Order, OrderStatus, Transport } from "../../models/crm.models";
+import {
+  BreakdownFaultParty,
+  BreakdownStatus,
+  Order,
+  OrderStatus,
+  Transport,
+} from "../../models/crm.models";
 
 interface CalCell {
   date: Date;
@@ -68,6 +74,20 @@ export class CalendarComponent {
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
     logisticsDeliveryCost: 0,
+    breakdownEnabled: false,
+    breakdownDate: "",
+    breakdownEndDate: "",
+    breakdownStatus: "reported" as BreakdownStatus,
+    breakdownDescription: "",
+    breakdownReporter: "",
+    breakdownResponsible: "",
+    breakdownFaultParty: "unknown" as BreakdownFaultParty,
+    breakdownAffectsPayment: true,
+    breakdownOperatorIdle: true,
+    breakdownLaborCost: 0,
+    breakdownPartsCost: 0,
+    breakdownCreateRepair: false,
+    breakdownRepairId: "",
   };
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
@@ -493,6 +513,20 @@ export class CalendarComponent {
       ),
       logisticsPickupCost: pickupCost,
       logisticsDeliveryCost: deliveryCost,
+      breakdownEnabled: Boolean(order.breakdownEnabled),
+      breakdownDate: order.breakdownDate || "",
+      breakdownEndDate: order.breakdownEndDate || "",
+      breakdownStatus: order.breakdownStatus || "reported",
+      breakdownDescription: order.breakdownDescription || "",
+      breakdownReporter: order.breakdownReporter || "",
+      breakdownResponsible: order.breakdownResponsible || "",
+      breakdownFaultParty: order.breakdownFaultParty || "unknown",
+      breakdownAffectsPayment: Boolean(order.breakdownAffectsPayment),
+      breakdownOperatorIdle: Boolean(order.breakdownOperatorIdle),
+      breakdownLaborCost: Number(order.breakdownLaborCost || 0),
+      breakdownPartsCost: Number(order.breakdownPartsCost || 0),
+      breakdownCreateRepair: Boolean(order.breakdownCreateRepair),
+      breakdownRepairId: order.breakdownRepairId || "",
     };
     this.formOpen.set(true);
   }
@@ -724,6 +758,20 @@ export class CalendarComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      breakdownEnabled: false,
+      breakdownDate: "",
+      breakdownEndDate: "",
+      breakdownStatus: "reported",
+      breakdownDescription: "",
+      breakdownReporter: "",
+      breakdownResponsible: "",
+      breakdownFaultParty: "unknown",
+      breakdownAffectsPayment: true,
+      breakdownOperatorIdle: true,
+      breakdownLaborCost: 0,
+      breakdownPartsCost: 0,
+      breakdownCreateRepair: false,
+      breakdownRepairId: "",
     };
   }
 
@@ -790,6 +838,9 @@ export class CalendarComponent {
     }
     if (message.includes("logistics_")) {
       return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("breakdown_")) {
+      return "База Supabase еще не готова для сохранения поломок. Выполни SQL-файл supabase-order-breakdowns.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
   }
