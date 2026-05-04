@@ -371,6 +371,10 @@ export class CalendarComponent {
         Number(order.logisticsPickupCost || 0) +
           Number(order.logisticsDeliveryCost || 0),
     );
+    const pickupCost = Number(order.logisticsPickupCost || 0);
+    const deliveryCost = Number(
+      order.logisticsDeliveryCost || (pickupCost ? 0 : logisticsCost),
+    );
     this.form = {
       clientId: order.clientId,
       equipmentId: order.equipmentId,
@@ -395,9 +399,11 @@ export class CalendarComponent {
       ),
       logisticsCost,
       logisticsPickupKm: Number(order.logisticsPickupKm || 0),
-      logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
-      logisticsPickupCost: Number(order.logisticsPickupCost || 0),
-      logisticsDeliveryCost: Number(order.logisticsDeliveryCost || 0),
+      logisticsDeliveryKm: Number(
+        order.logisticsDeliveryKm || logisticsDistanceKm,
+      ),
+      logisticsPickupCost: pickupCost,
+      logisticsDeliveryCost: deliveryCost,
     };
     this.formOpen.set(true);
   }
@@ -419,14 +425,17 @@ export class CalendarComponent {
   }
 
   recalcLogisticsCost(): void {
-    this.form.logisticsCost =
-      Number(this.form.logisticsDistanceKm || 0) *
-      Number(this.form.logisticsPricePerKm || 0);
+    const pricePerKm = Number(this.form.logisticsPricePerKm || 0);
+    this.form.logisticsPickupCost =
+      Number(this.form.logisticsPickupKm || 0) * pricePerKm;
+    this.form.logisticsDeliveryCost =
+      Number(this.form.logisticsDeliveryKm || 0) * pricePerKm;
+    this.syncLogisticsTotals();
   }
 
   logisticsTotal(): number {
     if (!this.form.logisticsEnabled) return 0;
-    return Number(this.form.logisticsCost || 0);
+    return this.logisticsSubtotal();
   }
 
   validateLogistics(): boolean {
@@ -567,6 +576,7 @@ export class CalendarComponent {
 
   private prepareForm(): Omit<Order, "id" | "createdAt"> {
     const inPeriod = new Set(this.orderDates());
+    this.syncLogisticsTotals();
     return {
       ...this.form,
       logisticsTrailerId:
@@ -579,10 +589,23 @@ export class CalendarComponent {
       logisticsEndDate: this.form.logisticsEnabled
         ? this.form.logisticsEndDate || this.form.endDate
         : "",
-      logisticsPickupKm: 0,
-      logisticsDeliveryKm: this.form.logisticsDistanceKm,
-      logisticsPickupCost: 0,
-      logisticsDeliveryCost: this.form.logisticsCost,
+      logisticsDistanceKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsPickupKm || 0) +
+          Number(this.form.logisticsDeliveryKm || 0)
+        : 0,
+      logisticsCost: this.form.logisticsEnabled ? this.logisticsSubtotal() : 0,
+      logisticsPickupKm: this.form.logisticsEnabled
+        ? this.form.logisticsPickupKm
+        : 0,
+      logisticsDeliveryKm: this.form.logisticsEnabled
+        ? this.form.logisticsDeliveryKm
+        : 0,
+      logisticsPickupCost: this.form.logisticsEnabled
+        ? this.form.logisticsPickupCost
+        : 0,
+      logisticsDeliveryCost: this.form.logisticsEnabled
+        ? this.form.logisticsDeliveryCost
+        : 0,
       equipmentIdleDates: this.form.equipmentIdleDates
         .filter((date) => inPeriod.has(date))
         .sort(),
@@ -625,6 +648,20 @@ export class CalendarComponent {
   private rangeEnd(): Date {
     const d = this.viewDate();
     return new Date(d.getFullYear(), d.getMonth() + 3, 0);
+  }
+
+  private logisticsSubtotal(): number {
+    return (
+      Number(this.form.logisticsPickupCost || 0) +
+      Number(this.form.logisticsDeliveryCost || 0)
+    );
+  }
+
+  private syncLogisticsTotals(): void {
+    this.form.logisticsDistanceKm =
+      Number(this.form.logisticsPickupKm || 0) +
+      Number(this.form.logisticsDeliveryKm || 0);
+    this.form.logisticsCost = this.logisticsSubtotal();
   }
 
   private orderSegments(

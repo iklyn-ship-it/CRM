@@ -97,6 +97,10 @@ export class DbService {
       order.logisticsDistanceKm || fallbackDistance,
     );
     const logisticsCost = Number(order.logisticsCost || fallbackCost);
+    const pickupCost = Number(order.logisticsPickupCost || 0);
+    const deliveryCost = Number(
+      order.logisticsDeliveryCost || (pickupCost ? 0 : logisticsCost),
+    );
     return {
       ...order,
       equipmentIdleDates: Array.isArray(order.equipmentIdleDates)
@@ -117,9 +121,11 @@ export class DbService {
       ),
       logisticsCost,
       logisticsPickupKm: Number(order.logisticsPickupKm || 0),
-      logisticsDeliveryKm: Number(order.logisticsDeliveryKm || 0),
-      logisticsPickupCost: Number(order.logisticsPickupCost || 0),
-      logisticsDeliveryCost: Number(order.logisticsDeliveryCost || 0),
+      logisticsDeliveryKm: Number(
+        order.logisticsDeliveryKm || logisticsDistanceKm,
+      ),
+      logisticsPickupCost: pickupCost,
+      logisticsDeliveryCost: deliveryCost,
     } as Order;
   }
 

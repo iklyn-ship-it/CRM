@@ -332,16 +332,6 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Километры логистики</label>
-                  <input
-                    type="number"
-                    min="0"
-                    [(ngModel)]="form.logisticsDistanceKm"
-                    name="logisticsDistanceKm"
-                    (ngModelChange)="recalcLogisticsCost()"
-                  />
-                </div>
-                <div class="field">
                   <label>Цена за 1 км, ₴</label>
                   <input
                     type="number"
@@ -352,12 +342,41 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Сумма за доставку, ₴</label>
+                  <label>Подача, км</label>
                   <input
                     type="number"
                     min="0"
-                    [(ngModel)]="form.logisticsCost"
-                    name="logisticsCost"
+                    [(ngModel)]="form.logisticsPickupKm"
+                    name="logisticsPickupKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость подачи, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsPickupCost"
+                    name="logisticsPickupCost"
+                  />
+                </div>
+                <div class="field">
+                  <label>Доставка, км</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryKm"
+                    name="logisticsDeliveryKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость доставки, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryCost"
+                    name="logisticsDeliveryCost"
                   />
                 </div>
               </div>
