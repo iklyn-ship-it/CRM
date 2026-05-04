@@ -60,6 +60,11 @@
   font-size: 13px;
 }
 
+.unpaid-order-note {
+  color: #fde68a;
+  font-weight: 800;
+}
+
 .logistics-box {
   padding: 12px;
   border: 1px solid rgba(56, 189, 248, 0.18);

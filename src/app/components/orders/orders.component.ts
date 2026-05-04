@@ -84,6 +84,19 @@ export class OrdersComponent {
     return new Set([...orderConflicts, ...transportConflicts]);
   });
 
+  readonly completedUnpaidSet = computed(() => {
+    return new Set(
+      this.state
+        .orders()
+        .filter(
+          (order) =>
+            order.status === "completed" &&
+            this.state.orderRemaining(order) > 0,
+        )
+        .map((order) => order.id),
+    );
+  });
+
   formOperatorConflict(): Order | null {
     if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
       return null;

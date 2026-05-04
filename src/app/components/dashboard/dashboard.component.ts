@@ -1,4 +1,5 @@
 import { Component, computed, signal } from "@angular/core";
+import { SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
@@ -35,7 +36,7 @@ type DashboardChart = "orders" | "money" | "cashflow" | "equipment";
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, SlicePipe],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
 })
@@ -71,6 +72,7 @@ export class DashboardComponent {
       ...this.state.orderTransportOperatorConflicts(),
       ...this.state.transportOperatorConflicts(),
     ];
+    const unpaidCompleted = this.completedUnpaidOrders();
     if (conf.length)
       msgs.push({
         kind: "alert",
@@ -102,8 +104,23 @@ export class DashboardComponent {
         kind: "alert",
         text: `Есть ${transportOperatorConf.length} конфликт(ов) по водителям перевозок.`,
       });
+    if (unpaidCompleted.length)
+      msgs.push({
+        kind: "alert",
+        text: `Есть ${unpaidCompleted.length} завершённая заявка без полной оплаты.`,
+      });
     return msgs;
   });
+
+  readonly completedUnpaidOrders = computed(() =>
+    this.state
+      .orders()
+      .filter(
+        (order) =>
+          order.status === "completed" && this.state.orderRemaining(order) > 0,
+      )
+      .sort((a, b) => b.endDate.localeCompare(a.endDate)),
+  );
 
   readonly conflictDetails = computed((): ConflictDetail[] => {
     const orderConflicts = this.state.orderConflicts().map(([aId, bId, eqId]) =>

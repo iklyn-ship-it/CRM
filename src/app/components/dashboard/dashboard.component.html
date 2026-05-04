@@ -86,6 +86,32 @@
   <div [class]="a.kind" style="margin-bottom: 8px">{{ a.text }}</div>
 }
 
+@if (completedUnpaidOrders().length) {
+  <details class="card panel conflict-details" open>
+    <summary>
+      <span>Завершённые без полной оплаты</span>
+      <strong>{{ completedUnpaidOrders().length }} заявк.</strong>
+    </summary>
+    <div class="conflict-list">
+      @for (order of completedUnpaidOrders(); track order.id) {
+        <div class="conflict-card">
+          <div>
+            <span class="badge active">Нужно доплатить</span>
+            <h4>{{ order.id | slice: -5 }} • {{ state.byId(state.clients(), order.clientId)?.name || "Клиент не указан" }}</h4>
+            <p>{{ state.byId(state.equipment(), order.equipmentId)?.name || "Техника не указана" }}</p>
+            <p>{{ utils.fmtDate(order.startDate) }} - {{ utils.fmtDate(order.endDate) }}</p>
+          </div>
+          <div class="conflict-meta">
+            <span>План {{ utils.money(state.orderPlan(order)) }}</span>
+            <span>Оплачено {{ utils.money(state.orderIncome(order.id)) }}</span>
+            <strong>Остаток {{ utils.money(state.orderRemaining(order)) }}</strong>
+          </div>
+        </div>
+      }
+    </div>
+  </details>
+}
+
 @if (conflictDetails().length) {
   <details class="card panel conflict-details">
     <summary>

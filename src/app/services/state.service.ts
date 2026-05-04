@@ -357,7 +357,7 @@ export class StateService {
   }
 
   orderBlocksSchedule(order: Order): boolean {
-    return order.status !== "cancelled" && !this.isCompletedAndPaid(order);
+    return order.status !== "cancelled" && order.status !== "completed";
   }
 
   orderEquipmentWorkDays(order: Order, fromDate = "", toDate = ""): number {

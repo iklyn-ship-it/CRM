@@ -523,6 +523,12 @@
                       Оператор занят в другой заявке
                     </div>
                   }
+                  @if (completedUnpaidSet().has(o.id)) {
+                    <div class="small unpaid-order-note">
+                      Завершена, но не оплачена:
+                      {{ utils.money(state.orderRemaining(o)) }}
+                    </div>
+                  }
                 </td>
                 <td>{{ clientName(o.clientId) }}</td>
                 <td>{{ eqName(o.equipmentId) }}</td>
