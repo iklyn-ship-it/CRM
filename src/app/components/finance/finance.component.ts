@@ -21,6 +21,18 @@ interface OrderFinanceRow {
   expenseOps: FinanceOperation[];
 }
 
+interface ClientFinanceGroup {
+  clientId: string;
+  clientName: string;
+  rows: OrderFinanceRow[];
+  plan: number;
+  income: number;
+  expense: number;
+  profit: number;
+  remaining: number;
+  latestDate: string;
+}
+
 @Component({
   selector: "app-finance",
   standalone: true,
@@ -153,7 +165,7 @@ export class FinanceComponent {
       });
   });
 
-  readonly groupedOrderFinanceRows = computed(() => {
+  readonly groupedOrderFinanceRows = computed((): ClientFinanceGroup[] => {
     const groups = new Map<string, OrderFinanceRow[]>();
     this.orderFinanceRows().forEach((row) => {
       const key = row.order.clientId || "no-client";

@@ -226,9 +226,10 @@
       <div class="order-finance-list order-finance-scroll">
         @for (group of groupedOrderFinanceRows(); track group.clientId) {
           <section class="finance-client-group">
-            <button
-              type="button"
+            <div
               class="finance-client-head"
+              role="button"
+              tabindex="0"
               (click)="toggleClientGroup(group.clientId)"
             >
               <div class="finance-client-title">
@@ -260,7 +261,7 @@
                   <strong>{{ utils.money(group.remaining) }}</strong>
                 </div>
               </div>
-            </button>
+            </div>
 
             @if (isClientExpanded(group.clientId)) {
               <div class="finance-client-orders">

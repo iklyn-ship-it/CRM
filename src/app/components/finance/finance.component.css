@@ -77,7 +77,6 @@
   gap: 12px;
   align-items: center;
   padding: 12px;
-  border: 0;
   border-bottom: 1px solid rgba(56, 189, 248, 0.12);
   background:
     linear-gradient(90deg, rgba(56, 189, 248, 0.12), transparent 55%),
