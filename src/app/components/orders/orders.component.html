@@ -907,6 +907,21 @@
                     </span>
                     <strong>{{ group.clientName }}</strong>
                     <span>{{ group.orders.length }} заявк.</span>
+                    @if (group.overdue) {
+                      <span class="ending-chip overdue">
+                        Просрочено: {{ group.overdue }}
+                      </span>
+                    }
+                    @if (group.endingToday) {
+                      <span class="ending-chip today">
+                        Сегодня: {{ group.endingToday }}
+                      </span>
+                    }
+                    @if (group.endingSoon) {
+                      <span class="ending-chip soon">
+                        До 5 дней: {{ group.endingSoon }}
+                      </span>
+                    }
                   </div>
                 </td>
                 <td>
@@ -943,6 +958,11 @@
                         {{ utils.fmtDate(o.endDate) }} •
                         {{ utils.daysInclusive(o.startDate, o.endDate) }} дн.
                       </div>
+                      @if (orderEndingKind(o); as endingKind) {
+                        <div class="ending-notice" [ngClass]="endingKind">
+                          {{ orderEndingLabel(o) }}
+                        </div>
+                      }
                       @if (conflictSet().has(o.id)) {
                         <div class="small" style="color: #fca5a5">
                           Конфликт по технике

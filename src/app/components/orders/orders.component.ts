@@ -245,6 +245,9 @@ export class OrdersComponent {
         expense: orders.reduce((sum, order) => sum + this.state.orderExpense(order.id), 0),
         profit: orders.reduce((sum, order) => sum + this.state.orderProfit(order.id), 0),
         remaining: orders.reduce((sum, order) => sum + this.state.orderRemaining(order), 0),
+        endingSoon: orders.filter((order) => this.orderEndingKind(order) === "soon").length,
+        endingToday: orders.filter((order) => this.orderEndingKind(order) === "today").length,
+        overdue: orders.filter((order) => this.orderEndingKind(order) === "overdue").length,
         latestDate: orders.reduce(
           (latest, order) => (order.startDate > latest ? order.startDate : latest),
           "",
@@ -287,6 +290,29 @@ export class OrdersComponent {
       cancelled: "Отменена",
     };
     return labels[s] || s;
+  }
+
+  orderEndingDaysLeft(order: Order): number {
+    if (!order.endDate) return 9999;
+    const today = new Date(this.utils.todayStr() + "T00:00:00").getTime();
+    const end = new Date(order.endDate + "T00:00:00").getTime();
+    return Math.ceil((end - today) / 86400000);
+  }
+
+  orderEndingKind(order: Order): "soon" | "today" | "overdue" | "" {
+    if (order.status === "completed" || order.status === "cancelled") return "";
+    const daysLeft = this.orderEndingDaysLeft(order);
+    if (daysLeft < 0) return "overdue";
+    if (daysLeft === 0) return "today";
+    if (daysLeft <= 5) return "soon";
+    return "";
+  }
+
+  orderEndingLabel(order: Order): string {
+    const daysLeft = this.orderEndingDaysLeft(order);
+    if (daysLeft < 0) return `Резерв просрочен на ${Math.abs(daysLeft)} дн.`;
+    if (daysLeft === 0) return "Резерв заканчивается сегодня";
+    return `До окончания резерва ${daysLeft} дн.`;
   }
 
   openCreate(): void {
