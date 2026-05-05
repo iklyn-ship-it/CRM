@@ -187,7 +187,7 @@ export class CalendarComponent {
           .orders()
           .filter(
             (o) =>
-              this.state.orderWorksOnDate(o, "equipment", ds) &&
+              this.orderVisibleOnDate(o, "equipment", ds) &&
               this.isEquipmentTypeVisible(o.equipmentId) &&
               o.status !== "cancelled",
           )
@@ -213,7 +213,6 @@ export class CalendarComponent {
               o.logisticsEnabled &&
               o.logisticsProvider === "own_trawl" &&
               o.logisticsTrailerId &&
-              this.state.orderBlocksSchedule(o) &&
               this.isEquipmentTypeVisible(o.logisticsTrailerId) &&
               this.state.orderLogisticsStart(o) <= ds &&
               this.state.orderLogisticsEnd(o) >= ds,
@@ -922,7 +921,7 @@ export class CalendarComponent {
     if (from > to) return [];
     const dates = this.utils
       .datesInclusive(this.utils.dateKey(from), this.utils.dateKey(to))
-      .filter((date) => this.state.orderWorksOnDate(order, "equipment", date));
+      .filter((date) => this.orderVisibleOnDate(order, "equipment", date));
     const segments: { startDate: string; endDate: string }[] = [];
     for (const date of dates) {
       const last = segments[segments.length - 1];
@@ -933,6 +932,18 @@ export class CalendarComponent {
       else segments.push({ startDate: date, endDate: date });
     }
     return segments;
+  }
+
+  private orderVisibleOnDate(
+    order: Order,
+    kind: "equipment" | "operator",
+    date: string,
+  ): boolean {
+    if (order.status === "cancelled") return false;
+    if (date < order.startDate || date > order.endDate) return false;
+    const idle =
+      kind === "equipment" ? order.equipmentIdleDates : order.operatorIdleDates;
+    return !new Set(idle || []).has(date);
   }
 
   private rangeSegment(
