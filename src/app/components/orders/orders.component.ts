@@ -545,6 +545,17 @@ export class OrdersComponent {
       : "нет";
   }
 
+  orderRepairNotice(order: Order): string {
+    if (this.repairConflictSet().has(order.id)) {
+      return "Техника в ремонте";
+    }
+    if (!order.breakdownEnabled) return "";
+    const status = this.breakdownStatusLabel(order.breakdownStatus);
+    const from = this.utils.fmtDate(order.breakdownDate);
+    const to = this.utils.fmtDate(order.breakdownEndDate || order.breakdownDate);
+    return `Техника в ремонте: ${status}, ${from} - ${to}`;
+  }
+
   breakdownStatusLabel(status: string): string {
     return (
       this.breakdownStatuses.find((item) => item.value === status)?.label ||

@@ -690,9 +690,9 @@
                       Оператор занят в другой заявке
                     </div>
                   }
-                  @if (repairConflictSet().has(o.id)) {
+                  @if (orderRepairNotice(o); as repairNotice) {
                     <div class="small repair-order-note">
-                      Техника в ремонте
+                      {{ repairNotice }}
                     </div>
                   }
                   @if (completedUnpaidSet().has(o.id)) {
