@@ -29,6 +29,7 @@ export class OrdersComponent {
   filterStatus = signal("");
   formOpen = signal(false);
   selectedOrder = signal<Order | null>(null);
+  expandedClientIds = signal<string[]>([]);
   editingId = "";
 
   form = {
@@ -228,8 +229,43 @@ export class OrdersComponent {
     return list.sort((a, b) => b.startDate.localeCompare(a.startDate));
   });
 
+  readonly groupedOrders = computed(() => {
+    const groups = new Map<string, Order[]>();
+    this.filteredOrders().forEach((order) => {
+      const key = order.clientId || "no-client";
+      groups.set(key, [...(groups.get(key) || []), order]);
+    });
+    return [...groups.entries()]
+      .map(([clientId, orders]) => ({
+        clientId,
+        clientName: this.clientName(clientId),
+        orders,
+        plan: orders.reduce((sum, order) => sum + this.state.orderPlan(order), 0),
+        income: orders.reduce((sum, order) => sum + this.state.orderIncome(order.id), 0),
+        expense: orders.reduce((sum, order) => sum + this.state.orderExpense(order.id), 0),
+        profit: orders.reduce((sum, order) => sum + this.state.orderProfit(order.id), 0),
+        remaining: orders.reduce((sum, order) => sum + this.state.orderRemaining(order), 0),
+        latestDate: orders.reduce(
+          (latest, order) => (order.startDate > latest ? order.startDate : latest),
+          "",
+        ),
+      }))
+      .sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  });
+
   clientName(id: string): string {
     return this.state.byId(this.state.clients(), id)?.name || "—";
+  }
+
+  isClientExpanded(clientId: string): boolean {
+    return this.expandedClientIds().includes(clientId);
+  }
+
+  toggleClientGroup(clientId: string): void {
+    const ids = new Set(this.expandedClientIds());
+    if (ids.has(clientId)) ids.delete(clientId);
+    else ids.add(clientId);
+    this.expandedClientIds.set([...ids]);
   }
   eqName(id: string): string {
     return this.state.byId(this.state.equipment(), id)?.name || "—";

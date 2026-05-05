@@ -898,58 +898,95 @@
             </tr>
           </thead>
           <tbody>
-            @for (o of filteredOrders(); track o.id) {
-              <tr class="clickable-row" (click)="viewOrder(o)">
-                <td>{{ o.id | slice: -5 }}</td>
-                <td>{{ o.createdAt ? utils.fmtDate(o.createdAt.slice(0, 10)) : "—" }}</td>
-                <td>
-                  {{ utils.fmtDate(o.startDate) }}
-                  <div class="small">
-                    {{ utils.fmtDate(o.endDate) }} •
-                    {{ utils.daysInclusive(o.startDate, o.endDate) }} дн.
+            @for (group of groupedOrders(); track group.clientId) {
+              <tr class="client-group-row" (click)="toggleClientGroup(group.clientId)">
+                <td colspan="3">
+                  <div class="client-group-title">
+                    <span class="group-chevron">
+                      {{ isClientExpanded(group.clientId) ? "▾" : "▸" }}
+                    </span>
+                    <strong>{{ group.clientName }}</strong>
+                    <span>{{ group.orders.length }} заявк.</span>
                   </div>
-                  @if (conflictSet().has(o.id)) {
-                    <div class="small" style="color: #fca5a5">
-                      Конфликт по технике
-                    </div>
-                  }
-                  @if (operatorConflictSet().has(o.id)) {
-                    <div class="small" style="color: #fdba74">
-                      Оператор занят в другой заявке
-                    </div>
-                  }
-                  @if (orderRepairNotice(o); as repairNotice) {
-                    <div class="small repair-order-note">
-                      {{ repairNotice }}
-                    </div>
-                  }
-                  @if (completedUnpaidSet().has(o.id)) {
-                    <div class="small unpaid-order-note">
-                      Завершена, но не оплачена:
-                      {{ utils.money(state.orderRemaining(o)) }}
-                    </div>
-                  }
                 </td>
-                <td>{{ clientName(o.clientId) }}</td>
-                <td>{{ eqName(o.equipmentId) }}</td>
-                <td>{{ utils.money(state.orderPlan(o)) }}</td>
-                <td>{{ utils.money(state.orderIncome(o.id)) }}</td>
-                <td>{{ utils.money(state.orderExpense(o.id)) }}</td>
-                <td>{{ utils.money(state.orderProfit(o.id)) }}</td>
                 <td>
-                  <span class="badge" [ngClass]="o.status">{{
-                    statusLabel(o.status)
-                  }}</span>
+                  <span class="client-group-muted">Клиент</span>
                 </td>
-                <td (click)="$event.stopPropagation()">
-                  <button class="btn ghost" (click)="edit(o)">Ред.</button>
-                  <button class="btn ghost" (click)="remove(o.id)">
-                    Удалить
-                  </button>
+                <td>
+                  <span class="client-group-muted">
+                    Последняя: {{ utils.fmtDate(group.latestDate) }}
+                  </span>
                 </td>
+                <td>{{ utils.money(group.plan) }}</td>
+                <td>{{ utils.money(group.income) }}</td>
+                <td>{{ utils.money(group.expense) }}</td>
+                <td>{{ utils.money(group.profit) }}</td>
+                <td>
+                  @if (group.remaining) {
+                    <span class="client-group-muted">
+                      Остаток {{ utils.money(group.remaining) }}
+                    </span>
+                  } @else {
+                    <span class="client-group-muted">Оплачено</span>
+                  }
+                </td>
+                <td></td>
               </tr>
+              @if (isClientExpanded(group.clientId)) {
+                @for (o of group.orders; track o.id) {
+                  <tr class="clickable-row order-child-row" (click)="viewOrder(o)">
+                    <td>{{ o.id | slice: -5 }}</td>
+                    <td>{{ o.createdAt ? utils.fmtDate(o.createdAt.slice(0, 10)) : "—" }}</td>
+                    <td>
+                      {{ utils.fmtDate(o.startDate) }}
+                      <div class="small">
+                        {{ utils.fmtDate(o.endDate) }} •
+                        {{ utils.daysInclusive(o.startDate, o.endDate) }} дн.
+                      </div>
+                      @if (conflictSet().has(o.id)) {
+                        <div class="small" style="color: #fca5a5">
+                          Конфликт по технике
+                        </div>
+                      }
+                      @if (operatorConflictSet().has(o.id)) {
+                        <div class="small" style="color: #fdba74">
+                          Оператор занят в другой заявке
+                        </div>
+                      }
+                      @if (orderRepairNotice(o); as repairNotice) {
+                        <div class="small repair-order-note">
+                          {{ repairNotice }}
+                        </div>
+                      }
+                      @if (completedUnpaidSet().has(o.id)) {
+                        <div class="small unpaid-order-note">
+                          Завершена, но не оплачена:
+                          {{ utils.money(state.orderRemaining(o)) }}
+                        </div>
+                      }
+                    </td>
+                    <td>{{ clientName(o.clientId) }}</td>
+                    <td>{{ eqName(o.equipmentId) }}</td>
+                    <td>{{ utils.money(state.orderPlan(o)) }}</td>
+                    <td>{{ utils.money(state.orderIncome(o.id)) }}</td>
+                    <td>{{ utils.money(state.orderExpense(o.id)) }}</td>
+                    <td>{{ utils.money(state.orderProfit(o.id)) }}</td>
+                    <td>
+                      <span class="badge" [ngClass]="o.status">{{
+                        statusLabel(o.status)
+                      }}</span>
+                    </td>
+                    <td (click)="$event.stopPropagation()">
+                      <button class="btn ghost" (click)="edit(o)">Ред.</button>
+                      <button class="btn ghost" (click)="remove(o.id)">
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                }
+              }
             }
-            @if (!filteredOrders().length) {
+            @if (!groupedOrders().length) {
               <tr>
                 <td colspan="11">
                   <div class="empty">Ничего не найдено.</div>
