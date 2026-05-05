@@ -55,6 +55,11 @@ export interface Order {
   logisticsDeliveryKm: number;
   logisticsPickupCost: number;
   logisticsDeliveryCost: number;
+  assemblyEnabled: boolean;
+  assemblyDisassemblyDate: string;
+  assemblyAssemblyDate: string;
+  assemblyDisassemblyCost: number;
+  assemblyAssemblyCost: number;
   breakdownEnabled: boolean;
   breakdownDate: string;
   breakdownEndDate: string;

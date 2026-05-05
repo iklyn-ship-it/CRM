@@ -302,6 +302,59 @@
             </div>
           }
         </div>
+        <div class="assembly-box">
+          <label class="toggle-line">
+            <input
+              type="checkbox"
+              [(ngModel)]="form.assemblyEnabled"
+              name="assemblyEnabled"
+            />
+            <span>Сборка/разборка техники</span>
+          </label>
+          @if (form.assemblyEnabled) {
+            <div class="assembly-grid">
+              <div class="field">
+                <label>Дата демонтажа</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.assemblyDisassemblyDate"
+                  name="assemblyDisassemblyDate"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость демонтажа, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.assemblyDisassemblyCost"
+                  name="assemblyDisassemblyCost"
+                />
+              </div>
+              <div class="field">
+                <label>Дата монтажа</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.assemblyAssemblyDate"
+                  name="assemblyAssemblyDate"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость монтажа, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.assemblyAssemblyCost"
+                  name="assemblyAssemblyCost"
+                />
+              </div>
+            </div>
+            <div class="assembly-summary">
+              Итого сборка/разборка: {{ utils.money(assemblyTotal()) }}
+              <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
+              <span>Даты демонтажа и монтажа появятся в календаре отдельным цветом.</span>
+            </div>
+          }
+        </div>
         <div class="breakdown-box">
           <label class="toggle-line">
             <input
@@ -572,6 +625,20 @@
                 {{ utils.money(selected.logisticsDeliveryCost || 0) }}
                 ({{ utils.money(selected.logisticsDeliveryPricePerKm || 250) }}/км)
                 • {{ utils.money(state.orderLogisticsCost(selected)) }}
+              </strong>
+            </div>
+          }
+          @if (selected.assemblyEnabled) {
+            <div class="detail-wide">
+              <span>Сборка/разборка техники</span>
+              <strong>
+                Демонтаж:
+                {{ utils.fmtDate(selected.assemblyDisassemblyDate) }} /
+                {{ utils.money(selected.assemblyDisassemblyCost || 0) }}
+                • Монтаж:
+                {{ utils.fmtDate(selected.assemblyAssemblyDate) }} /
+                {{ utils.money(selected.assemblyAssemblyCost || 0) }}
+                • Итого {{ utils.money(state.orderAssemblyCost(selected)) }}
               </strong>
             </div>
           }

@@ -28,6 +28,7 @@
   <div class="legend">
     <div class="chip"><span class="dot" style="background:rgba(56,189,248,.8)"></span> аренда</div>
     <div class="chip"><span class="dot" style="background:rgba(34,197,94,.85)"></span> перевозка</div>
+    <div class="chip"><span class="dot" style="background:rgba(168,85,247,.85)"></span> сборка/разборка</div>
     <div class="chip"><span class="dot" style="background:rgba(249,115,22,.85)"></span> ремонт</div>
     <div class="chip"><span class="dot" style="background:rgba(239,68,68,.85)"></span> конфликт</div>
     <div class="chip"><span class="dot weekend-dot"></span> выходные</div>
@@ -51,25 +52,29 @@
             <button
               type="button"
               class="event"
-              [class.clickable-event]="e.type === 'rent' || e.type === 'logistics' || e.type === 'transport'"
+              [class.clickable-event]="e.type === 'rent' || e.type === 'logistics' || e.type === 'transport' || e.type === 'assembly'"
               [ngClass]="[
                 e.type === 'repair'
                   ? 'repair'
                   : e.type === 'transport'
                     ? 'transport'
+                  : e.type === 'assembly'
+                    ? 'assembly'
                   : e.type === 'logistics'
                     ? 'logistics'
                     : e.statusClass,
                 e.conflict ? 'conflict' : ''
               ]"
-              (click)="e.type === 'transport' ? openTransport(e.id) : (e.type === 'rent' || e.type === 'logistics' ? openOrder(e.id) : null)"
+              (click)="e.type === 'transport' ? openTransport(e.id) : (e.type === 'rent' || e.type === 'logistics' || e.type === 'assembly' ? openOrder(e.id) : null)"
             >
               {{ e.eq }}<br><span class="small">
                 {{
                   e.type === 'repair'
                     ? 'Ремонт: '
                     : e.type === 'transport'
-                      ? 'Перевозка: '
+                    ? 'Перевозка: '
+                    : e.type === 'assembly'
+                      ? 'Сборка/разборка: '
                     : e.type === 'logistics'
                       ? 'Логистика: '
                       : 'Аренда: '
@@ -104,7 +109,7 @@
               <button
                 type="button"
                 class="reserve-bar"
-                [class.clickable-event]="ev.type === 'rent' || ev.type === 'logistics' || ev.type === 'transport'"
+                [class.clickable-event]="ev.type === 'rent' || ev.type === 'logistics' || ev.type === 'transport' || ev.type === 'assembly'"
                 [ngClass]="[
                   ev.type,
                   ev.type === 'rent' ? 'status-' + ev.status : '',
@@ -113,13 +118,15 @@
                 [style.left.px]="barLeft(ev.startIndex)"
                 [style.width.px]="ev.span * 34 - 4"
                 style="position:absolute; top:9px"
-                (click)="ev.type === 'transport' ? openTransport(ev.id) : (ev.type === 'rent' || ev.type === 'logistics' ? openOrder(ev.id) : null)"
+                (click)="ev.type === 'transport' ? openTransport(ev.id) : (ev.type === 'rent' || ev.type === 'logistics' || ev.type === 'assembly' ? openOrder(ev.id) : null)"
               >
                 {{
                   ev.type === 'repair'
                     ? 'Ремонт'
                     : ev.type === 'transport'
-                      ? 'Перевозка'
+                    ? 'Перевозка'
+                    : ev.type === 'assembly'
+                      ? 'Сборка/разборка'
                     : ev.type === 'logistics'
                       ? 'Логистика'
                       : 'Аренда'

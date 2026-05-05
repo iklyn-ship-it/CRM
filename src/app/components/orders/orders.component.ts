@@ -56,6 +56,11 @@ export class OrdersComponent {
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
     logisticsDeliveryCost: 0,
+    assemblyEnabled: false,
+    assemblyDisassemblyDate: "",
+    assemblyAssemblyDate: "",
+    assemblyDisassemblyCost: 0,
+    assemblyAssemblyCost: 0,
     breakdownEnabled: false,
     breakdownDate: "",
     breakdownEndDate: "",
@@ -285,13 +290,21 @@ export class OrdersComponent {
     const rentalPlan =
       this.orderDates().filter((date) => !idleDates.has(date)).length *
       Number(this.form.rate || 0);
-    return rentalPlan + this.logisticsTotal();
+    return rentalPlan + this.logisticsTotal() + this.assemblyTotal();
   }
 
   logisticsProviderLabel(order: Order): string {
     if (order.logisticsProvider === "own_trawl") return "Наш трал";
     if (order.logisticsProvider === "self_drive") return "Своим ходом";
     return "Сторонний перевозчик";
+  }
+
+  assemblyTotal(): number {
+    if (!this.form.assemblyEnabled) return 0;
+    return (
+      Number(this.form.assemblyDisassemblyCost || 0) +
+      Number(this.form.assemblyAssemblyCost || 0)
+    );
   }
 
   validateLogistics(): boolean {
@@ -418,6 +431,11 @@ export class OrdersComponent {
       ),
       logisticsPickupCost: pickupCost,
       logisticsDeliveryCost: deliveryCost,
+      assemblyEnabled: Boolean(order.assemblyEnabled),
+      assemblyDisassemblyDate: order.assemblyDisassemblyDate || "",
+      assemblyAssemblyDate: order.assemblyAssemblyDate || "",
+      assemblyDisassemblyCost: Number(order.assemblyDisassemblyCost || 0),
+      assemblyAssemblyCost: Number(order.assemblyAssemblyCost || 0),
       breakdownEnabled: Boolean(order.breakdownEnabled),
       breakdownDate: order.breakdownDate || "",
       breakdownEndDate: order.breakdownEndDate || "",
@@ -475,6 +493,11 @@ export class OrdersComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      assemblyEnabled: false,
+      assemblyDisassemblyDate: "",
+      assemblyAssemblyDate: "",
+      assemblyDisassemblyCost: 0,
+      assemblyAssemblyCost: 0,
       breakdownEnabled: false,
       breakdownDate: "",
       breakdownEndDate: "",
@@ -638,6 +661,18 @@ export class OrdersComponent {
       logisticsDeliveryCost: this.form.logisticsEnabled
         ? this.form.logisticsDeliveryCost
         : 0,
+      assemblyDisassemblyDate: this.form.assemblyEnabled
+        ? this.form.assemblyDisassemblyDate
+        : "",
+      assemblyAssemblyDate: this.form.assemblyEnabled
+        ? this.form.assemblyAssemblyDate
+        : "",
+      assemblyDisassemblyCost: this.form.assemblyEnabled
+        ? Number(this.form.assemblyDisassemblyCost || 0)
+        : 0,
+      assemblyAssemblyCost: this.form.assemblyEnabled
+        ? Number(this.form.assemblyAssemblyCost || 0)
+        : 0,
       breakdownDate: this.form.breakdownEnabled ? this.form.breakdownDate : "",
       breakdownEndDate: this.form.breakdownEnabled
         ? this.form.breakdownEndDate || this.form.breakdownDate
@@ -766,6 +801,9 @@ export class OrdersComponent {
     }
     if (message.includes("logistics_")) {
       return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("assembly_")) {
+      return "База Supabase еще не готова для сохранения сборки/разборки. Выполни SQL-файл supabase-order-assembly.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (message.includes("breakdown_")) {
       return "База Supabase еще не готова для сохранения поломок. Выполни SQL-файл supabase-order-breakdowns.sql в Supabase SQL Editor и попробуй снова.";

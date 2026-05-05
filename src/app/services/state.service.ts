@@ -265,7 +265,7 @@ export class StateService {
   orderPlan(order: Order): number {
     const rentalPlan =
       this.orderEquipmentWorkDays(order) * Number(order.rate || 0);
-    return rentalPlan + this.orderLogisticsCost(order);
+    return rentalPlan + this.orderLogisticsCost(order) + this.orderAssemblyCost(order);
   }
 
   orderOps(orderId: string): FinanceOperation[] {
@@ -315,6 +315,14 @@ export class StateService {
       order.logisticsCost ||
         Number(order.logisticsPickupCost || 0) +
           Number(order.logisticsDeliveryCost || 0),
+    );
+  }
+
+  orderAssemblyCost(order: Order): number {
+    if (!order.assemblyEnabled) return 0;
+    return (
+      Number(order.assemblyDisassemblyCost || 0) +
+      Number(order.assemblyAssemblyCost || 0)
     );
   }
 

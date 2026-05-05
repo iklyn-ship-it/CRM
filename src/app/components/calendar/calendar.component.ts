@@ -74,6 +74,11 @@ export class CalendarComponent {
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
     logisticsDeliveryCost: 0,
+    assemblyEnabled: false,
+    assemblyDisassemblyDate: "",
+    assemblyAssemblyDate: "",
+    assemblyDisassemblyCost: 0,
+    assemblyAssemblyCost: 0,
     breakdownEnabled: false,
     breakdownDate: "",
     breakdownEndDate: "",
@@ -253,6 +258,11 @@ export class CalendarComponent {
             conflict: false,
           }));
 
+        const assemblyEntries = this.state
+          .orders()
+          .flatMap((order) => this.orderAssemblyCalendarEntries(order, ds))
+          .filter((entry) => this.isEquipmentTypeVisible(entry.equipmentId));
+
         const transportEntries = this.state
           .transports()
           .filter(
@@ -278,6 +288,7 @@ export class CalendarComponent {
         const entries = [
           ...rentEntries,
           ...logisticsEntries,
+          ...assemblyEntries,
           ...transportEntries,
           ...repairEntries,
         ];
@@ -347,6 +358,25 @@ export class CalendarComponent {
                 conflict: false,
               }),
             ),
+          ),
+        ...this.state
+          .orders()
+          .filter(
+            (o) =>
+              o.assemblyEnabled &&
+              o.equipmentId === eq.id &&
+              o.status !== "cancelled",
+          )
+          .flatMap((o) =>
+            this.orderAssemblyTimelineEvents(o).map((event) => ({
+              id: o.id,
+              type: "assembly" as const,
+              status: o.status,
+              title: event.title,
+              startDate: event.date,
+              endDate: event.date,
+              conflict: false,
+            })),
           ),
         ...this.state
           .repairs()
@@ -512,6 +542,11 @@ export class CalendarComponent {
       ),
       logisticsPickupCost: pickupCost,
       logisticsDeliveryCost: deliveryCost,
+      assemblyEnabled: Boolean(order.assemblyEnabled),
+      assemblyDisassemblyDate: order.assemblyDisassemblyDate || "",
+      assemblyAssemblyDate: order.assemblyAssemblyDate || "",
+      assemblyDisassemblyCost: Number(order.assemblyDisassemblyCost || 0),
+      assemblyAssemblyCost: Number(order.assemblyAssemblyCost || 0),
       breakdownEnabled: Boolean(order.breakdownEnabled),
       breakdownDate: order.breakdownDate || "",
       breakdownEndDate: order.breakdownEndDate || "",
@@ -757,6 +792,11 @@ export class CalendarComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      assemblyEnabled: false,
+      assemblyDisassemblyDate: "",
+      assemblyAssemblyDate: "",
+      assemblyDisassemblyCost: 0,
+      assemblyAssemblyCost: 0,
       breakdownEnabled: false,
       breakdownDate: "",
       breakdownEndDate: "",
@@ -815,6 +855,18 @@ export class CalendarComponent {
       logisticsDeliveryCost: this.form.logisticsEnabled
         ? this.form.logisticsDeliveryCost
         : 0,
+      assemblyDisassemblyDate: this.form.assemblyEnabled
+        ? this.form.assemblyDisassemblyDate
+        : "",
+      assemblyAssemblyDate: this.form.assemblyEnabled
+        ? this.form.assemblyAssemblyDate
+        : "",
+      assemblyDisassemblyCost: this.form.assemblyEnabled
+        ? Number(this.form.assemblyDisassemblyCost || 0)
+        : 0,
+      assemblyAssemblyCost: this.form.assemblyEnabled
+        ? Number(this.form.assemblyAssemblyCost || 0)
+        : 0,
       equipmentIdleDates: this.form.equipmentIdleDates
         .filter((date) => inPeriod.has(date))
         .sort(),
@@ -837,6 +889,9 @@ export class CalendarComponent {
     }
     if (message.includes("logistics_")) {
       return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("assembly_")) {
+      return "База Supabase еще не готова для сохранения сборки/разборки. Выполни SQL-файл supabase-order-assembly.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (message.includes("breakdown_")) {
       return "База Supabase еще не готова для сохранения поломок. Выполни SQL-файл supabase-order-breakdowns.sql в Supabase SQL Editor и попробуй снова.";
@@ -903,6 +958,34 @@ export class CalendarComponent {
         ([a, b]) => a === transportId || b === transportId,
       )
     );
+  }
+
+  private orderAssemblyCalendarEntries(order: Order, date: string) {
+    if (!order.assemblyEnabled || order.status === "cancelled") return [];
+    return this.orderAssemblyTimelineEvents(order)
+      .filter((event) => event.date === date)
+      .map((event) => ({
+        id: order.id,
+        eq: this.equipmentName(order.equipmentId) || "Техника",
+        cl: event.title,
+        type: "assembly",
+        statusClass: "assembly",
+        equipmentId: order.equipmentId,
+        blocksSchedule: false,
+        conflict: false,
+      }));
+  }
+
+  private orderAssemblyTimelineEvents(order: Order): { title: string; date: string }[] {
+    if (!order.assemblyEnabled) return [];
+    return [
+      order.assemblyDisassemblyDate
+        ? { title: "Демонтаж", date: order.assemblyDisassemblyDate }
+        : null,
+      order.assemblyAssemblyDate
+        ? { title: "Монтаж", date: order.assemblyAssemblyDate }
+        : null,
+    ].filter((event): event is { title: string; date: string } => Boolean(event));
   }
 
   private orderSegments(

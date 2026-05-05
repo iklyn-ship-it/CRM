@@ -112,6 +112,11 @@
   border-color: rgba(34, 197, 94, 0.36);
   color: #dcfce7;
 }
+.event.assembly {
+  background: rgba(168, 85, 247, 0.17);
+  border-color: rgba(168, 85, 247, 0.38);
+  color: #ede9fe;
+}
 .event.status-new {
   background: rgba(56, 189, 248, 0.14);
   border-color: rgba(56, 189, 248, 0.34);
@@ -254,6 +259,11 @@ button.reserve-bar {
   background: rgba(34, 197, 94, 0.24);
   border-color: rgba(34, 197, 94, 0.44);
   color: #dcfce7;
+}
+.reserve-bar.assembly {
+  background: rgba(168, 85, 247, 0.24);
+  border-color: rgba(168, 85, 247, 0.46);
+  color: #ede9fe;
 }
 .reserve-bar.conflict {
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.65) inset;
