@@ -224,144 +224,99 @@
         </div>
       </div>
       <div class="order-finance-list order-finance-scroll">
-        @for (group of groupedOrderFinanceRows(); track group.clientId) {
-          <section class="finance-client-group">
-            <div
-              class="finance-client-head"
-              role="button"
-              tabindex="0"
-              (click)="toggleClientGroup(group.clientId)"
-            >
-              <div class="finance-client-title">
-                <span class="group-chevron">
-                  {{ isClientExpanded(group.clientId) ? "▾" : "▸" }}
-                </span>
-                <strong>{{ group.clientName }}</strong>
-                <span>{{ group.rows.length }} заявк.</span>
+        @for (row of orderFinanceRows(); track row.order.id) {
+          <article class="order-finance-card">
+            <div class="order-finance-head">
+              <div>
+                <div class="order-finance-title">
+                  Заявка {{ row.order.id | slice: -5 }}
+                  <span class="badge" [ngClass]="row.order.status">
+                    {{ statusLabel(row.order.status) }}
+                  </span>
+                </div>
+                <div class="small">
+                  {{ row.clientName }} • {{ row.equipmentName }} •
+                  {{ utils.fmtDate(row.order.startDate) }} -
+                  {{ utils.fmtDate(row.order.endDate) }}
+                </div>
+                @if (row.order.location) {
+                  <div class="small">Локация: {{ row.order.location }}</div>
+                }
               </div>
-              <div class="finance-client-summary">
+              <div class="order-finance-summary">
                 <div class="metric">
                   <span>План</span>
-                  <strong>{{ utils.money(group.plan) }}</strong>
+                  <strong>{{ utils.money(row.plan) }}</strong>
                 </div>
                 <div class="metric income-metric">
                   <span>Приход</span>
-                  <strong>{{ utils.money(group.income) }}</strong>
+                  <strong>{{ utils.money(row.income) }}</strong>
                 </div>
                 <div class="metric expense-metric">
                   <span>Расход</span>
-                  <strong>{{ utils.money(group.expense) }}</strong>
+                  <strong>{{ utils.money(row.expense) }}</strong>
                 </div>
                 <div class="metric">
                   <span>Прибыль</span>
-                  <strong>{{ utils.money(group.profit) }}</strong>
+                  <strong>{{ utils.money(row.profit) }}</strong>
                 </div>
                 <div class="metric">
                   <span>Остаток</span>
-                  <strong>{{ utils.money(group.remaining) }}</strong>
+                  <strong>{{ utils.money(row.remaining) }}</strong>
                 </div>
               </div>
             </div>
 
-            @if (isClientExpanded(group.clientId)) {
-              <div class="finance-client-orders">
-                @for (row of group.rows; track row.order.id) {
-                  <article class="order-finance-card">
-                    <div class="order-finance-head">
-                      <div>
-                        <div class="order-finance-title">
-                          Заявка {{ row.order.id | slice: -5 }}
-                          <span class="badge" [ngClass]="row.order.status">
-                            {{ statusLabel(row.order.status) }}
-                          </span>
-                        </div>
-                        <div class="small">
-                          {{ row.equipmentName }} •
-                          {{ utils.fmtDate(row.order.startDate) }} -
-                          {{ utils.fmtDate(row.order.endDate) }}
-                        </div>
-                        @if (row.order.location) {
-                          <div class="small">Локация: {{ row.order.location }}</div>
-                        }
-                      </div>
-                      <div class="order-finance-summary">
-                        <div class="metric">
-                          <span>План</span>
-                          <strong>{{ utils.money(row.plan) }}</strong>
-                        </div>
-                        <div class="metric income-metric">
-                          <span>Приход</span>
-                          <strong>{{ utils.money(row.income) }}</strong>
-                        </div>
-                        <div class="metric expense-metric">
-                          <span>Расход</span>
-                          <strong>{{ utils.money(row.expense) }}</strong>
-                        </div>
-                        <div class="metric">
-                          <span>Прибыль</span>
-                          <strong>{{ utils.money(row.profit) }}</strong>
-                        </div>
-                        <div class="metric">
-                          <span>Остаток</span>
-                          <strong>{{ utils.money(row.remaining) }}</strong>
-                        </div>
-                      </div>
+            <div class="finance-ledger">
+              <div class="ledger-column">
+                <h4>Приходы по заявке</h4>
+                @for (op of row.incomeOps; track op.id) {
+                  <div class="ledger-line income-line">
+                    <div>
+                      <strong>{{ utils.money(op.amount) }}</strong>
+                      <span>{{ op.category || "Приход" }}</span>
                     </div>
-
-                    <div class="finance-ledger">
-                      <div class="ledger-column">
-                        <h4>Приходы по заявке</h4>
-                        @for (op of row.incomeOps; track op.id) {
-                          <div class="ledger-line income-line">
-                            <div>
-                              <strong>{{ utils.money(op.amount) }}</strong>
-                              <span>{{ op.category || "Приход" }}</span>
-                            </div>
-                            <small>{{ utils.fmtDate(op.date) }}</small>
-                            @if (op.comment) {
-                              <p>{{ op.comment }}</p>
-                            }
-                          </div>
-                        }
-                        @if (!row.incomeOps.length) {
-                          <div class="empty compact">Приходов по заявке нет.</div>
-                        }
-                      </div>
-                      <div class="ledger-column">
-                        <h4>Расходы по заявке</h4>
-                        @if (row.operatorExpense > 0) {
-                          <div class="ledger-line expense-line">
-                            <div>
-                              <strong>{{ utils.money(row.operatorExpense) }}</strong>
-                              <span>Зарплата оператора</span>
-                            </div>
-                            <small>Автоматически по ставке и сроку заявки</small>
-                          </div>
-                        }
-                        @for (op of row.expenseOps; track op.id) {
-                          <div class="ledger-line expense-line">
-                            <div>
-                              <strong>{{ utils.money(op.amount) }}</strong>
-                              <span>{{ op.category || "Расход" }}</span>
-                            </div>
-                            <small>{{ utils.fmtDate(op.date) }}</small>
-                            @if (op.comment) {
-                              <p>{{ op.comment }}</p>
-                            }
-                          </div>
-                        }
-                        @if (!row.expenseOps.length && !row.operatorExpense) {
-                          <div class="empty compact">Расходов по заявке нет.</div>
-                        }
-                      </div>
-                    </div>
-                  </article>
+                    <small>{{ utils.fmtDate(op.date) }}</small>
+                    @if (op.comment) {
+                      <p>{{ op.comment }}</p>
+                    }
+                  </div>
+                }
+                @if (!row.incomeOps.length) {
+                  <div class="empty compact">Приходов по заявке нет.</div>
                 }
               </div>
-            }
-          </section>
+              <div class="ledger-column">
+                <h4>Расходы по заявке</h4>
+                @if (row.operatorExpense > 0) {
+                  <div class="ledger-line expense-line">
+                    <div>
+                      <strong>{{ utils.money(row.operatorExpense) }}</strong>
+                      <span>Зарплата оператора</span>
+                    </div>
+                    <small>Автоматически по ставке и сроку заявки</small>
+                  </div>
+                }
+                @for (op of row.expenseOps; track op.id) {
+                  <div class="ledger-line expense-line">
+                    <div>
+                      <strong>{{ utils.money(op.amount) }}</strong>
+                      <span>{{ op.category || "Расход" }}</span>
+                    </div>
+                    <small>{{ utils.fmtDate(op.date) }}</small>
+                    @if (op.comment) {
+                      <p>{{ op.comment }}</p>
+                    }
+                  </div>
+                }
+                @if (!row.expenseOps.length && !row.operatorExpense) {
+                  <div class="empty compact">Расходов по заявке нет.</div>
+                }
+              </div>
+            </div>
+          </article>
         }
-        @if (!groupedOrderFinanceRows().length) {
+        @if (!orderFinanceRows().length) {
           <div class="empty">Нет заявок для отображения.</div>
         }
       </div>

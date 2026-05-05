@@ -21,18 +21,6 @@ interface OrderFinanceRow {
   expenseOps: FinanceOperation[];
 }
 
-interface ClientFinanceGroup {
-  clientId: string;
-  clientName: string;
-  rows: OrderFinanceRow[];
-  plan: number;
-  income: number;
-  expense: number;
-  profit: number;
-  remaining: number;
-  latestDate: string;
-}
-
 @Component({
   selector: "app-finance",
   standalone: true,
@@ -48,7 +36,6 @@ export class FinanceComponent {
   search = signal("");
   filterType = signal("");
   orderFinanceStatusFilter = signal<"open" | "all" | OrderStatus>("open");
-  expandedClientIds = signal<string[]>([]);
   formOpen = signal(false);
   editingId = "";
   form = {
@@ -165,33 +152,6 @@ export class FinanceComponent {
       });
   });
 
-  readonly groupedOrderFinanceRows = computed((): ClientFinanceGroup[] => {
-    const groups = new Map<string, OrderFinanceRow[]>();
-    this.orderFinanceRows().forEach((row) => {
-      const key = row.order.clientId || "no-client";
-      groups.set(key, [...(groups.get(key) || []), row]);
-    });
-    return [...groups.entries()]
-      .map(([clientId, rows]) => ({
-        clientId,
-        clientName:
-          this.state.byId(this.state.clients(), clientId)?.name ||
-          "Клиент не указан",
-        rows,
-        plan: rows.reduce((sum, row) => sum + row.plan, 0),
-        income: rows.reduce((sum, row) => sum + row.income, 0),
-        expense: rows.reduce((sum, row) => sum + row.expense, 0),
-        profit: rows.reduce((sum, row) => sum + row.profit, 0),
-        remaining: rows.reduce((sum, row) => sum + row.remaining, 0),
-        latestDate: rows.reduce(
-          (latest, row) =>
-            row.order.startDate > latest ? row.order.startDate : latest,
-          "",
-        ),
-      }))
-      .sort((a, b) => b.latestDate.localeCompare(a.latestDate));
-  });
-
   readonly unlinkedOps = computed(() =>
     this.state
       .operations()
@@ -208,17 +168,6 @@ export class FinanceComponent {
       cancelled: "Отменена",
     };
     return labels[status] || status;
-  }
-
-  isClientExpanded(clientId: string): boolean {
-    return this.expandedClientIds().includes(clientId);
-  }
-
-  toggleClientGroup(clientId: string): void {
-    const ids = new Set(this.expandedClientIds());
-    if (ids.has(clientId)) ids.delete(clientId);
-    else ids.add(clientId);
-    this.expandedClientIds.set([...ids]);
   }
 
   onOrderLinkChange(): void {
