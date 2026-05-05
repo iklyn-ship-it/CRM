@@ -116,6 +116,12 @@ export class OrdersComponent {
     return new Set([...orderConflicts, ...transportConflicts]);
   });
 
+  readonly repairConflictSet = computed(() => {
+    return new Set(
+      this.state.repairConflicts().map(([, orderId]) => orderId),
+    );
+  });
+
   readonly completedUnpaidSet = computed(() => {
     return new Set(
       this.state

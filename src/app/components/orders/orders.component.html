@@ -690,6 +690,11 @@
                       Оператор занят в другой заявке
                     </div>
                   }
+                  @if (repairConflictSet().has(o.id)) {
+                    <div class="small repair-order-note">
+                      Техника в ремонте
+                    </div>
+                  }
                   @if (completedUnpaidSet().has(o.id)) {
                     <div class="small unpaid-order-note">
                       Завершена, но не оплачена:
