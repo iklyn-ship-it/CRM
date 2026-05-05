@@ -8,6 +8,7 @@ import {
   BreakdownFaultParty,
   BreakdownStatus,
   Order,
+  OperatorShift,
   OrderStatus,
   Transport,
 } from "../../models/crm.models";
@@ -42,6 +43,7 @@ export class OrdersComponent {
     notes: "",
     equipmentIdleDates: [] as string[],
     operatorIdleDates: [] as string[],
+    operatorShifts: [] as OperatorShift[],
     logisticsEnabled: false,
     logisticsProvider: "own_trawl" as "own_trawl" | "third_party" | "self_drive",
     logisticsTrailerId: "",
@@ -141,35 +143,41 @@ export class OrdersComponent {
   });
 
   formOperatorConflict(): Order | null {
-    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+    const draft = this.formDraftOrder();
+    const operatorIds = this.state.orderOperatorIds(draft);
+    if (!operatorIds.length || !this.form.startDate || !this.form.endDate) {
       return null;
     }
     return (
-      this.state.orders().find(
-        (order) =>
-          order.id !== this.editingId &&
-          this.state.orderBlocksSchedule(order) &&
-          order.operatorId === this.form.operatorId &&
-          this.state.ordersOverlapByWorkDays(
-            this.formDraftOrder(),
-            order,
-            "operator",
-          ),
-      ) || null
+      this.state.orders().find((order) => {
+        if (order.id === this.editingId || !this.state.orderBlocksSchedule(order)) {
+          return false;
+        }
+        return operatorIds.some(
+          (operatorId) =>
+            this.state.orderOperatorIds(order).includes(operatorId) &&
+            this.state.ordersOverlapByOperator(draft, order, operatorId),
+        );
+      }) || null
     );
   }
 
   formTransportOperatorConflict(): Transport | null {
-    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+    const draft = this.formDraftOrder();
+    const operatorIds = this.state.orderOperatorIds(draft);
+    if (!operatorIds.length || !this.form.startDate || !this.form.endDate) {
       return null;
     }
-    const draft = this.formDraftOrder();
     return (
       this.state.transports().find(
         (transport) =>
           this.state.transportBlocksSchedule(transport) &&
-          transport.driverId === this.form.operatorId &&
-          this.state.orderTransportOverlapByOperator(draft, transport),
+          operatorIds.includes(transport.driverId) &&
+          this.state.orderTransportOverlapByOperator(
+            draft,
+            transport,
+            transport.driverId,
+          ),
       ) || null
     );
   }
@@ -329,6 +337,7 @@ export class OrdersComponent {
     if (!this.form.startDate || !this.form.endDate) return;
     if (!this.validateLogistics()) return;
     if (!this.validateBreakdown()) return;
+    if (!this.validateOperatorShifts()) return;
     const transportEquipmentConflict = this.formTransportEquipmentConflict();
     if (transportEquipmentConflict) {
       alert(
@@ -402,6 +411,7 @@ export class OrdersComponent {
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
       operatorIdleDates: [...(order.operatorIdleDates || [])],
+      operatorShifts: this.cloneOperatorShifts(order.operatorShifts || []),
       logisticsEnabled: Boolean(order.logisticsEnabled),
       logisticsProvider: order.logisticsProvider || "own_trawl",
       logisticsTrailerId: order.logisticsTrailerId || "",
@@ -479,6 +489,7 @@ export class OrdersComponent {
       notes: "",
       equipmentIdleDates: [],
       operatorIdleDates: [],
+      operatorShifts: [],
       logisticsEnabled: false,
       logisticsProvider: "own_trawl",
       logisticsTrailerId: "",
@@ -568,6 +579,69 @@ export class OrdersComponent {
       : "нет";
   }
 
+  addOperatorShift(): void {
+    this.form.operatorShifts = [
+      ...this.form.operatorShifts,
+      {
+        id: this.utils.uid("shift"),
+        operatorId: this.form.operatorId || "",
+        startDate: this.form.startDate,
+        endDate: this.form.endDate,
+        idleDates: [],
+      },
+    ];
+  }
+
+  removeOperatorShift(index: number): void {
+    this.form.operatorShifts = this.form.operatorShifts.filter((_, i) => i !== index);
+  }
+
+  shiftDates(shift: OperatorShift): string[] {
+    const start = shift.startDate || this.form.startDate;
+    const end = shift.endDate || shift.startDate || this.form.endDate;
+    return this.utils.datesInclusive(start, end);
+  }
+
+  isShiftIdleDate(shift: OperatorShift, date: string): boolean {
+    return (shift.idleDates || []).includes(date);
+  }
+
+  toggleShiftIdleDate(shift: OperatorShift, date: string): void {
+    const dates = new Set(shift.idleDates || []);
+    if (dates.has(date)) dates.delete(date);
+    else dates.add(date);
+    shift.idleDates = [...dates].sort();
+  }
+
+  excludeShiftWeekends(shift: OperatorShift): void {
+    const dates = new Set(shift.idleDates || []);
+    this.shiftDates(shift)
+      .filter((date) => {
+        const day = new Date(date + "T00:00:00").getDay();
+        return day === 0 || day === 6;
+      })
+      .forEach((date) => dates.add(date));
+    shift.idleDates = [...dates].sort();
+  }
+
+  clearShiftIdleDates(shift: OperatorShift): void {
+    shift.idleDates = [];
+  }
+
+  shiftWorkDays(shift: OperatorShift): number {
+    const idle = new Set(shift.idleDates || []);
+    return this.shiftDates(shift).filter((date) => !idle.has(date)).length;
+  }
+
+  shiftPayroll(shift: OperatorShift): number {
+    const operator = this.state.byId(this.state.operators(), shift.operatorId);
+    return this.shiftWorkDays(shift) * Number(operator?.rate || 0);
+  }
+
+  formOperatorPayroll(): number {
+    return this.state.orderOperatorCost(this.formDraftOrder());
+  }
+
   orderRepairNotice(order: Order): string {
     if (this.repairConflictSet().has(order.id)) {
       return "Техника в ремонте";
@@ -623,6 +697,7 @@ export class OrdersComponent {
       ...this.form.operatorIdleDates,
       ...(this.form.breakdownOperatorIdle ? breakdownIdleDates : []),
     ]);
+    const operatorShifts = this.normalizeOperatorShifts(inPeriod);
     return {
       ...this.form,
       logisticsTrailerId:
@@ -716,7 +791,76 @@ export class OrdersComponent {
       operatorIdleDates: [...operatorIdleDates]
         .filter((date) => inPeriod.has(date))
         .sort(),
+      operatorShifts,
     };
+  }
+
+  private validateOperatorShifts(): boolean {
+    if (!this.form.operatorShifts.length) return true;
+    if (!this.form.startDate || !this.form.endDate) {
+      alert("Сначала укажи период заявки, потом добавляй смены операторов.");
+      return false;
+    }
+    for (const shift of this.form.operatorShifts) {
+      if (!shift.operatorId) {
+        alert("В каждой смене нужно выбрать оператора.");
+        return false;
+      }
+      if (!shift.startDate || !shift.endDate) {
+        alert("В каждой смене нужно указать даты начала и окончания.");
+        return false;
+      }
+      if (shift.startDate > shift.endDate) {
+        alert("Дата начала смены не может быть позже даты окончания.");
+        return false;
+      }
+      if (shift.startDate < this.form.startDate || shift.endDate > this.form.endDate) {
+        alert("Смены операторов должны быть внутри периода заявки.");
+        return false;
+      }
+    }
+    for (let i = 0; i < this.form.operatorShifts.length; i++) {
+      for (let j = i + 1; j < this.form.operatorShifts.length; j++) {
+        const a = this.form.operatorShifts[i];
+        const b = this.form.operatorShifts[j];
+        if (
+          a.operatorId &&
+          a.operatorId === b.operatorId &&
+          this.utils.overlap(a.startDate, a.endDate, b.startDate, b.endDate)
+        ) {
+          alert("У одного оператора не должно быть пересекающихся смен в одной заявке.");
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private normalizeOperatorShifts(inPeriod: Set<string>): OperatorShift[] {
+    return this.form.operatorShifts
+      .filter((shift) => shift.operatorId && shift.startDate && shift.endDate)
+      .map((shift) => {
+        const dates = new Set(this.utils.datesInclusive(shift.startDate, shift.endDate));
+        return {
+          id: shift.id || this.utils.uid("shift"),
+          operatorId: shift.operatorId,
+          startDate: shift.startDate,
+          endDate: shift.endDate,
+          idleDates: [...new Set(shift.idleDates || [])]
+            .filter((date) => inPeriod.has(date) && dates.has(date))
+            .sort(),
+        };
+      });
+  }
+
+  private cloneOperatorShifts(shifts: OperatorShift[]): OperatorShift[] {
+    return shifts.map((shift) => ({
+      id: shift.id || this.utils.uid("shift"),
+      operatorId: shift.operatorId || "",
+      startDate: shift.startDate || "",
+      endDate: shift.endDate || "",
+      idleDates: [...(shift.idleDates || [])],
+    }));
   }
 
   private validateBreakdown(): boolean {
@@ -798,6 +942,9 @@ export class OrdersComponent {
       message.includes("operator_idle_dates")
     ) {
       return "База Supabase еще не готова для сохранения дней простоя. Выполни SQL-файл supabase-order-idle-dates.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("operator_shifts")) {
+      return "База Supabase еще не готова для сохранения смен операторов. Выполни SQL-файл supabase-order-operator-shifts.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (message.includes("logistics_")) {
       return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";

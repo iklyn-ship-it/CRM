@@ -113,6 +113,15 @@ export class DbService {
       operatorIdleDates: Array.isArray(order.operatorIdleDates)
         ? order.operatorIdleDates
         : [],
+      operatorShifts: Array.isArray(order.operatorShifts)
+        ? order.operatorShifts.map((shift: any) => ({
+            id: shift.id || "",
+            operatorId: shift.operatorId || "",
+            startDate: shift.startDate || "",
+            endDate: shift.endDate || "",
+            idleDates: Array.isArray(shift.idleDates) ? shift.idleDates : [],
+          }))
+        : [],
       logisticsEnabled: Boolean(order.logisticsEnabled),
       logisticsProvider: order.logisticsProvider || "own_trawl",
       logisticsTrailerId: order.logisticsTrailerId || "",
@@ -697,6 +706,7 @@ export class DbService {
       deliveryCost: "Стоимость доставки",
       equipmentIdleDates: "Простой техники",
       operatorIdleDates: "Простой оператора",
+      operatorShifts: "Смены операторов",
       logisticsEnabled: "Логистика",
       logisticsProvider: "Перевозчик",
       logisticsTrailerId: "Трал",
@@ -753,7 +763,12 @@ export class DbService {
   private stringifyValue(value: any): string {
     if (value === null || value === undefined || value === "") return "—";
     if (typeof value === "boolean") return value ? "Да" : "Нет";
-    if (Array.isArray(value)) return value.join(", ") || "—";
+    if (Array.isArray(value)) {
+      if (value.some((item) => typeof item === "object")) {
+        return JSON.stringify(value);
+      }
+      return value.join(", ") || "—";
+    }
     if (typeof value === "object") return JSON.stringify(value);
     if (value === "active") return "Работает";
     if (value === "sick_leave") return "Больничный";

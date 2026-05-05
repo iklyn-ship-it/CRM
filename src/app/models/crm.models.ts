@@ -27,6 +27,14 @@ export interface Operator {
 
 export type OperatorWorkStatus = 'active' | 'sick_leave' | 'dismissed';
 
+export interface OperatorShift {
+  id: string;
+  operatorId: string;
+  startDate: string;
+  endDate: string;
+  idleDates: string[];
+}
+
 export interface Order {
   id: string;
   clientId: string;
@@ -41,6 +49,7 @@ export interface Order {
   createdAt: string;
   equipmentIdleDates: string[];
   operatorIdleDates: string[];
+  operatorShifts: OperatorShift[];
   logisticsEnabled: boolean;
   logisticsProvider: 'own_trawl' | 'third_party' | 'self_drive';
   logisticsTrailerId: string;

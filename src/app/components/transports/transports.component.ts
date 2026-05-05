@@ -296,8 +296,8 @@ export class TransportsComponent {
       const orderConflict = this.state.orders().find(
         (order) =>
           this.state.orderBlocksSchedule(order) &&
-          order.operatorId === draft.driverId &&
-          this.state.orderTransportOverlapByOperator(order, draft),
+          this.state.orderOperatorIds(order).includes(draft.driverId) &&
+          this.state.orderTransportOverlapByOperator(order, draft, draft.driverId),
       );
       if (orderConflict) {
         warnings.push(

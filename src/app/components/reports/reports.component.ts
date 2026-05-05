@@ -150,6 +150,14 @@ export class ReportsComponent {
     return this.state.byId(this.state.operators(), id)?.name || "—";
   }
 
+  orderOperatorNames(order: Order): string {
+    const names = this.state
+      .orderOperatorIds(order)
+      .map((id) => this.operatorName(id))
+      .filter((name) => name !== "—");
+    return names.length ? names.join(", ") : "—";
+  }
+
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
       new: "Новое",

@@ -161,7 +161,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (row of workJournalRows(); track row.orderId) {
+        @for (row of workJournalRows(); track row.key) {
           <tr>
             <td>{{ row.operatorName }}</td>
             <td>

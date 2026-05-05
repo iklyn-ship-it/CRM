@@ -81,7 +81,7 @@
                 <td>{{ order.id | slice: -5 }}</td>
                 <td>{{ order.location || "—" }}</td>
                 <td>{{ equipmentName(order.equipmentId) }}</td>
-                <td>{{ operatorName(order.operatorId) }}</td>
+                <td>{{ orderOperatorNames(order) }}</td>
                 <td>
                   {{ utils.fmtDate(order.startDate) }}
                   <div class="small">
@@ -165,7 +165,7 @@
                     <tr>
                       <td>{{ order.id | slice: -5 }}</td>
                       <td>{{ equipmentName(order.equipmentId) }}</td>
-                      <td>{{ operatorName(order.operatorId) }}</td>
+                      <td>{{ orderOperatorNames(order) }}</td>
                       <td>
                         {{ utils.fmtDate(order.startDate) }}
                         <div class="small">

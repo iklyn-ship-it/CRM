@@ -53,6 +53,7 @@ create table if not exists public.orders (
   notes        text not null default '',
   equipment_idle_dates jsonb not null default '[]'::jsonb,
   operator_idle_dates  jsonb not null default '[]'::jsonb,
+  operator_shifts jsonb not null default '[]'::jsonb,
   logistics_enabled boolean not null default false,
   logistics_provider text not null default 'own_trawl',
   logistics_trailer_id text not null default '',

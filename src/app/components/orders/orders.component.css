@@ -267,6 +267,86 @@
   color: #fde68a;
 }
 
+.operator-shifts-box {
+  padding: 12px;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.08), transparent 45%),
+    rgba(15, 23, 42, 0.58);
+}
+
+.operator-shifts-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.operator-shifts-head strong {
+  display: block;
+  color: #dcfce7;
+}
+
+.operator-shifts-head span,
+.operator-shifts-summary {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.operator-shifts-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.operator-shift-card {
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(2, 6, 23, 0.3);
+}
+
+.operator-shift-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 0.9fr;
+  gap: 10px;
+}
+
+.shift-payroll {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  color: #bbf7d0;
+  font-weight: 800;
+}
+
+.shift-idle-picker {
+  margin-top: 10px;
+}
+
+.remove-shift-btn {
+  margin-top: 10px;
+}
+
+.operator-shifts-summary {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.38);
+  color: #bbf7d0;
+  font-weight: 800;
+}
+
+.operator-shift-detail {
+  display: block;
+  margin-bottom: 6px;
+}
+
 .clickable-row {
   cursor: pointer;
 }
@@ -326,6 +406,10 @@
   }
 
   .breakdown-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .operator-shift-grid {
     grid-template-columns: 1fr;
   }
 }

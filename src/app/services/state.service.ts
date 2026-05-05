@@ -5,6 +5,7 @@ import {
   EquipmentAnalytics,
   Equipment,
   Order,
+  OperatorShift,
   FinanceOperation,
   Transport,
 } from "../models/crm.models";
@@ -103,19 +104,18 @@ export class StateService {
 
   readonly operatorConflicts = computed((): [string, string, string][] => {
     const list: [string, string, string][] = [];
-    const orders = this.orders().filter(
-      (o) => this.orderBlocksSchedule(o) && o.operatorId,
-    );
+    const orders = this.orders().filter((o) => this.orderBlocksSchedule(o));
     for (let i = 0; i < orders.length; i++) {
       for (let j = i + 1; j < orders.length; j++) {
         const a = orders[i],
           b = orders[j];
-        if (
-          a.operatorId &&
-          a.operatorId === b.operatorId &&
-          this.ordersOverlapByWorkDays(a, b, "operator")
-        ) {
-          list.push([a.id, b.id, a.operatorId]);
+        for (const operatorId of this.orderOperatorIds(a)) {
+          if (
+            this.orderOperatorIds(b).includes(operatorId) &&
+            this.ordersOverlapByOperator(a, b, operatorId)
+          ) {
+            list.push([a.id, b.id, operatorId]);
+          }
         }
       }
     }
@@ -197,14 +197,18 @@ export class StateService {
         (t) => this.transportBlocksSchedule(t) && t.driverId,
       );
       this.orders()
-        .filter((order) => this.orderBlocksSchedule(order) && order.operatorId)
+        .filter((order) => this.orderBlocksSchedule(order))
         .forEach((order) => {
           transports.forEach((transport) => {
             if (
-              order.operatorId === transport.driverId &&
-              this.orderTransportOverlapByOperator(order, transport)
+              this.orderOperatorIds(order).includes(transport.driverId) &&
+              this.orderTransportOverlapByOperator(
+                order,
+                transport,
+                transport.driverId,
+              )
             ) {
-              list.push([order.id, transport.id, order.operatorId]);
+              list.push([order.id, transport.id, transport.driverId]);
             }
           });
         });
@@ -297,16 +301,16 @@ export class StateService {
   }
 
   orderOperatorCost(order: Order, fromDate = "", toDate = ""): number {
-    if (!order.operatorId || order.status === "cancelled") return 0;
-    const operator = this.byId(this.operators(), order.operatorId);
-    if (!operator?.rate) return 0;
-
-    const startDate =
-      fromDate && fromDate > order.startDate ? fromDate : order.startDate;
-    const endDate = toDate && toDate < order.endDate ? toDate : order.endDate;
-    if (startDate > endDate) return 0;
-
-    return this.orderOperatorWorkDays(order, startDate, endDate) * Number(operator.rate || 0);
+    if (order.status === "cancelled") return 0;
+    return this.orderOperatorAssignments(order).reduce((sum, assignment) => {
+      const operator = this.byId(this.operators(), assignment.operatorId);
+      if (!operator?.rate) return sum;
+      return (
+        sum +
+        this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate) *
+          Number(operator.rate || 0)
+      );
+    }, 0);
   }
 
   orderLogisticsCost(order: Order): number {
@@ -373,7 +377,44 @@ export class StateService {
   }
 
   orderOperatorWorkDays(order: Order, fromDate = "", toDate = ""): number {
-    return this.orderWorkDates(order, "operator", fromDate, toDate).length;
+    if (!this.hasOperatorShifts(order)) {
+      return this.orderWorkDates(order, "operator", fromDate, toDate).length;
+    }
+    const days = new Set<string>();
+    this.orderOperatorAssignments(order).forEach((assignment) => {
+      this.operatorAssignmentWorkDates(order, assignment, fromDate, toDate).forEach(
+        (date) => days.add(`${assignment.operatorId}:${date}`),
+      );
+    });
+    return days.size;
+  }
+
+  orderOperatorWorkDaysFor(
+    order: Order,
+    operatorId: string,
+    fromDate = "",
+    toDate = "",
+  ): number {
+    return this.orderOperatorAssignments(order)
+      .filter((assignment) => assignment.operatorId === operatorId)
+      .reduce(
+        (sum, assignment) =>
+          sum + this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
+        0,
+      );
+  }
+
+  orderOperatorCostFor(
+    order: Order,
+    operatorId: string,
+    fromDate = "",
+    toDate = "",
+  ): number {
+    const operator = this.byId(this.operators(), operatorId);
+    return (
+      this.orderOperatorWorkDaysFor(order, operatorId, fromDate, toDate) *
+      Number(operator?.rate || 0)
+    );
   }
 
   orderWorksOnDate(order: Order, kind: "equipment" | "operator", date: string): boolean {
@@ -415,6 +456,28 @@ export class StateService {
       );
   }
 
+  ordersOverlapByOperator(a: Order, b: Order, operatorId: string): boolean {
+    if (!this.orderBlocksSchedule(a) || !this.orderBlocksSchedule(b)) {
+      return false;
+    }
+    const from = this.maxDate(
+      this.minDateForOrderOperator(a, operatorId),
+      this.minDateForOrderOperator(b, operatorId),
+    );
+    const to = this.minDate(
+      this.maxDateForOrderOperator(a, operatorId),
+      this.maxDateForOrderOperator(b, operatorId),
+    );
+    if (from > to) return false;
+    return this.utils
+      .datesInclusive(from, to)
+      .some(
+        (date) =>
+          this.orderOperatorWorksOnDate(a, operatorId, date) &&
+          this.orderOperatorWorksOnDate(b, operatorId, date),
+      );
+  }
+
   orderTransportOverlapByEquipment(
     order: Order,
     transport: Transport,
@@ -437,16 +500,26 @@ export class StateService {
       .some((date) => this.orderUsesEquipmentOnDate(order, equipmentId, date));
   }
 
-  orderTransportOverlapByOperator(order: Order, transport: Transport): boolean {
+  orderTransportOverlapByOperator(
+    order: Order,
+    transport: Transport,
+    operatorId = transport.driverId,
+  ): boolean {
     if (!this.orderBlocksSchedule(order) || !this.transportBlocksSchedule(transport)) {
       return false;
     }
-    const from = this.maxDate(order.startDate, transport.startDate);
-    const to = this.minDate(order.endDate, transport.endDate);
+    const from = this.maxDate(
+      this.minDateForOrderOperator(order, operatorId),
+      transport.startDate,
+    );
+    const to = this.minDate(
+      this.maxDateForOrderOperator(order, operatorId),
+      transport.endDate,
+    );
     if (from > to) return false;
     return this.utils
       .datesInclusive(from, to)
-      .some((date) => this.orderWorksOnDate(order, "operator", date));
+      .some((date) => this.orderOperatorWorksOnDate(order, operatorId, date));
   }
 
   transportsOverlap(a: Transport, b: Transport): boolean {
@@ -465,6 +538,59 @@ export class StateService {
         ? order.logisticsTrailerId
         : "",
     ].filter((id): id is string => Boolean(id));
+  }
+
+  orderOperatorIds(order: Order): string[] {
+    return [
+      ...new Set(
+        this.orderOperatorAssignments(order).map((assignment) => assignment.operatorId),
+      ),
+    ].filter((id): id is string => Boolean(id));
+  }
+
+  orderOperatorAssignments(order: Order): OperatorShift[] {
+    if (this.hasOperatorShifts(order)) {
+      const globalIdleDates = new Set(order.operatorIdleDates || []);
+      return (order.operatorShifts || [])
+        .map((shift) => ({
+          id: shift.id || "",
+          operatorId: shift.operatorId || "",
+          startDate: shift.startDate || order.startDate,
+          endDate: shift.endDate || shift.startDate || order.endDate,
+          idleDates: [
+            ...new Set([
+              ...(Array.isArray(shift.idleDates) ? shift.idleDates : []),
+              ...globalIdleDates,
+            ]),
+          ],
+        }))
+        .filter(
+          (shift) =>
+            shift.operatorId &&
+            shift.startDate &&
+            shift.endDate &&
+            shift.startDate <= shift.endDate,
+        );
+    }
+    if (!order.operatorId) return [];
+    return [
+      {
+        id: "main",
+        operatorId: order.operatorId,
+        startDate: order.startDate,
+        endDate: order.endDate,
+        idleDates: order.operatorIdleDates || [],
+      },
+    ];
+  }
+
+  orderOperatorWorksOnDate(order: Order, operatorId: string, date: string): boolean {
+    if (!this.orderBlocksSchedule(order)) return false;
+    return this.orderOperatorAssignments(order)
+      .filter((assignment) => assignment.operatorId === operatorId)
+      .some((assignment) =>
+        this.operatorAssignmentWorkDates(order, assignment).includes(date),
+      );
   }
 
   private orderWorkDates(
@@ -518,9 +644,7 @@ export class StateService {
     const now = this.utils.todayStr();
     const busy =
       this.orders().some(
-        (o) =>
-          o.operatorId === operatorId &&
-          this.orderWorksOnDate(o, "operator", now),
+        (o) => this.orderOperatorWorksOnDate(o, operatorId, now),
       ) ||
       this.transports().some(
         (t) =>
@@ -604,5 +728,57 @@ export class StateService {
   private maxDateForOrderEquipment(order: Order, equipmentId: string): string {
     if (order.equipmentId === equipmentId) return order.endDate;
     return this.orderLogisticsEnd(order);
+  }
+
+  private hasOperatorShifts(order: Order): boolean {
+    return Array.isArray(order.operatorShifts) && order.operatorShifts.length > 0;
+  }
+
+  private operatorAssignmentWorkDays(
+    order: Order,
+    assignment: OperatorShift,
+    fromDate = "",
+    toDate = "",
+  ): number {
+    return this.operatorAssignmentWorkDates(
+      order,
+      assignment,
+      fromDate,
+      toDate,
+    ).length;
+  }
+
+  private operatorAssignmentWorkDates(
+    order: Order,
+    assignment: OperatorShift,
+    fromDate = "",
+    toDate = "",
+  ): string[] {
+    const startDate = this.maxDate(
+      this.maxDate(assignment.startDate, order.startDate),
+      fromDate,
+    );
+    const endDate = this.minDate(
+      this.minDate(assignment.endDate, order.endDate),
+      toDate,
+    );
+    if (!startDate || !endDate || startDate > endDate) return [];
+    const idle = new Set(assignment.idleDates || []);
+    return this.utils.datesInclusive(startDate, endDate).filter((date) => !idle.has(date));
+  }
+
+  private minDateForOrderOperator(order: Order, operatorId: string): string {
+    return this.orderOperatorAssignments(order)
+      .filter((assignment) => assignment.operatorId === operatorId)
+      .map((assignment) => assignment.startDate)
+      .sort()[0] || order.startDate;
+  }
+
+  private maxDateForOrderOperator(order: Order, operatorId: string): string {
+    const dates = this.orderOperatorAssignments(order)
+      .filter((assignment) => assignment.operatorId === operatorId)
+      .map((assignment) => assignment.endDate)
+      .sort();
+    return dates[dates.length - 1] || order.endDate;
   }
 }

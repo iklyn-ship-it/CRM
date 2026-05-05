@@ -8,6 +8,7 @@ import {
   BreakdownFaultParty,
   BreakdownStatus,
   Order,
+  OperatorShift,
   OrderStatus,
   Transport,
 } from "../../models/crm.models";
@@ -60,6 +61,7 @@ export class CalendarComponent {
     notes: "",
     equipmentIdleDates: [] as string[],
     operatorIdleDates: [] as string[],
+    operatorShifts: [] as OperatorShift[],
     logisticsEnabled: false,
     logisticsProvider: "own_trawl" as "own_trawl" | "third_party" | "self_drive",
     logisticsTrailerId: "",
@@ -513,6 +515,7 @@ export class CalendarComponent {
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
       operatorIdleDates: [...(order.operatorIdleDates || [])],
+      operatorShifts: this.cloneOperatorShifts(order.operatorShifts || []),
       logisticsEnabled: Boolean(order.logisticsEnabled),
       logisticsProvider: order.logisticsProvider || "own_trawl",
       logisticsTrailerId: order.logisticsTrailerId || "",
@@ -653,35 +656,41 @@ export class CalendarComponent {
   }
 
   formOperatorConflict(): Order | null {
-    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+    const draft = this.formDraftOrder();
+    const operatorIds = this.state.orderOperatorIds(draft);
+    if (!operatorIds.length || !this.form.startDate || !this.form.endDate) {
       return null;
     }
     return (
-      this.state.orders().find(
-        (order) =>
-          order.id !== this.editingId &&
-          this.state.orderBlocksSchedule(order) &&
-          order.operatorId === this.form.operatorId &&
-          this.state.ordersOverlapByWorkDays(
-            this.formDraftOrder(),
-            order,
-            "operator",
-          ),
-      ) || null
+      this.state.orders().find((order) => {
+        if (order.id === this.editingId || !this.state.orderBlocksSchedule(order)) {
+          return false;
+        }
+        return operatorIds.some(
+          (operatorId) =>
+            this.state.orderOperatorIds(order).includes(operatorId) &&
+            this.state.ordersOverlapByOperator(draft, order, operatorId),
+        );
+      }) || null
     );
   }
 
   formTransportOperatorConflict(): Transport | null {
-    if (!this.form.operatorId || !this.form.startDate || !this.form.endDate) {
+    const draft = this.formDraftOrder();
+    const operatorIds = this.state.orderOperatorIds(draft);
+    if (!operatorIds.length || !this.form.startDate || !this.form.endDate) {
       return null;
     }
-    const draft = this.formDraftOrder();
     return (
       this.state.transports().find(
         (transport) =>
           this.state.transportBlocksSchedule(transport) &&
-          transport.driverId === this.form.operatorId &&
-          this.state.orderTransportOverlapByOperator(draft, transport),
+          operatorIds.includes(transport.driverId) &&
+          this.state.orderTransportOverlapByOperator(
+            draft,
+            transport,
+            transport.driverId,
+          ),
       ) || null
     );
   }
@@ -778,6 +787,7 @@ export class CalendarComponent {
       notes: "",
       equipmentIdleDates: [],
       operatorIdleDates: [],
+      operatorShifts: [],
       logisticsEnabled: false,
       logisticsProvider: "own_trawl",
       logisticsTrailerId: "",
@@ -873,6 +883,7 @@ export class CalendarComponent {
       operatorIdleDates: this.form.operatorIdleDates
         .filter((date) => inPeriod.has(date))
         .sort(),
+      operatorShifts: this.normalizeOperatorShifts(inPeriod),
     };
   }
 
@@ -886,6 +897,9 @@ export class CalendarComponent {
       message.includes("operator_idle_dates")
     ) {
       return "База Supabase еще не готова для сохранения дней простоя. Выполни SQL-файл supabase-order-idle-dates.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("operator_shifts")) {
+      return "База Supabase еще не готова для сохранения смен операторов. Выполни SQL-файл supabase-order-operator-shifts.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (message.includes("logistics_")) {
       return "База Supabase еще не готова для сохранения логистики. Выполни SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
@@ -929,6 +943,33 @@ export class CalendarComponent {
       Number(this.form.logisticsPickupKm || 0) +
       Number(this.form.logisticsDeliveryKm || 0);
     this.form.logisticsCost = this.logisticsSubtotal();
+  }
+
+  private normalizeOperatorShifts(inPeriod: Set<string>): OperatorShift[] {
+    return this.form.operatorShifts
+      .filter((shift) => shift.operatorId && shift.startDate && shift.endDate)
+      .map((shift) => {
+        const dates = new Set(this.utils.datesInclusive(shift.startDate, shift.endDate));
+        return {
+          id: shift.id || this.utils.uid("shift"),
+          operatorId: shift.operatorId,
+          startDate: shift.startDate,
+          endDate: shift.endDate,
+          idleDates: [...new Set(shift.idleDates || [])]
+            .filter((date) => inPeriod.has(date) && dates.has(date))
+            .sort(),
+        };
+      });
+  }
+
+  private cloneOperatorShifts(shifts: OperatorShift[]): OperatorShift[] {
+    return shifts.map((shift) => ({
+      id: shift.id || this.utils.uid("shift"),
+      operatorId: shift.operatorId || "",
+      startDate: shift.startDate || "",
+      endDate: shift.endDate || "",
+      idleDates: [...(shift.idleDates || [])],
+    }));
   }
 
   private transportTitle(transport: {

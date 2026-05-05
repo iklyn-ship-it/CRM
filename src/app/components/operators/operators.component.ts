@@ -11,6 +11,7 @@ import {
 } from "../../models/crm.models";
 
 interface OperatorWorkJournalRow {
+  key: string;
   orderId: string;
   operatorName: string;
   clientName: string;
@@ -66,9 +67,16 @@ export class OperatorsComponent {
 
     return this.state
       .orders()
-      .filter((order) => {
-        if (!order.operatorId || order.status === "cancelled") return false;
-        if (operatorId && order.operatorId !== operatorId) return false;
+      .flatMap((order) => {
+        if (order.status === "cancelled") return [];
+        return this.state.orderOperatorAssignments(order).map((assignment) => ({
+          order,
+          assignment,
+        }));
+      })
+      .filter(({ order, assignment }) => {
+        const assignedOperatorId = assignment.operatorId;
+        if (operatorId && assignedOperatorId !== operatorId) return false;
         if (from || to) {
           const fromDate = from || "0000-01-01";
           const toDate = to || "9999-12-31";
@@ -76,8 +84,8 @@ export class OperatorsComponent {
             !this.utils.overlap(
               fromDate,
               toDate,
-              order.startDate,
-              order.endDate,
+              assignment.startDate,
+              assignment.endDate,
             )
           ) {
             return false;
@@ -85,10 +93,11 @@ export class OperatorsComponent {
         }
         return true;
       })
-      .map((order) => {
+      .map(({ order, assignment }) => {
+        const assignedOperatorId = assignment.operatorId;
         const operator = this.state.byId(
           this.state.operators(),
-          order.operatorId,
+          assignedOperatorId,
         );
         const client = this.state.byId(this.state.clients(), order.clientId);
         const equipment = this.state.byId(
@@ -96,12 +105,16 @@ export class OperatorsComponent {
           order.equipmentId,
         );
         const startDate =
-          from && from > order.startDate ? from : order.startDate;
-        const endDate = to && to < order.endDate ? to : order.endDate;
-        const days = this.utils.daysInclusive(startDate, endDate);
+          from && from > assignment.startDate ? from : assignment.startDate;
+        const endDate = to && to < assignment.endDate ? to : assignment.endDate;
+        const idleDates = new Set(assignment.idleDates || []);
+        const days = this.utils
+          .datesInclusive(startDate, endDate)
+          .filter((date) => !idleDates.has(date)).length;
         const rate = Number(operator?.rate || 0);
 
         return {
+          key: `${order.id}-${assignment.id}-${assignedOperatorId}`,
           orderId: order.id,
           operatorName: operator?.name || "—",
           clientName: client?.name || "—",
@@ -115,6 +128,7 @@ export class OperatorsComponent {
           status: order.status,
         };
       })
+      .filter((row) => row.days > 0)
       .sort((a, b) => b.startDate.localeCompare(a.startDate));
   });
 
@@ -164,9 +178,9 @@ export class OperatorsComponent {
   opShifts(opId: string): number {
     return this.state
       .orders()
-      .filter((o) => o.operatorId === opId && o.status !== "cancelled")
+      .filter((o) => o.status !== "cancelled")
       .reduce(
-        (s, o) => s + this.utils.daysInclusive(o.startDate, o.endDate),
+        (s, o) => s + this.state.orderOperatorWorkDaysFor(o, opId),
         0,
       );
   }
@@ -219,9 +233,21 @@ export class OperatorsComponent {
 
   async remove(id: string): Promise<void> {
     if (!confirm("Удалить оператора?")) return;
-    const orders = this.state.orders().filter((o) => o.operatorId === id);
-    for (const o of orders)
-      await this.db.update("orders", o.id, { operatorId: "" });
+    const orders = this.state
+      .orders()
+      .filter(
+        (o) =>
+          o.operatorId === id ||
+          (o.operatorShifts || []).some((shift) => shift.operatorId === id),
+      );
+    for (const o of orders) {
+      await this.db.update("orders", o.id, {
+        operatorId: o.operatorId === id ? "" : o.operatorId,
+        operatorShifts: (o.operatorShifts || []).filter(
+          (shift) => shift.operatorId !== id,
+        ),
+      });
+    }
     await this.db.remove("operators", id);
     this.clearForm();
   }

@@ -79,6 +79,10 @@
               {{ utils.fmtDate(conflict.endDate) }}
             </div>
           }
+          <div class="small">
+            Для длинной заявки можно добавить сменщиков ниже. Если смен нет,
+            зарплата считается по этому оператору.
+          </div>
         </div>
         <div class="field">
           <label>Дата начала</label
@@ -178,6 +182,117 @@
                 Эти дни не считаются в зарплату оператора и не занимают оператора.
               </div>
             </details>
+          </div>
+          <div class="field detail-wide">
+            <div class="operator-shifts-box">
+              <div class="operator-shifts-head">
+                <div>
+                  <strong>Смены операторов</strong>
+                  <span>
+                    Несколько периодов для одной длинной заявки без закрытия заявки.
+                  </span>
+                </div>
+                <button type="button" class="btn ghost" (click)="addOperatorShift()">
+                  + Смена
+                </button>
+              </div>
+              @if (form.operatorShifts.length) {
+                <div class="operator-shifts-list">
+                  @for (shift of form.operatorShifts; track shift.id; let i = $index) {
+                    <div class="operator-shift-card">
+                      <div class="operator-shift-grid">
+                        <div class="field">
+                          <label>Оператор смены</label>
+                          <select
+                            [(ngModel)]="shift.operatorId"
+                            [name]="'shiftOperator' + i"
+                          >
+                            <option value="">— выбрать —</option>
+                            @for (o of state.operators(); track o.id) {
+                              <option [value]="o.id">
+                                {{ o.name }} • {{ utils.money(o.rate) }}/день
+                              </option>
+                            }
+                          </select>
+                        </div>
+                        <div class="field">
+                          <label>Начало смены</label>
+                          <input
+                            type="date"
+                            [(ngModel)]="shift.startDate"
+                            [name]="'shiftStart' + i"
+                          />
+                        </div>
+                        <div class="field">
+                          <label>Окончание смены</label>
+                          <input
+                            type="date"
+                            [(ngModel)]="shift.endDate"
+                            [name]="'shiftEnd' + i"
+                          />
+                        </div>
+                        <div class="field">
+                          <label>Начисление</label>
+                          <div class="shift-payroll">
+                            {{ shiftWorkDays(shift) }} дн. •
+                            {{ utils.money(shiftPayroll(shift)) }}
+                          </div>
+                        </div>
+                      </div>
+                      <details class="idle-date-picker shift-idle-picker">
+                        <summary>
+                          Дни без работы в смене: {{ shift.idleDates.length }}
+                          <span>из {{ shiftDates(shift).length }} дней</span>
+                        </summary>
+                        <div class="idle-date-actions">
+                          <button
+                            type="button"
+                            class="btn ghost"
+                            (click)="excludeShiftWeekends(shift)"
+                          >
+                            Исключить выходные дни
+                          </button>
+                          <button
+                            type="button"
+                            class="btn ghost"
+                            (click)="clearShiftIdleDates(shift)"
+                          >
+                            Очистить
+                          </button>
+                        </div>
+                        <div class="idle-date-grid">
+                          @for (date of shiftDates(shift); track date) {
+                            <button
+                              type="button"
+                              class="idle-date-chip"
+                              [class.active]="isShiftIdleDate(shift, date)"
+                              (click)="toggleShiftIdleDate(shift, date)"
+                            >
+                              {{ utils.fmtDate(date) }}
+                            </button>
+                          }
+                        </div>
+                      </details>
+                      <button
+                        type="button"
+                        class="btn ghost remove-shift-btn"
+                        (click)="removeOperatorShift(i)"
+                      >
+                        Удалить смену
+                      </button>
+                    </div>
+                  }
+                </div>
+                <div class="operator-shifts-summary">
+                  Итого зарплата операторов по заявке:
+                  {{ utils.money(formOperatorPayroll()) }}
+                </div>
+              } @else {
+                <div class="small">
+                  Смены не заданы: используется основной оператор заявки.
+                </div>
+              }
+            </div>
           </div>
         }
         <div class="logistics-box">
@@ -574,6 +689,10 @@
             <strong>{{ state.orderOperatorWorkDays(selected) }}</strong>
           </div>
           <div>
+            <span>Зарплата операторов</span>
+            <strong>{{ utils.money(state.orderOperatorCost(selected)) }}</strong>
+          </div>
+          <div>
             <span>План</span>
             <strong>{{ utils.money(state.orderPlan(selected)) }}</strong>
           </div>
@@ -603,6 +722,22 @@
             <span>Простой оператора</span>
             <strong>{{ idleDatesLabel(selected.operatorIdleDates || []) }}</strong>
           </div>
+          @if (selected.operatorShifts.length) {
+            <div class="detail-wide">
+              <span>Смены операторов</span>
+              <strong>
+                @for (shift of selected.operatorShifts; track shift.id) {
+                  <span class="operator-shift-detail">
+                    {{ operatorName(shift.operatorId) }}:
+                    {{ utils.fmtDate(shift.startDate) }} -
+                    {{ utils.fmtDate(shift.endDate) }},
+                    {{ shiftWorkDays(shift) }} дн.,
+                    {{ utils.money(shiftPayroll(shift)) }}
+                  </span>
+                }
+              </strong>
+            </div>
+          }
           <div class="detail-wide">
             <span>Комментарий</span>
             <strong>{{ selected.notes || "—" }}</strong>
