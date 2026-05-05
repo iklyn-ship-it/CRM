@@ -1,6 +1,5 @@
 import { Routes } from "@angular/router";
 import { authGuard, loginGuard } from "./guards/auth.guard";
-import { FinanceComponent } from "./components/finance/finance.component";
 
 export const routes: Routes = [
   {
@@ -47,7 +46,10 @@ export const routes: Routes = [
       },
       {
         path: "finance",
-        component: FinanceComponent,
+        loadComponent: () =>
+          import("./components/finance/finance.component").then(
+            (m) => m.FinanceComponent,
+          ),
       },
       {
         path: "transports",
