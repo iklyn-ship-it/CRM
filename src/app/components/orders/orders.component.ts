@@ -35,6 +35,8 @@ export class OrdersComponent {
     clientId: "",
     equipmentId: "",
     operatorId: "",
+    primaryOperatorStartDate: "",
+    primaryOperatorEndDate: "",
     startDate: "",
     endDate: "",
     location: "",
@@ -337,6 +339,7 @@ export class OrdersComponent {
     if (!this.form.startDate || !this.form.endDate) return;
     if (!this.validateLogistics()) return;
     if (!this.validateBreakdown()) return;
+    if (!this.validatePrimaryOperatorPeriod()) return;
     if (!this.validateOperatorShifts()) return;
     const transportEquipmentConflict = this.formTransportEquipmentConflict();
     if (transportEquipmentConflict) {
@@ -403,6 +406,8 @@ export class OrdersComponent {
       clientId: order.clientId,
       equipmentId: order.equipmentId,
       operatorId: order.operatorId,
+      primaryOperatorStartDate: this.primaryOperatorPeriod(order).startDate,
+      primaryOperatorEndDate: this.primaryOperatorPeriod(order).endDate,
       startDate: order.startDate,
       endDate: order.endDate,
       location: order.location,
@@ -481,6 +486,8 @@ export class OrdersComponent {
       clientId: "",
       equipmentId: "",
       operatorId: "",
+      primaryOperatorStartDate: "",
+      primaryOperatorEndDate: "",
       startDate: "",
       endDate: "",
       location: "",
@@ -585,8 +592,8 @@ export class OrdersComponent {
       {
         id: this.utils.uid("shift"),
         operatorId: this.form.operatorId || "",
-        startDate: this.form.startDate,
-        endDate: this.form.endDate,
+        startDate: this.primaryOperatorStartDate(),
+        endDate: this.primaryOperatorEndDate(),
         idleDates: [],
       },
     ];
@@ -640,6 +647,27 @@ export class OrdersComponent {
 
   formOperatorPayroll(): number {
     return this.state.orderOperatorCost(this.formDraftOrder());
+  }
+
+  primaryOperatorStartDate(): string {
+    return this.form.primaryOperatorStartDate || this.form.startDate;
+  }
+
+  primaryOperatorEndDate(): string {
+    return this.form.primaryOperatorEndDate || this.form.endDate;
+  }
+
+  primaryOperatorWorkDays(): number {
+    if (!this.form.operatorId) return 0;
+    const idle = new Set(this.form.operatorIdleDates || []);
+    return this.utils
+      .datesInclusive(this.primaryOperatorStartDate(), this.primaryOperatorEndDate())
+      .filter((date) => !idle.has(date)).length;
+  }
+
+  primaryOperatorPayroll(): number {
+    const operator = this.state.byId(this.state.operators(), this.form.operatorId);
+    return this.primaryOperatorWorkDays() * Number(operator?.rate || 0);
   }
 
   orderRepairNotice(order: Order): string {
@@ -698,8 +726,9 @@ export class OrdersComponent {
       ...(this.form.breakdownOperatorIdle ? breakdownIdleDates : []),
     ]);
     const operatorShifts = this.normalizeOperatorShifts(inPeriod);
+    const { primaryOperatorStartDate, primaryOperatorEndDate, ...form } = this.form;
     return {
-      ...this.form,
+      ...form,
       logisticsTrailerId:
         this.form.logisticsEnabled && this.form.logisticsProvider === "own_trawl"
           ? this.form.logisticsTrailerId
@@ -836,7 +865,45 @@ export class OrdersComponent {
     return true;
   }
 
+  private validatePrimaryOperatorPeriod(): boolean {
+    if (!this.form.operatorId || this.form.operatorShifts.length) return true;
+    const startDate = this.primaryOperatorStartDate();
+    const endDate = this.primaryOperatorEndDate();
+    if (!startDate || !endDate) return true;
+    if (startDate > endDate) {
+      alert("Дата начала работы основного оператора не может быть позже даты окончания.");
+      return false;
+    }
+    if (startDate < this.form.startDate || endDate > this.form.endDate) {
+      alert("Период работы основного оператора должен быть внутри периода заявки.");
+      return false;
+    }
+    return true;
+  }
+
   private normalizeOperatorShifts(inPeriod: Set<string>): OperatorShift[] {
+    if (!this.form.operatorShifts.length && this.form.operatorId) {
+      const startDate = this.primaryOperatorStartDate();
+      const endDate = this.primaryOperatorEndDate();
+      const usesCustomPeriod =
+        startDate &&
+        endDate &&
+        (startDate !== this.form.startDate || endDate !== this.form.endDate);
+      if (usesCustomPeriod) {
+        const dates = new Set(this.utils.datesInclusive(startDate, endDate));
+        return [
+          {
+            id: this.utils.uid("shift"),
+            operatorId: this.form.operatorId,
+            startDate,
+            endDate,
+            idleDates: [...new Set(this.form.operatorIdleDates || [])]
+              .filter((date) => inPeriod.has(date) && dates.has(date))
+              .sort(),
+          },
+        ];
+      }
+    }
     return this.form.operatorShifts
       .filter((shift) => shift.operatorId && shift.startDate && shift.endDate)
       .map((shift) => {
@@ -861,6 +928,18 @@ export class OrdersComponent {
       endDate: shift.endDate || "",
       idleDates: [...(shift.idleDates || [])],
     }));
+  }
+
+  private primaryOperatorPeriod(order: Order): { startDate: string; endDate: string } {
+    const shift =
+      (order.operatorShifts || []).length === 1 &&
+      order.operatorShifts[0].operatorId === order.operatorId
+        ? order.operatorShifts[0]
+        : null;
+    return {
+      startDate: shift?.startDate || order.startDate,
+      endDate: shift?.endDate || order.endDate,
+    };
   }
 
   private validateBreakdown(): boolean {

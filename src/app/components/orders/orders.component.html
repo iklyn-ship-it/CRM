@@ -83,6 +83,32 @@
             Для длинной заявки можно добавить сменщиков ниже. Если смен нет,
             зарплата считается по этому оператору.
           </div>
+          @if (form.operatorId && !form.operatorShifts.length) {
+            <div class="primary-operator-period">
+              <div class="field">
+                <label>Работает с</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.primaryOperatorStartDate"
+                  name="primaryOperatorStartDate"
+                  [placeholder]="form.startDate"
+                />
+              </div>
+              <div class="field">
+                <label>Работает до</label>
+                <input
+                  type="date"
+                  [(ngModel)]="form.primaryOperatorEndDate"
+                  name="primaryOperatorEndDate"
+                  [placeholder]="form.endDate"
+                />
+              </div>
+              <div class="primary-operator-summary">
+                {{ primaryOperatorWorkDays() }} дн. •
+                {{ utils.money(primaryOperatorPayroll()) }}
+              </div>
+            </div>
+          }
         </div>
         <div class="field">
           <label>Дата начала</label
