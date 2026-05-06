@@ -421,7 +421,7 @@ export class StateService {
     if (transport.status === "cancelled" || !transport.driverId) return 0;
     const driver = this.byId(this.operators(), transport.driverId);
     if (!driver?.rate && !driver?.hourlyRate) return 0;
-    const days = this.utils.daysInclusive(transport.startDate, transport.endDate).length;
+    const days = this.utils.daysInclusive(transport.startDate, transport.endDate);
     if (driver.hourlyRate) return days * 8 * Number(driver.hourlyRate || 0);
     return days * Number(driver.rate || 0);
   }
