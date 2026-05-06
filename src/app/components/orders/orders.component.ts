@@ -304,7 +304,7 @@ export class OrdersComponent {
     const daysLeft = this.orderEndingDaysLeft(order);
     if (daysLeft < 0) return "overdue";
     if (daysLeft === 0) return "today";
-    if (daysLeft <= 5) return "soon";
+    if (daysLeft <= 1) return "soon";
     return "";
   }
 
