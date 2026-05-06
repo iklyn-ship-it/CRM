@@ -883,6 +883,11 @@ export class CalendarComponent {
     this.syncLogisticsTotals();
     return {
       ...this.form,
+      rate: Number(this.form.rate || 0),
+      equipmentHourlyRate: Number(this.form.equipmentHourlyRate || 0),
+      standardWorkHours: Number(this.form.standardWorkHours || 8),
+      additionalWorkHours: Number(this.form.additionalWorkHours || 0),
+      discountValue: Number(this.form.discountValue || 0),
       logisticsTrailerId:
         this.form.logisticsEnabled && this.form.logisticsProvider === "own_trawl"
           ? this.form.logisticsTrailerId
@@ -902,22 +907,22 @@ export class CalendarComponent {
         ? Number(this.form.logisticsDeliveryPricePerKm || 0)
         : 0,
       logisticsPickupPricePerKm: this.form.logisticsEnabled
-        ? this.form.logisticsPickupPricePerKm
+        ? Number(this.form.logisticsPickupPricePerKm || 0)
         : 50,
       logisticsDeliveryPricePerKm: this.form.logisticsEnabled
-        ? this.form.logisticsDeliveryPricePerKm
+        ? Number(this.form.logisticsDeliveryPricePerKm || 0)
         : 250,
       logisticsPickupKm: this.form.logisticsEnabled
-        ? this.form.logisticsPickupKm
+        ? Number(this.form.logisticsPickupKm || 0)
         : 0,
       logisticsDeliveryKm: this.form.logisticsEnabled
-        ? this.form.logisticsDeliveryKm
+        ? Number(this.form.logisticsDeliveryKm || 0)
         : 0,
       logisticsPickupCost: this.form.logisticsEnabled
-        ? this.form.logisticsPickupCost
+        ? Number(this.form.logisticsPickupCost || 0)
         : 0,
       logisticsDeliveryCost: this.form.logisticsEnabled
-        ? this.form.logisticsDeliveryCost
+        ? Number(this.form.logisticsDeliveryCost || 0)
         : 0,
       assemblyDisassemblyDate: this.form.assemblyEnabled
         ? this.form.assemblyDisassemblyDate
