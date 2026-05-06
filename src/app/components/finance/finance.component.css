@@ -15,6 +15,7 @@
 
 .finance-parallel-grid .internal-scroll-panel,
 .finance-parallel-grid .order-finance-panel {
+  height: calc(100vh - 150px);
   max-height: calc(100vh - 150px);
 }
 
@@ -51,6 +52,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   padding-right: 4px;
 }
 
@@ -266,7 +268,10 @@
 }
 
 @media (max-width: 720px) {
+  .finance-parallel-grid .internal-scroll-panel,
+  .finance-parallel-grid .order-finance-panel,
   .order-finance-panel {
+    height: auto;
     max-height: none;
   }
 
