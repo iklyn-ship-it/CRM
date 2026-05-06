@@ -444,6 +444,29 @@ button.reserve-bar {
   color: #f8fafc;
 }
 
+.order-save-total {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(250, 204, 21, 0.26);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.16), transparent 46%),
+    rgba(2, 6, 23, 0.58);
+}
+
+.order-save-total span,
+.order-save-total small {
+  color: var(--muted);
+}
+
+.order-save-total strong {
+  color: #facc15;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
 @media (max-width: 720px) {
   .calendar-order-summary {
     grid-template-columns: 1fr;

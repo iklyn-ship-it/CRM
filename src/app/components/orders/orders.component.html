@@ -759,6 +759,16 @@
           <label>Комментарий</label
           ><textarea [(ngModel)]="form.notes" name="notes"></textarea>
         </div>
+        <div class="order-save-total">
+          <span>Сумма заявки к сохранению</span>
+          <strong>{{ utils.money(orderDraftTotal()) }}</strong>
+          @if (form.discountEnabled) {
+            <small>Скидка: {{ utils.money(orderDraftDiscountAmount()) }}</small>
+          }
+          @if (form.vatEnabled) {
+            <small>НДС включен в стоимость техники</small>
+          }
+        </div>
         <div class="actions">
           <button type="submit" class="btn primary">
             {{ editingId ? "Сохранить изменения" : "Сохранить заявку" }}
