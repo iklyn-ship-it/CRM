@@ -32,6 +32,7 @@
         <div class="field"><label>Тип</label><input type="text" [(ngModel)]="form.type" name="type"></div>
         <div class="field"><label>Госномер / ID</label><input type="text" [(ngModel)]="form.code" name="code"></div>
         <div class="field"><label>Тариф по умолчанию, ₴/день</label><input type="number" [(ngModel)]="form.defaultRate" name="defaultRate" min="0"></div>
+        <div class="field"><label>Стоимость 1 часа работы, ₴/час</label><input type="number" [(ngModel)]="form.hourlyRate" name="hourlyRate" min="0"></div>
         <div class="field">
           <label>Базовый статус</label>
           <select [(ngModel)]="form.status" name="status">
@@ -81,13 +82,14 @@
       </div>
       <div class="table-wrap equipment-table-wrap">
         <table>
-          <thead><tr><th>№</th><th>Название</th><th>Тип</th><th>ID</th><th>Тариф</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead>
+          <thead><tr><th>№</th><th>Название</th><th>Тип</th><th>ID</th><th>Тариф/день</th><th>₴/час</th><th>Статус</th><th>Загрузка</th><th>Ремонты</th><th></th></tr></thead>
           <tbody>
             @for (eq of filteredEquipment(); track eq.id; let i = $index) {
               <tr>
                 <td class="equipment-row-number">{{ i + 1 }}</td>
                 <td>{{ eq.name }}</td><td>{{ eq.type || '—' }}</td><td>{{ eq.code || '—' }}</td>
                 <td>{{ utils.money(eq.defaultRate || 0) }}</td>
+                <td>{{ utils.money(eq.hourlyRate || 0) }}</td>
                 <td><span class="badge" [ngClass]="eqBadgeClass(state.runtimeEqStatus(eq))">{{ eqBadgeLabel(state.runtimeEqStatus(eq)) }}</span></td>
                 <td>{{ state.utilForEq(eq.id, state.calendarDate()) }}%</td>
                 <td>{{ repairCount(eq.id) }}</td>
@@ -97,7 +99,7 @@
                 </td>
               </tr>
             }
-            @if (!filteredEquipment().length) { <tr><td colspan="9"><div class="empty">Нет техники по выбранному типу.</div></td></tr> }
+            @if (!filteredEquipment().length) { <tr><td colspan="10"><div class="empty">Нет техники по выбранному типу.</div></td></tr> }
           </tbody>
         </table>
       </div>

@@ -59,6 +59,7 @@ export class FinanceComponent {
     amount: 0,
     orderId: "",
     repairId: "",
+    equipmentId: "",
     comment: "",
   };
   readonly categories = [
@@ -195,7 +196,7 @@ export class FinanceComponent {
   readonly unlinkedOps = computed(() =>
     this.state
       .operations()
-      .filter((op) => !op.orderId && !op.repairId)
+      .filter((op) => !op.orderId && !op.repairId && !op.equipmentId)
       .sort((a, b) => b.date.localeCompare(a.date)),
   );
 
@@ -230,11 +231,25 @@ export class FinanceComponent {
       );
       return;
     }
-    if (this.form.orderId) this.form.repairId = "";
+    if (this.form.orderId) {
+      this.form.repairId = "";
+      const order = this.state.byId(this.state.orders(), this.form.orderId);
+      this.form.equipmentId = order?.equipmentId || this.form.equipmentId;
+    }
   }
 
   onRepairLinkChange(): void {
-    if (this.form.repairId) this.form.orderId = "";
+    if (this.form.repairId) {
+      this.form.orderId = "";
+      const repair = this.state.byId(this.state.repairs(), this.form.repairId);
+      this.form.equipmentId = repair?.equipmentId || this.form.equipmentId;
+    }
+  }
+
+  onEquipmentLinkChange(): void {
+    if (this.form.equipmentId) {
+      this.form.repairId = "";
+    }
   }
 
   linkText(op: FinanceOperation): string {
@@ -248,6 +263,10 @@ export class FinanceComponent {
       if (rep)
         return `Ремонт ${rep.id.slice(-5)} • ${this.state.byId(this.state.equipment(), rep.equipmentId)?.name || ""}`;
     }
+    if (op.equipmentId) {
+      const equipment = this.state.byId(this.state.equipment(), op.equipmentId);
+      if (equipment) return `Техника • ${equipment.name}`;
+    }
     return "—";
   }
 
@@ -260,13 +279,18 @@ export class FinanceComponent {
       );
       return;
     }
-    if (this.editingId)
-      await this.db.update("operations", this.editingId, this.form);
-    else
-      await this.db.insert("operations", {
-        id: this.utils.uid("fin"),
-        ...this.form,
-      });
+    try {
+      if (this.editingId)
+        await this.db.update("operations", this.editingId, this.form);
+      else
+        await this.db.insert("operations", {
+          id: this.utils.uid("fin"),
+          ...this.form,
+        });
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+      return;
+    }
     this.clearForm();
     this.formOpen.set(false);
   }
@@ -302,6 +326,7 @@ export class FinanceComponent {
       amount: op.amount,
       orderId: op.orderId,
       repairId: op.repairId,
+      equipmentId: op.equipmentId || "",
       comment: op.comment,
     };
     this.formOpen.set(true);
@@ -322,7 +347,21 @@ export class FinanceComponent {
       amount: 0,
       orderId: "",
       repairId: "",
+      equipmentId: "",
       comment: "",
     };
+  }
+
+  private saveErrorMessage(error: unknown): string {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message || "")
+        : "";
+    if (message.includes("equipment_id")) {
+      return "База Supabase еще не готова для привязки финансов к технике. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    return message
+      ? `Не удалось сохранить финансовую операцию: ${message}`
+      : "Не удалось сохранить финансовую операцию.";
   }
 }

@@ -47,6 +47,7 @@ export class OperatorsComponent {
     phone: "",
     skill: "",
     rate: 0,
+    hourlyRate: 0,
     workStatus: "active" as OperatorWorkStatus,
   };
 
@@ -111,7 +112,12 @@ export class OperatorsComponent {
         const days = this.utils
           .datesInclusive(startDate, endDate)
           .filter((date) => !idleDates.has(date)).length;
-        const rate = Number(operator?.rate || 0);
+        const hourlyRate = Number(operator?.hourlyRate || 0);
+        const rate = hourlyRate || Number(operator?.rate || 0);
+        const hours =
+          hourlyRate > 0
+            ? days * this.state.orderStandardWorkHours(order)
+            : days;
 
         return {
           key: `${order.id}-${assignment.id}-${assignedOperatorId}`,
@@ -124,7 +130,7 @@ export class OperatorsComponent {
           endDate,
           days,
           rate,
-          amount: days * rate,
+          amount: hours * rate,
           status: order.status,
         };
       })
@@ -187,13 +193,18 @@ export class OperatorsComponent {
 
   async save(): Promise<void> {
     if (!this.form.name) return;
-    if (this.editingId)
-      await this.db.update("operators", this.editingId, this.form);
-    else
-      await this.db.insert("operators", {
-        id: this.utils.uid("op"),
-        ...this.form,
-      });
+    try {
+      if (this.editingId)
+        await this.db.update("operators", this.editingId, this.form);
+      else
+        await this.db.insert("operators", {
+          id: this.utils.uid("op"),
+          ...this.form,
+        });
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+      return;
+    }
     this.clearForm();
     this.formOpen.set(false);
   }
@@ -215,6 +226,7 @@ export class OperatorsComponent {
       phone: op.phone,
       skill: op.skill,
       rate: op.rate,
+      hourlyRate: op.hourlyRate || 0,
       workStatus: op.workStatus || "active",
     };
     this.formOpen.set(true);
@@ -259,7 +271,21 @@ export class OperatorsComponent {
       phone: "",
       skill: "",
       rate: 0,
+      hourlyRate: 0,
       workStatus: "active",
     };
+  }
+
+  private saveErrorMessage(error: unknown): string {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message || "")
+        : "";
+    if (message.includes("hourly_rate")) {
+      return "База Supabase еще не готова для часовых ставок. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    return message
+      ? `Не удалось сохранить оператора: ${message}`
+      : "Не удалось сохранить оператора.";
   }
 }

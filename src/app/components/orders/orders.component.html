@@ -60,7 +60,9 @@
             <option value="">— без оператора —</option>
             @for (o of state.operators(); track o.id) {
               <option [value]="o.id">
-                {{ o.name }} • {{ utils.money(o.rate) }}/день
+                {{ o.name }} • {{ utils.money(o.hourlyRate || o.rate) }}/{{
+                  o.hourlyRate ? "час" : "день"
+                }}
               </option>
             }
           </select>
@@ -128,6 +130,45 @@
             required
           />
         </div>
+        <div class="field">
+          <label>Стоимость 1 часа техники, ₴/час</label>
+          <input
+            type="number"
+            [(ngModel)]="form.equipmentHourlyRate"
+            name="equipmentHourlyRate"
+            min="0"
+          />
+          <div class="small">
+            Подтягивается из карточки техники. Если не заполнено, заявка считается по тарифу за день.
+          </div>
+        </div>
+        <div class="field">
+          <label>Стандарт часов в день</label>
+          <input
+            type="number"
+            [(ngModel)]="form.standardWorkHours"
+            name="standardWorkHours"
+            min="0"
+          />
+        </div>
+        <details class="idle-date-picker detail-wide">
+          <summary>
+            Дополнительные часы работы: {{ form.additionalWorkHours || 0 }} ч
+            <span>к стандарту {{ form.standardWorkHours || 8 }} ч/день</span>
+          </summary>
+          <div class="field">
+            <label>Дополнительные часы, всего по заявке</label>
+            <input
+              type="number"
+              [(ngModel)]="form.additionalWorkHours"
+              name="additionalWorkHours"
+              min="0"
+            />
+          </div>
+          <div class="small">
+            Всего часов техники: {{ orderDraftWorkHours() }} ч. Эти часы добавляются к плану заявки.
+          </div>
+        </details>
         @if (orderDates().length) {
           <div class="field">
             <label>Дни, когда техника не работала</label>
@@ -236,7 +277,9 @@
                             <option value="">— выбрать —</option>
                             @for (o of state.operators(); track o.id) {
                               <option [value]="o.id">
-                                {{ o.name }} • {{ utils.money(o.rate) }}/день
+                                {{ o.name }} • {{ utils.money(o.hourlyRate || o.rate) }}/{{
+                                  o.hourlyRate ? "час" : "день"
+                                }}
                               </option>
                             }
                           </select>
@@ -709,6 +752,18 @@
           <div>
             <span>Рабочие дни техники</span>
             <strong>{{ state.orderEquipmentWorkDays(selected) }}</strong>
+          </div>
+          <div>
+            <span>Рабочие часы техники</span>
+            <strong>{{ state.orderEquipmentWorkHours(selected) }} ч</strong>
+          </div>
+          <div>
+            <span>Ставка техники</span>
+            <strong>
+              {{ utils.money(selected.equipmentHourlyRate || selected.rate) }}/{{
+                selected.equipmentHourlyRate ? "час" : "день"
+              }}
+            </strong>
           </div>
           <div>
             <span>Рабочие дни оператора</span>

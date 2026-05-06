@@ -18,6 +18,7 @@
         <div class="field"><label>Телефон</label><input type="text" [(ngModel)]="form.phone" name="phone"></div>
         <div class="field"><label>Специализация</label><input type="text" [(ngModel)]="form.skill" name="skill"></div>
         <div class="field"><label>Ставка, ₴/день</label><input type="number" [(ngModel)]="form.rate" name="rate" min="0"></div>
+        <div class="field"><label>Стоимость 1 часа работы, ₴/час</label><input type="number" [(ngModel)]="form.hourlyRate" name="hourlyRate" min="0"></div>
         <div class="field">
           <label>Состояние сотрудника</label>
           <select [(ngModel)]="form.workStatus" name="workStatus">
@@ -41,11 +42,12 @@
       <h3 style="margin-top:0">Операторы</h3>
       <div class="table-wrap internal-scroll-body">
         <table>
-          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>Занятость</th><th>Состояние</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
+          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>₴/час</th><th>Занятость</th><th>Состояние</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
           <tbody>
             @for (op of state.operators(); track op.id) {
               <tr>
                 <td>{{ op.name }}</td><td>{{ op.phone || '—' }}</td><td>{{ op.skill || '—' }}</td>
+                <td>{{ utils.money(op.hourlyRate || 0) }}</td>
                 <td>
                   <span class="badge" [ngClass]="operatorBadgeClass(state.runtimeOperatorStatus(op.id))">
                     {{ operatorBadgeLabel(state.runtimeOperatorStatus(op.id)) }}
@@ -74,14 +76,14 @@
                   </div>
                 </td>
                 <td>{{ opShifts(op.id) }}</td>
-                <td>{{ utils.money(opShifts(op.id) * (op.rate || 0)) }}</td>
+                <td>{{ utils.money(op.hourlyRate ? opShifts(op.id) * 8 * op.hourlyRate : opShifts(op.id) * (op.rate || 0)) }}</td>
                 <td>
                   <button class="btn ghost" (click)="edit(op)">Ред.</button>
                   <button class="btn ghost" (click)="remove(op.id)">Удалить</button>
                 </td>
               </tr>
             }
-            @if (!state.operators().length) { <tr><td colspan="8"><div class="empty">Нет операторов.</div></td></tr> }
+            @if (!state.operators().length) { <tr><td colspan="9"><div class="empty">Нет операторов.</div></td></tr> }
           </tbody>
         </table>
       </div>

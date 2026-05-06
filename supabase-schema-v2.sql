@@ -23,6 +23,7 @@ create table if not exists public.equipment (
   type         text not null default '',
   code         text not null default '',
   default_rate numeric not null default 0,
+  hourly_rate  numeric not null default 0,
   status       text not null default 'free',
   created_at   timestamptz not null default now()
 );
@@ -35,6 +36,7 @@ create table if not exists public.operators (
   phone      text not null default '',
   skill      text not null default '',
   rate       numeric not null default 0,
+  hourly_rate numeric not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -49,6 +51,9 @@ create table if not exists public.orders (
   end_date     text not null default '',
   location     text not null default '',
   rate         numeric not null default 0,
+  equipment_hourly_rate numeric not null default 0,
+  standard_work_hours numeric not null default 8,
+  additional_work_hours numeric not null default 0,
   status       text not null default 'new',
   notes        text not null default '',
   equipment_idle_dates jsonb not null default '[]'::jsonb,
@@ -142,6 +147,7 @@ create table if not exists public.operations (
   amount     numeric not null default 0,
   order_id   text not null default '',
   repair_id  text not null default '',
+  equipment_id text not null default '',
   comment    text not null default '',
   created_at timestamptz not null default now()
 );
@@ -202,6 +208,7 @@ create index if not exists idx_repairs_user    on public.repairs(user_id);
 create index if not exists idx_transports_user on public.transports(user_id);
 create index if not exists idx_transports_dates on public.transports(user_id, start_date, end_date);
 create index if not exists idx_operations_user on public.operations(user_id);
+create index if not exists idx_operations_equipment on public.operations(equipment_id);
 create index if not exists idx_clients_user    on public.clients(user_id);
 create index if not exists idx_equipment_user  on public.equipment(user_id);
 

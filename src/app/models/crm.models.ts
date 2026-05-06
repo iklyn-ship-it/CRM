@@ -13,6 +13,7 @@ export interface Equipment {
   type: string;
   code: string;
   defaultRate: number;
+  hourlyRate: number;
   status: 'free' | 'busy' | 'repair';
 }
 
@@ -22,6 +23,7 @@ export interface Operator {
   phone: string;
   skill: string;
   rate: number;
+  hourlyRate: number;
   workStatus: OperatorWorkStatus;
 }
 
@@ -44,6 +46,9 @@ export interface Order {
   endDate: string;
   location: string;
   rate: number;
+  equipmentHourlyRate: number;
+  standardWorkHours: number;
+  additionalWorkHours: number;
   status: OrderStatus;
   notes: string;
   createdAt: string;
@@ -138,6 +143,7 @@ export interface FinanceOperation {
   amount: number;
   orderId: string;
   repairId: string;
+  equipmentId: string;
   comment: string;
 }
 

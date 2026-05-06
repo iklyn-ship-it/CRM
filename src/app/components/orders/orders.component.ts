@@ -42,6 +42,9 @@ export class OrdersComponent {
     endDate: "",
     location: "",
     rate: 0,
+    equipmentHourlyRate: 0,
+    standardWorkHours: 8,
+    additionalWorkHours: 0,
     status: "new" as OrderStatus,
     notes: "",
     equipmentIdleDates: [] as string[],
@@ -337,6 +340,9 @@ export class OrdersComponent {
   onEquipmentChange(): void {
     const eq = this.state.byId(this.state.equipment(), this.form.equipmentId);
     if (eq && !this.form.rate) this.form.rate = eq.defaultRate || 0;
+    if (eq && !this.form.equipmentHourlyRate) {
+      this.form.equipmentHourlyRate = eq.hourlyRate || 0;
+    }
   }
 
   recalcLogisticsCost(): void {
@@ -359,10 +365,25 @@ export class OrdersComponent {
       ...this.form.equipmentIdleDates,
       ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
     ]);
-    const rentalPlan =
-      this.orderDates().filter((date) => !idleDates.has(date)).length *
-      Number(this.form.rate || 0);
+    const workDays = this.orderDates().filter((date) => !idleDates.has(date)).length;
+    const rentalPlan = Number(this.form.equipmentHourlyRate || 0)
+      ? (workDays * Number(this.form.standardWorkHours || 8) +
+          Number(this.form.additionalWorkHours || 0)) *
+        Number(this.form.equipmentHourlyRate || 0)
+      : workDays * Number(this.form.rate || 0);
     return rentalPlan + this.logisticsTotal() + this.assemblyTotal();
+  }
+
+  orderDraftWorkHours(): number {
+    const idleDates = new Set([
+      ...this.form.equipmentIdleDates,
+      ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
+    ]);
+    const workDays = this.orderDates().filter((date) => !idleDates.has(date)).length;
+    return (
+      workDays * Number(this.form.standardWorkHours || 8) +
+      Number(this.form.additionalWorkHours || 0)
+    );
   }
 
   logisticsProviderLabel(order: Order): string {
@@ -474,6 +495,9 @@ export class OrdersComponent {
       endDate: order.endDate,
       location: order.location,
       rate: order.rate,
+      equipmentHourlyRate: order.equipmentHourlyRate || 0,
+      standardWorkHours: order.standardWorkHours || 8,
+      additionalWorkHours: order.additionalWorkHours || 0,
       status: order.status,
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
@@ -554,6 +578,9 @@ export class OrdersComponent {
       endDate: "",
       location: "",
       rate: 0,
+      equipmentHourlyRate: 0,
+      standardWorkHours: 8,
+      additionalWorkHours: 0,
       status: "new",
       notes: "",
       equipmentIdleDates: [],
@@ -704,6 +731,13 @@ export class OrdersComponent {
 
   shiftPayroll(shift: OperatorShift): number {
     const operator = this.state.byId(this.state.operators(), shift.operatorId);
+    if (operator?.hourlyRate) {
+      return (
+        this.shiftWorkDays(shift) *
+        Number(this.form.standardWorkHours || 8) *
+        Number(operator.hourlyRate || 0)
+      );
+    }
     return this.shiftWorkDays(shift) * Number(operator?.rate || 0);
   }
 
@@ -729,6 +763,13 @@ export class OrdersComponent {
 
   primaryOperatorPayroll(): number {
     const operator = this.state.byId(this.state.operators(), this.form.operatorId);
+    if (operator?.hourlyRate) {
+      return (
+        this.primaryOperatorWorkDays() *
+        Number(this.form.standardWorkHours || 8) *
+        Number(operator.hourlyRate || 0)
+      );
+    }
     return this.primaryOperatorWorkDays() * Number(operator?.rate || 0);
   }
 
@@ -1095,6 +1136,13 @@ export class OrdersComponent {
     }
     if (message.includes("breakdown_")) {
       return "База Supabase еще не готова для сохранения поломок. Выполни SQL-файл supabase-order-breakdowns.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (
+      message.includes("equipment_hourly_rate") ||
+      message.includes("standard_work_hours") ||
+      message.includes("additional_work_hours")
+    ) {
+      return "База Supabase еще не готова для часовых ставок в заявках. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
   }

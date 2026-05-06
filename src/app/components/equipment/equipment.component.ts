@@ -26,6 +26,7 @@ export class EquipmentComponent {
     type: "",
     code: "",
     defaultRate: 0,
+    hourlyRate: 0,
     status: "free" as Equipment["status"],
   };
   readonly googleFormEquipmentNames = [
@@ -127,13 +128,18 @@ export class EquipmentComponent {
   async save(): Promise<void> {
     if (!this.form.name) return;
     if (this.duplicateName()) return;
-    if (this.editingId)
-      await this.db.update("equipment", this.editingId, this.form);
-    else
-      await this.db.insert("equipment", {
-        id: this.utils.uid("eq"),
-        ...this.form,
-      });
+    try {
+      if (this.editingId)
+        await this.db.update("equipment", this.editingId, this.form);
+      else
+        await this.db.insert("equipment", {
+          id: this.utils.uid("eq"),
+          ...this.form,
+        });
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+      return;
+    }
     this.clearForm();
     this.formOpen.set(false);
   }
@@ -162,6 +168,7 @@ export class EquipmentComponent {
         type: "Из Google Form",
         code: "",
         defaultRate: 0,
+        hourlyRate: 0,
         status: "free",
       });
     }
@@ -175,6 +182,7 @@ export class EquipmentComponent {
       type: eq.type,
       code: eq.code,
       defaultRate: eq.defaultRate,
+      hourlyRate: eq.hourlyRate || 0,
       status: eq.status,
     };
     this.formOpen.set(true);
@@ -203,7 +211,21 @@ export class EquipmentComponent {
       type: "",
       code: "",
       defaultRate: 0,
+      hourlyRate: 0,
       status: "free",
     };
+  }
+
+  private saveErrorMessage(error: unknown): string {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message || "")
+        : "";
+    if (message.includes("hourly_rate")) {
+      return "База Supabase еще не готова для часовых ставок. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    return message
+      ? `Не удалось сохранить технику: ${message}`
+      : "Не удалось сохранить технику.";
   }
 }

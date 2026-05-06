@@ -207,7 +207,11 @@
             <select [(ngModel)]="form.operatorId" name="operatorId">
               <option value="">— без оператора —</option>
               @for (o of state.operators(); track o.id) {
-                <option [value]="o.id">{{ o.name }} • {{ utils.money(o.rate) }}/день</option>
+                <option [value]="o.id">
+                  {{ o.name }} • {{ utils.money(o.hourlyRate || o.rate) }}/{{
+                    o.hourlyRate ? "час" : "день"
+                  }}
+                </option>
               }
             </select>
             @if (formOperatorConflict(); as conflict) {
@@ -233,6 +237,33 @@
           <div class="field">
             <label>Дата окончания</label>
             <input type="date" [(ngModel)]="form.endDate" name="endDate" />
+          </div>
+          <div class="field">
+            <label>Стоимость 1 часа техники, ₴/час</label>
+            <input
+              type="number"
+              [(ngModel)]="form.equipmentHourlyRate"
+              name="equipmentHourlyRate"
+              min="0"
+            />
+          </div>
+          <div class="field">
+            <label>Стандарт часов в день</label>
+            <input
+              type="number"
+              [(ngModel)]="form.standardWorkHours"
+              name="standardWorkHours"
+              min="0"
+            />
+          </div>
+          <div class="field">
+            <label>Дополнительные часы работы</label>
+            <input
+              type="number"
+              [(ngModel)]="form.additionalWorkHours"
+              name="additionalWorkHours"
+              min="0"
+            />
           </div>
           @if (orderDates().length) {
             <div class="field">

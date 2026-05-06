@@ -87,8 +87,19 @@ export class DbService {
     const operator = toCamel(row) as any;
     return {
       ...operator,
+      rate: Number(operator.rate || 0),
+      hourlyRate: Number(operator.hourlyRate || 0),
       workStatus: operator.workStatus || "active",
     } as Operator;
+  }
+
+  private normalizeEquipment(row: any): Equipment {
+    const equipment = toCamel(row) as any;
+    return {
+      ...equipment,
+      defaultRate: Number(equipment.defaultRate || 0),
+      hourlyRate: Number(equipment.hourlyRate || 0),
+    } as Equipment;
   }
 
   private normalizeOrder(row: any): Order {
@@ -107,6 +118,10 @@ export class DbService {
     );
     return {
       ...order,
+      rate: Number(order.rate || 0),
+      equipmentHourlyRate: Number(order.equipmentHourlyRate || 0),
+      standardWorkHours: Number(order.standardWorkHours || 8),
+      additionalWorkHours: Number(order.additionalWorkHours || 0),
       equipmentIdleDates: Array.isArray(order.equipmentIdleDates)
         ? order.equipmentIdleDates
         : [],
@@ -171,6 +186,15 @@ export class DbService {
       breakdownCreateRepair: Boolean(order.breakdownCreateRepair),
       breakdownRepairId: order.breakdownRepairId || "",
     } as Order;
+  }
+
+  private normalizeOperation(row: any): FinanceOperation {
+    const operation = toCamel(row) as any;
+    return {
+      ...operation,
+      amount: Number(operation.amount || 0),
+      equipmentId: operation.equipmentId || "",
+    } as FinanceOperation;
   }
 
   private normalizeRepair(row: any): Repair {
@@ -247,14 +271,14 @@ export class DbService {
     ]);
 
     this.clients.set((clients.data || []).map((r) => toCamel(r) as any));
-    this.equipment.set((equipment.data || []).map((r) => toCamel(r) as any));
+    this.equipment.set((equipment.data || []).map((r) => this.normalizeEquipment(r)));
     this.operators.set((operators.data || []).map((r) => this.normalizeOperator(r)));
     this.orders.set((orders.data || []).map((r) => this.normalizeOrder(r)));
     this.repairs.set((repairs.data || []).map((r) => this.normalizeRepair(r)));
     this.transports.set(
       (transports.data || []).map((r) => this.normalizeTransport(r)),
     );
-    this.operations.set((operations.data || []).map((r) => toCamel(r) as any));
+    this.operations.set((operations.data || []).map((r) => this.normalizeOperation(r)));
     this.auditLogs.set((auditLogs.data || []).map((r) => toCamel(r) as any));
 
     if (integ.data) {
@@ -326,13 +350,17 @@ export class DbService {
     const normalizedRows =
       table === "operators"
         ? (data || []).map((r) => this.normalizeOperator(r))
-        : table === "orders"
-          ? (data || []).map((r) => this.normalizeOrder(r))
-          : table === "repairs"
-            ? (data || []).map((r) => this.normalizeRepair(r))
-            : table === "transports"
-              ? (data || []).map((r) => this.normalizeTransport(r))
-        : rows;
+        : table === "equipment"
+          ? (data || []).map((r) => this.normalizeEquipment(r))
+          : table === "orders"
+            ? (data || []).map((r) => this.normalizeOrder(r))
+            : table === "repairs"
+              ? (data || []).map((r) => this.normalizeRepair(r))
+              : table === "transports"
+                ? (data || []).map((r) => this.normalizeTransport(r))
+                : table === "operations"
+                  ? (data || []).map((r) => this.normalizeOperation(r))
+                  : rows;
     const signalMap: Record<string, WritableSignal<any[]>> = {
       clients: this.clients,
       equipment: this.equipment,
@@ -684,6 +712,7 @@ export class DbService {
       notes: "Комментарий",
       code: "Код",
       defaultRate: "Ставка по умолчанию",
+      hourlyRate: "Ставка за час",
       status: "Статус",
       clientId: "Клиент",
       equipmentId: "Техника",
@@ -742,6 +771,9 @@ export class DbService {
       breakdownRepairId: "Связанный ремонт",
       location: "Локация",
       rate: "Тариф",
+      equipmentHourlyRate: "Ставка техники за час",
+      standardWorkHours: "Стандарт часов",
+      additionalWorkHours: "Дополнительные часы",
       workStatus: "Состояние сотрудника",
       laborCost: "Стоимость работ",
       partsCost: "Стоимость запчастей",

@@ -240,20 +240,27 @@ export class StateService {
         const repairRelated = this.repairs().filter(
           (r) => r.equipmentId === eq.id,
         );
+        const directOps = this.operations().filter((op) => op.equipmentId === eq.id);
         const income = related.reduce((s, o) => s + this.orderIncome(o.id), 0);
         const orderExp = related.reduce(
           (s, o) => s + this.orderExpense(o.id),
           0,
         );
+        const directIncome = directOps
+          .filter((op) => op.type === "income")
+          .reduce((s, op) => s + Number(op.amount || 0), 0);
+        const directExpense = directOps
+          .filter((op) => op.type === "expense")
+          .reduce((s, op) => s + Number(op.amount || 0), 0);
         const repairExp = repairRelated.reduce(
           (s, r) => s + this.repairExpense(r.id),
           0,
         );
         return {
           name: eq.name,
-          income,
-          expense: orderExp + repairExp,
-          profit: income - orderExp - repairExp,
+          income: income + directIncome,
+          expense: orderExp + repairExp + directExpense,
+          profit: income + directIncome - orderExp - repairExp - directExpense,
         };
       })
       .sort((a, b) => b.profit - a.profit)
@@ -267,9 +274,16 @@ export class StateService {
   }
 
   orderPlan(order: Order): number {
-    const rentalPlan =
-      this.orderEquipmentWorkDays(order) * Number(order.rate || 0);
+    const rentalPlan = this.orderEquipmentRentalPlan(order);
     return rentalPlan + this.orderLogisticsCost(order) + this.orderAssemblyCost(order);
+  }
+
+  orderEquipmentRentalPlan(order: Order): number {
+    const hourlyRate = Number(order.equipmentHourlyRate || 0);
+    if (hourlyRate > 0) {
+      return this.orderEquipmentWorkHours(order) * hourlyRate;
+    }
+    return this.orderEquipmentWorkDays(order) * Number(order.rate || 0);
   }
 
   orderOps(orderId: string): FinanceOperation[] {
@@ -302,13 +316,34 @@ export class StateService {
 
   orderOperatorCost(order: Order, fromDate = "", toDate = ""): number {
     if (order.status === "cancelled") return 0;
+    const totalOperatorDays = this.orderOperatorAssignments(order).reduce(
+      (sum, assignment) =>
+        sum + this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
+      0,
+    );
     return this.orderOperatorAssignments(order).reduce((sum, assignment) => {
       const operator = this.byId(this.operators(), assignment.operatorId);
-      if (!operator?.rate) return sum;
+      if (!operator?.rate && !operator?.hourlyRate) return sum;
+      const days = this.operatorAssignmentWorkDays(
+        order,
+        assignment,
+        fromDate,
+        toDate,
+      );
+      const hourlyRate = Number(operator.hourlyRate || 0);
+      if (hourlyRate > 0) {
+        const extraHours =
+          totalOperatorDays > 0
+            ? Number(order.additionalWorkHours || 0) * (days / totalOperatorDays)
+            : 0;
+        return (
+          sum +
+          (days * this.orderStandardWorkHours(order) + extraHours) * hourlyRate
+        );
+      }
       return (
         sum +
-        this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate) *
-          Number(operator.rate || 0)
+        days * Number(operator.rate || 0)
       );
     }, 0);
   }
@@ -376,6 +411,18 @@ export class StateService {
     return this.orderWorkDates(order, "equipment", fromDate, toDate).length;
   }
 
+  orderStandardWorkHours(order: Order): number {
+    return Number(order.standardWorkHours || 8);
+  }
+
+  orderEquipmentWorkHours(order: Order, fromDate = "", toDate = ""): number {
+    return (
+      this.orderEquipmentWorkDays(order, fromDate, toDate) *
+        this.orderStandardWorkHours(order) +
+      Number(order.additionalWorkHours || 0)
+    );
+  }
+
   orderOperatorWorkDays(order: Order, fromDate = "", toDate = ""): number {
     if (!this.hasOperatorShifts(order)) {
       return this.orderWorkDates(order, "operator", fromDate, toDate).length;
@@ -411,6 +458,14 @@ export class StateService {
     toDate = "",
   ): number {
     const operator = this.byId(this.operators(), operatorId);
+    const hourlyRate = Number(operator?.hourlyRate || 0);
+    if (hourlyRate > 0) {
+      return (
+        this.orderOperatorWorkDaysFor(order, operatorId, fromDate, toDate) *
+        this.orderStandardWorkHours(order) *
+        hourlyRate
+      );
+    }
     return (
       this.orderOperatorWorkDaysFor(order, operatorId, fromDate, toDate) *
       Number(operator?.rate || 0)

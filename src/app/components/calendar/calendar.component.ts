@@ -57,6 +57,9 @@ export class CalendarComponent {
     endDate: "",
     location: "",
     rate: 0,
+    equipmentHourlyRate: 0,
+    standardWorkHours: 8,
+    additionalWorkHours: 0,
     status: "new" as OrderStatus,
     notes: "",
     equipmentIdleDates: [] as string[],
@@ -511,6 +514,9 @@ export class CalendarComponent {
       endDate: order.endDate,
       location: order.location,
       rate: order.rate,
+      equipmentHourlyRate: order.equipmentHourlyRate || 0,
+      standardWorkHours: order.standardWorkHours || 8,
+      additionalWorkHours: order.additionalWorkHours || 0,
       status: order.status,
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
@@ -576,6 +582,9 @@ export class CalendarComponent {
   onEquipmentChange(): void {
     const eq = this.state.byId(this.state.equipment(), this.form.equipmentId);
     if (eq && !this.form.rate) this.form.rate = eq.defaultRate || 0;
+    if (eq && !this.form.equipmentHourlyRate) {
+      this.form.equipmentHourlyRate = eq.hourlyRate || 0;
+    }
   }
 
   trawlEquipment() {
@@ -600,7 +609,11 @@ export class CalendarComponent {
   }
 
   orderDraftTotal(): number {
-    const rentalPlan = this.orderDates().length * Number(this.form.rate || 0);
+    const rentalPlan = Number(this.form.equipmentHourlyRate || 0)
+      ? (this.orderDates().length * Number(this.form.standardWorkHours || 8) +
+          Number(this.form.additionalWorkHours || 0)) *
+        Number(this.form.equipmentHourlyRate || 0)
+      : this.orderDates().length * Number(this.form.rate || 0);
     return rentalPlan + this.logisticsTotal();
   }
 
@@ -783,6 +796,9 @@ export class CalendarComponent {
       endDate: "",
       location: "",
       rate: 0,
+      equipmentHourlyRate: 0,
+      standardWorkHours: 8,
+      additionalWorkHours: 0,
       status: "new",
       notes: "",
       equipmentIdleDates: [],
@@ -909,6 +925,13 @@ export class CalendarComponent {
     }
     if (message.includes("breakdown_")) {
       return "База Supabase еще не готова для сохранения поломок. Выполни SQL-файл supabase-order-breakdowns.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (
+      message.includes("equipment_hourly_rate") ||
+      message.includes("standard_work_hours") ||
+      message.includes("additional_work_hours")
+    ) {
+      return "База Supabase еще не готова для часовых ставок в заявках. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
   }
