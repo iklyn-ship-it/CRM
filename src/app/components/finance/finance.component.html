@@ -409,107 +409,153 @@
   </div>
 </div>
 
-<div class="card panel transport-finance-panel">
-  <div class="finance-section-head">
-    <div>
-      <h3 style="margin: 0">Финансы по перевозкам</h3>
-      <div class="small">
-        Приходы и расходы по перевозкам, включая автоматический расход водителя.
+<div class="finance-secondary-grid">
+  <div class="finance-column">
+    <div class="card panel transport-finance-panel">
+      <div class="finance-section-head">
+        <div>
+          <h3 style="margin: 0">Финансы по перевозкам</h3>
+          <div class="small">
+            Приходы и расходы по перевозкам, включая автоматический расход
+            водителя.
+          </div>
+        </div>
+      </div>
+      <div class="transport-finance-grid">
+        @for (row of transportFinanceRows(); track row.transport.id) {
+          <article class="order-finance-card transport-finance-card">
+            <div class="order-finance-head transport-finance-card-head">
+              <div>
+                <div class="order-finance-title">
+                  Перевозка {{ row.transport.id | slice: -5 }}
+                  <span class="badge" [ngClass]="row.transport.status">
+                    {{ transportStatusLabel(row.transport.status) }}
+                  </span>
+                </div>
+                <div class="small">
+                  {{ row.route }} • {{ utils.fmtDate(row.transport.startDate) }}
+                  - {{ utils.fmtDate(row.transport.endDate) }} •
+                  {{ row.equipmentName }} • {{ row.driverName }}
+                </div>
+              </div>
+              <div class="order-finance-summary transport-finance-summary">
+                <div class="metric">
+                  <span>План</span>
+                  <strong>{{ utils.money(row.plan) }}</strong>
+                </div>
+                <div class="metric income-metric">
+                  <span>Приход</span>
+                  <strong>{{ utils.money(row.income) }}</strong>
+                </div>
+                <div class="metric expense-metric">
+                  <span>Расход</span>
+                  <strong>{{ utils.money(row.expense) }}</strong>
+                </div>
+                <div class="metric">
+                  <span>Прибыль</span>
+                  <strong>{{ utils.money(row.profit) }}</strong>
+                </div>
+                <div class="metric">
+                  <span>Остаток</span>
+                  <strong>{{ utils.money(row.remaining) }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="finance-ledger transport-finance-ledger">
+              <div class="ledger-column">
+                <h4>Приходы по перевозке</h4>
+                @for (op of row.incomeOps; track op.id) {
+                  <div class="ledger-line income-line">
+                    <div>
+                      <strong>{{ utils.money(op.amount) }}</strong>
+                      <span>{{ op.category || "Приход" }}</span>
+                    </div>
+                    <small>{{ utils.fmtDate(op.date) }}</small>
+                    @if (op.comment) {
+                      <p>{{ op.comment }}</p>
+                    }
+                  </div>
+                }
+                @if (!row.incomeOps.length) {
+                  <div class="empty compact">Приходов по перевозке нет.</div>
+                }
+              </div>
+              <div class="ledger-column">
+                <h4>Расходы по перевозке</h4>
+                @if (row.driverExpense > 0) {
+                  <div class="ledger-line expense-line">
+                    <div>
+                      <strong>{{ utils.money(row.driverExpense) }}</strong>
+                      <span>Водитель</span>
+                    </div>
+                    <small>Автоматически по ставке и датам перевозки</small>
+                  </div>
+                }
+                @for (op of row.expenseOps; track op.id) {
+                  <div class="ledger-line expense-line">
+                    <div>
+                      <strong>{{ utils.money(op.amount) }}</strong>
+                      <span>{{ op.category || "Расход" }}</span>
+                    </div>
+                    <small>{{ utils.fmtDate(op.date) }}</small>
+                    @if (op.comment) {
+                      <p>{{ op.comment }}</p>
+                    }
+                  </div>
+                }
+                @if (!row.expenseOps.length && !row.driverExpense) {
+                  <div class="empty compact">Расходов по перевозке нет.</div>
+                }
+              </div>
+            </div>
+          </article>
+        }
+        @if (!transportFinanceRows().length) {
+          <div class="empty">Перевозок для отображения нет.</div>
+        }
       </div>
     </div>
   </div>
-  <div class="transport-finance-grid">
-    @for (row of transportFinanceRows(); track row.transport.id) {
-      <article class="order-finance-card transport-finance-card">
-        <div class="order-finance-head transport-finance-card-head">
-          <div>
-            <div class="order-finance-title">
-              Перевозка {{ row.transport.id | slice: -5 }}
-              <span class="badge" [ngClass]="row.transport.status">
-                {{ transportStatusLabel(row.transport.status) }}
-              </span>
-            </div>
-            <div class="small">
-              {{ row.route }} • {{ utils.fmtDate(row.transport.startDate) }} -
-              {{ utils.fmtDate(row.transport.endDate) }} •
-              {{ row.equipmentName }} • {{ row.driverName }}
-            </div>
-          </div>
-          <div class="order-finance-summary transport-finance-summary">
-            <div class="metric">
-              <span>План</span>
-              <strong>{{ utils.money(row.plan) }}</strong>
-            </div>
-            <div class="metric income-metric">
-              <span>Приход</span>
-              <strong>{{ utils.money(row.income) }}</strong>
-            </div>
-            <div class="metric expense-metric">
-              <span>Расход</span>
-              <strong>{{ utils.money(row.expense) }}</strong>
-            </div>
-            <div class="metric">
-              <span>Прибыль</span>
-              <strong>{{ utils.money(row.profit) }}</strong>
-            </div>
-            <div class="metric">
-              <span>Остаток</span>
-              <strong>{{ utils.money(row.remaining) }}</strong>
-            </div>
-          </div>
-        </div>
-        <div class="finance-ledger transport-finance-ledger">
-          <div class="ledger-column">
-            <h4>Приходы по перевозке</h4>
-            @for (op of row.incomeOps; track op.id) {
-              <div class="ledger-line income-line">
-                <div>
-                  <strong>{{ utils.money(op.amount) }}</strong>
-                  <span>{{ op.category || "Приход" }}</span>
-                </div>
-                <small>{{ utils.fmtDate(op.date) }}</small>
-                @if (op.comment) {
-                  <p>{{ op.comment }}</p>
-                }
-              </div>
+
+  <div class="finance-column">
+    <div class="card panel repair-finance-panel">
+      <h3 style="margin-top: 0">Финансы по ремонтам</h3>
+      <div class="table-wrap repair-finance-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Ремонт</th>
+              <th>Техника</th>
+              <th>Расход</th>
+              <th>Комментарий</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of state.repairs(); track r.id) {
+              <tr>
+                <td>{{ r.id | slice: -5 }}</td>
+                <td>
+                  {{
+                    state.byId(state.equipment(), r.equipmentId)?.name || "—"
+                  }}
+                </td>
+                <td>{{ utils.money(state.repairExpense(r.id)) }}</td>
+                <td>{{ r.tasks || "—" }}</td>
+                <td>
+                  <span class="badge repairplan">{{ r.status }}</span>
+                </td>
+              </tr>
             }
-            @if (!row.incomeOps.length) {
-              <div class="empty compact">Приходов по перевозке нет.</div>
+            @if (!state.repairs().length) {
+              <tr>
+                <td colspan="5"><div class="empty">Нет ремонтов.</div></td>
+              </tr>
             }
-          </div>
-          <div class="ledger-column">
-            <h4>Расходы по перевозке</h4>
-            @if (row.driverExpense > 0) {
-              <div class="ledger-line expense-line">
-                <div>
-                  <strong>{{ utils.money(row.driverExpense) }}</strong>
-                  <span>Водитель</span>
-                </div>
-                <small>Автоматически по ставке и датам перевозки</small>
-              </div>
-            }
-            @for (op of row.expenseOps; track op.id) {
-              <div class="ledger-line expense-line">
-                <div>
-                  <strong>{{ utils.money(op.amount) }}</strong>
-                  <span>{{ op.category || "Расход" }}</span>
-                </div>
-                <small>{{ utils.fmtDate(op.date) }}</small>
-                @if (op.comment) {
-                  <p>{{ op.comment }}</p>
-                }
-              </div>
-            }
-            @if (!row.expenseOps.length && !row.driverExpense) {
-              <div class="empty compact">Расходов по перевозке нет.</div>
-            }
-          </div>
-        </div>
-      </article>
-    }
-    @if (!transportFinanceRows().length) {
-      <div class="empty">Перевозок для отображения нет.</div>
-    }
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -550,40 +596,3 @@
     </div>
   </div>
 }
-
-<div class="card panel" style="margin-top: 16px">
-  <h3 style="margin-top: 0">Финансы по ремонтам</h3>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Ремонт</th>
-          <th>Техника</th>
-          <th>Расход</th>
-          <th>Комментарий</th>
-          <th>Статус</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (r of state.repairs(); track r.id) {
-          <tr>
-            <td>{{ r.id | slice: -5 }}</td>
-            <td>
-              {{ state.byId(state.equipment(), r.equipmentId)?.name || "—" }}
-            </td>
-            <td>{{ utils.money(state.repairExpense(r.id)) }}</td>
-            <td>{{ r.tasks || "—" }}</td>
-            <td>
-              <span class="badge repairplan">{{ r.status }}</span>
-            </td>
-          </tr>
-        }
-        @if (!state.repairs().length) {
-          <tr>
-            <td colspan="5"><div class="empty">Нет ремонтов.</div></td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-</div>

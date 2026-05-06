@@ -9,6 +9,14 @@
   align-items: start;
 }
 
+.finance-secondary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 16px;
+}
+
 .finance-column {
   min-width: 0;
 }
@@ -141,7 +149,21 @@
 }
 
 .transport-finance-panel {
-  margin-top: 16px;
+  margin-top: 0;
+}
+
+.repair-finance-panel {
+  display: flex;
+  flex-direction: column;
+  max-height: min(64vh, 620px);
+  min-height: 0;
+}
+
+.repair-finance-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .transport-finance-grid {
@@ -335,7 +357,8 @@
 }
 
 @media (max-width: 1280px) {
-  .finance-parallel-grid {
+  .finance-parallel-grid,
+  .finance-secondary-grid {
     grid-template-columns: 1fr;
   }
 
