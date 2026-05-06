@@ -420,8 +420,8 @@
   </div>
   <div class="transport-finance-grid">
     @for (row of transportFinanceRows(); track row.transport.id) {
-      <article class="order-finance-card">
-        <div class="order-finance-head">
+      <article class="order-finance-card transport-finance-card">
+        <div class="order-finance-head transport-finance-card-head">
           <div>
             <div class="order-finance-title">
               Перевозка {{ row.transport.id | slice: -5 }}
@@ -431,13 +431,11 @@
             </div>
             <div class="small">
               {{ row.route }} • {{ utils.fmtDate(row.transport.startDate) }} -
-              {{ utils.fmtDate(row.transport.endDate) }}
-            </div>
-            <div class="small">
-              {{ row.equipmentName }} • водитель: {{ row.driverName }}
+              {{ utils.fmtDate(row.transport.endDate) }} •
+              {{ row.equipmentName }} • {{ row.driverName }}
             </div>
           </div>
-          <div class="order-finance-summary">
+          <div class="order-finance-summary transport-finance-summary">
             <div class="metric">
               <span>План</span>
               <strong>{{ utils.money(row.plan) }}</strong>
@@ -460,7 +458,7 @@
             </div>
           </div>
         </div>
-        <div class="finance-ledger">
+        <div class="finance-ledger transport-finance-ledger">
           <div class="ledger-column">
             <h4>Приходы по перевозке</h4>
             @for (op of row.incomeOps; track op.id) {

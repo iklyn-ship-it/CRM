@@ -146,11 +146,69 @@
 
 .transport-finance-grid {
   display: grid;
-  gap: 14px;
-  max-height: min(72vh, 760px);
+  gap: 8px;
+  max-height: min(64vh, 620px);
   overflow: auto;
   padding-right: 4px;
   overscroll-behavior: contain;
+}
+
+.transport-finance-card {
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+.transport-finance-card-head {
+  grid-template-columns: minmax(260px, 1fr) minmax(460px, 1.35fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.transport-finance-summary {
+  grid-template-columns: repeat(5, minmax(76px, 1fr));
+  gap: 6px;
+}
+
+.transport-finance-summary .metric {
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+
+.transport-finance-summary .metric span {
+  margin-bottom: 2px;
+  font-size: 10px;
+}
+
+.transport-finance-summary .metric strong {
+  font-size: 13px;
+}
+
+.transport-finance-ledger {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.transport-finance-ledger .ledger-column {
+  padding: 8px;
+  border-radius: 12px;
+}
+
+.transport-finance-ledger .ledger-column h4 {
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.transport-finance-ledger .ledger-line {
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+
+.transport-finance-ledger .ledger-line + .ledger-line {
+  margin-top: 5px;
+}
+
+.transport-finance-ledger .ledger-line p {
+  margin-top: 3px;
 }
 
 .order-finance-head {
