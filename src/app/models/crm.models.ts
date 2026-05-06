@@ -49,6 +49,10 @@ export interface Order {
   equipmentHourlyRate: number;
   standardWorkHours: number;
   additionalWorkHours: number;
+  vatEnabled: boolean;
+  discountEnabled: boolean;
+  discountType: 'percent' | 'amount';
+  discountValue: number;
   status: OrderStatus;
   notes: string;
   createdAt: string;

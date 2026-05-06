@@ -169,6 +169,61 @@
             Всего часов техники: {{ orderDraftWorkHours() }} ч. Эти часы добавляются к плану заявки.
           </div>
         </details>
+        <div class="logistics-box">
+          <label class="toggle-line">
+            <input
+              type="checkbox"
+              [(ngModel)]="form.vatEnabled"
+              name="vatEnabled"
+            />
+            <span>С НДС +20% к стоимости техники</span>
+          </label>
+          @if (form.vatEnabled) {
+            <div class="small">
+              НДС применяется только к аренде техники, без логистики и сборки/разборки.
+            </div>
+          }
+        </div>
+        <div class="assembly-box">
+          <label class="toggle-line">
+            <input
+              type="checkbox"
+              [(ngModel)]="form.discountEnabled"
+              name="discountEnabled"
+            />
+            <span>Скидка на всю заявку</span>
+          </label>
+          @if (form.discountEnabled) {
+            <div class="assembly-grid">
+              <div class="field">
+                <label>Тип скидки</label>
+                <select [(ngModel)]="form.discountType" name="discountType">
+                  <option value="percent">Процент, %</option>
+                  <option value="amount">Сумма, ₴</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>
+                  {{
+                    form.discountType === "amount"
+                      ? "Сумма скидки, ₴"
+                      : "Скидка, %"
+                  }}
+                </label>
+                <input
+                  type="number"
+                  [(ngModel)]="form.discountValue"
+                  name="discountValue"
+                  min="0"
+                />
+              </div>
+            </div>
+            <div class="assembly-summary">
+              Скидка: {{ utils.money(orderDraftDiscountAmount()) }}
+              <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
+            </div>
+          }
+        </div>
         @if (orderDates().length) {
           <div class="field">
             <label>Дни, когда техника не работала</label>
@@ -764,6 +819,14 @@
                 selected.equipmentHourlyRate ? "час" : "день"
               }}
             </strong>
+          </div>
+          <div>
+            <span>НДС по технике</span>
+            <strong>{{ utils.money(state.orderEquipmentVat(selected)) }}</strong>
+          </div>
+          <div>
+            <span>Скидка</span>
+            <strong>{{ utils.money(state.orderDiscountAmount(selected)) }}</strong>
           </div>
           <div>
             <span>Рабочие дни оператора</span>

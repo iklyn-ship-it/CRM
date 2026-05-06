@@ -274,8 +274,11 @@ export class StateService {
   }
 
   orderPlan(order: Order): number {
-    const rentalPlan = this.orderEquipmentRentalPlan(order);
-    return rentalPlan + this.orderLogisticsCost(order) + this.orderAssemblyCost(order);
+    const subtotal =
+      this.orderEquipmentCharge(order) +
+      this.orderLogisticsCost(order) +
+      this.orderAssemblyCost(order);
+    return Math.max(0, subtotal - this.orderDiscountAmount(order, subtotal));
   }
 
   orderEquipmentRentalPlan(order: Order): number {
@@ -284,6 +287,28 @@ export class StateService {
       return this.orderEquipmentWorkHours(order) * hourlyRate;
     }
     return this.orderEquipmentWorkDays(order) * Number(order.rate || 0);
+  }
+
+  orderEquipmentVat(order: Order): number {
+    return order.vatEnabled ? this.orderEquipmentRentalPlan(order) * 0.2 : 0;
+  }
+
+  orderEquipmentCharge(order: Order): number {
+    return this.orderEquipmentRentalPlan(order) + this.orderEquipmentVat(order);
+  }
+
+  orderDiscountAmount(order: Order, subtotal = 0): number {
+    if (!order.discountEnabled) return 0;
+    const base =
+      subtotal ||
+      this.orderEquipmentCharge(order) +
+        this.orderLogisticsCost(order) +
+        this.orderAssemblyCost(order);
+    const value = Number(order.discountValue || 0);
+    if (value <= 0) return 0;
+    const discount =
+      order.discountType === "amount" ? value : base * (value / 100);
+    return Math.min(base, discount);
   }
 
   orderOps(orderId: string): FinanceOperation[] {

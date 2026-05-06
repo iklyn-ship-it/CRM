@@ -45,6 +45,10 @@ export class OrdersComponent {
     equipmentHourlyRate: 0,
     standardWorkHours: 8,
     additionalWorkHours: 0,
+    vatEnabled: false,
+    discountEnabled: false,
+    discountType: "percent" as "percent" | "amount",
+    discountValue: 0,
     status: "new" as OrderStatus,
     notes: "",
     equipmentIdleDates: [] as string[],
@@ -366,12 +370,44 @@ export class OrdersComponent {
       ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
     ]);
     const workDays = this.orderDates().filter((date) => !idleDates.has(date)).length;
-    const rentalPlan = Number(this.form.equipmentHourlyRate || 0)
+    const equipmentBase = Number(this.form.equipmentHourlyRate || 0)
       ? (workDays * Number(this.form.standardWorkHours || 8) +
           Number(this.form.additionalWorkHours || 0)) *
         Number(this.form.equipmentHourlyRate || 0)
       : workDays * Number(this.form.rate || 0);
-    return rentalPlan + this.logisticsTotal() + this.assemblyTotal();
+    const equipmentTotal =
+      equipmentBase + (this.form.vatEnabled ? equipmentBase * 0.2 : 0);
+    const subtotal = equipmentTotal + this.logisticsTotal() + this.assemblyTotal();
+    return Math.max(0, subtotal - this.orderDraftDiscountAmount(subtotal));
+  }
+
+  orderDraftDiscountAmount(subtotal = 0): number {
+    if (!this.form.discountEnabled) return 0;
+    const base = subtotal || this.orderDraftSubtotalBeforeDiscount();
+    const value = Number(this.form.discountValue || 0);
+    if (value <= 0) return 0;
+    const discount =
+      this.form.discountType === "amount" ? value : base * (value / 100);
+    return Math.min(base, discount);
+  }
+
+  orderDraftSubtotalBeforeDiscount(): number {
+    const idleDates = new Set([
+      ...this.form.equipmentIdleDates,
+      ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
+    ]);
+    const workDays = this.orderDates().filter((date) => !idleDates.has(date)).length;
+    const equipmentBase = Number(this.form.equipmentHourlyRate || 0)
+      ? (workDays * Number(this.form.standardWorkHours || 8) +
+          Number(this.form.additionalWorkHours || 0)) *
+        Number(this.form.equipmentHourlyRate || 0)
+      : workDays * Number(this.form.rate || 0);
+    return (
+      equipmentBase +
+      (this.form.vatEnabled ? equipmentBase * 0.2 : 0) +
+      this.logisticsTotal() +
+      this.assemblyTotal()
+    );
   }
 
   orderDraftWorkHours(): number {
@@ -498,6 +534,10 @@ export class OrdersComponent {
       equipmentHourlyRate: order.equipmentHourlyRate || 0,
       standardWorkHours: order.standardWorkHours || 8,
       additionalWorkHours: order.additionalWorkHours || 0,
+      vatEnabled: Boolean(order.vatEnabled),
+      discountEnabled: Boolean(order.discountEnabled),
+      discountType: order.discountType || "percent",
+      discountValue: Number(order.discountValue || 0),
       status: order.status,
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
@@ -581,6 +621,10 @@ export class OrdersComponent {
       equipmentHourlyRate: 0,
       standardWorkHours: 8,
       additionalWorkHours: 0,
+      vatEnabled: false,
+      discountEnabled: false,
+      discountType: "percent",
+      discountValue: 0,
       status: "new",
       notes: "",
       equipmentIdleDates: [],
@@ -1143,6 +1187,14 @@ export class OrdersComponent {
       message.includes("additional_work_hours")
     ) {
       return "База Supabase еще не готова для часовых ставок в заявках. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (
+      message.includes("vat_enabled") ||
+      message.includes("discount_enabled") ||
+      message.includes("discount_type") ||
+      message.includes("discount_value")
+    ) {
+      return "База Supabase еще не готова для НДС и скидок. Выполни SQL-файл supabase-order-vat-discount.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
   }

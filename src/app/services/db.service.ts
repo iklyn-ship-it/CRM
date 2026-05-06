@@ -122,6 +122,10 @@ export class DbService {
       equipmentHourlyRate: Number(order.equipmentHourlyRate || 0),
       standardWorkHours: Number(order.standardWorkHours || 8),
       additionalWorkHours: Number(order.additionalWorkHours || 0),
+      vatEnabled: Boolean(order.vatEnabled),
+      discountEnabled: Boolean(order.discountEnabled),
+      discountType: order.discountType || "percent",
+      discountValue: Number(order.discountValue || 0),
       equipmentIdleDates: Array.isArray(order.equipmentIdleDates)
         ? order.equipmentIdleDates
         : [],
@@ -774,6 +778,10 @@ export class DbService {
       equipmentHourlyRate: "Ставка техники за час",
       standardWorkHours: "Стандарт часов",
       additionalWorkHours: "Дополнительные часы",
+      vatEnabled: "НДС",
+      discountEnabled: "Скидка",
+      discountType: "Тип скидки",
+      discountValue: "Размер скидки",
       workStatus: "Состояние сотрудника",
       laborCost: "Стоимость работ",
       partsCost: "Стоимость запчастей",
