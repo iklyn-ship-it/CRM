@@ -8,6 +8,7 @@ import { FinanceOperation, Order, OrderStatus } from "../../models/crm.models";
 
 interface OrderFinanceRow {
   order: Order;
+  clientId: string;
   clientName: string;
   equipmentName: string;
   plan: number;
@@ -19,6 +20,18 @@ interface OrderFinanceRow {
   remaining: number;
   incomeOps: FinanceOperation[];
   expenseOps: FinanceOperation[];
+}
+
+interface ClientFinanceGroup {
+  clientId: string;
+  clientName: string;
+  rows: OrderFinanceRow[];
+  plan: number;
+  income: number;
+  expense: number;
+  profit: number;
+  remaining: number;
+  latestDate: string;
 }
 
 @Component({
@@ -36,6 +49,7 @@ export class FinanceComponent {
   search = signal("");
   filterType = signal("");
   orderFinanceStatusFilter = signal<"open" | "all" | OrderStatus>("open");
+  expandedClientIds = signal<string[]>([]);
   formOpen = signal(false);
   editingId = "";
   form = {
@@ -128,6 +142,7 @@ export class FinanceComponent {
 
         return {
           order,
+          clientId: order.clientId || "no-client",
           clientName,
           equipmentName,
           plan,
@@ -152,6 +167,31 @@ export class FinanceComponent {
       });
   });
 
+  readonly groupedOrderFinanceRows = computed((): ClientFinanceGroup[] => {
+    const groups = new Map<string, OrderFinanceRow[]>();
+    this.orderFinanceRows().forEach((row) => {
+      groups.set(row.clientId, [...(groups.get(row.clientId) || []), row]);
+    });
+
+    return [...groups.entries()]
+      .map(([clientId, rows]) => ({
+        clientId,
+        clientName: rows[0]?.clientName || "—",
+        rows,
+        plan: rows.reduce((sum, row) => sum + row.plan, 0),
+        income: rows.reduce((sum, row) => sum + row.income, 0),
+        expense: rows.reduce((sum, row) => sum + row.expense, 0),
+        profit: rows.reduce((sum, row) => sum + row.profit, 0),
+        remaining: rows.reduce((sum, row) => sum + row.remaining, 0),
+        latestDate: rows.reduce(
+          (latest, row) =>
+            row.order.startDate > latest ? row.order.startDate : latest,
+          "",
+        ),
+      }))
+      .sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  });
+
   readonly unlinkedOps = computed(() =>
     this.state
       .operations()
@@ -168,6 +208,17 @@ export class FinanceComponent {
       cancelled: "Отменена",
     };
     return labels[status] || status;
+  }
+
+  isClientExpanded(clientId: string): boolean {
+    return this.expandedClientIds().includes(clientId);
+  }
+
+  toggleClientGroup(clientId: string): void {
+    const ids = new Set(this.expandedClientIds());
+    if (ids.has(clientId)) ids.delete(clientId);
+    else ids.add(clientId);
+    this.expandedClientIds.set([...ids]);
   }
 
   onOrderLinkChange(): void {
