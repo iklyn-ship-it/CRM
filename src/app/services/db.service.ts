@@ -197,6 +197,7 @@ export class DbService {
     return {
       ...operation,
       amount: Number(operation.amount || 0),
+      transportId: operation.transportId || "",
       equipmentId: operation.equipmentId || "",
     } as FinanceOperation;
   }
@@ -720,6 +721,7 @@ export class DbService {
       status: "Статус",
       clientId: "Клиент",
       equipmentId: "Техника",
+      transportId: "Перевозка",
       operatorId: "Оператор",
       driverId: "Водитель",
       startDate: "Дата начала",

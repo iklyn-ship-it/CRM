@@ -4,7 +4,12 @@ import { NgClass, SlicePipe } from "@angular/common";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { FinanceOperation, Order, OrderStatus } from "../../models/crm.models";
+import {
+  FinanceOperation,
+  Order,
+  OrderStatus,
+  Transport,
+} from "../../models/crm.models";
 
 interface OrderFinanceRow {
   order: Order;
@@ -34,6 +39,22 @@ interface ClientFinanceGroup {
   latestDate: string;
 }
 
+interface TransportFinanceRow {
+  transport: Transport;
+  route: string;
+  driverName: string;
+  equipmentName: string;
+  plan: number;
+  income: number;
+  expense: number;
+  manualExpense: number;
+  driverExpense: number;
+  profit: number;
+  remaining: number;
+  incomeOps: FinanceOperation[];
+  expenseOps: FinanceOperation[];
+}
+
 @Component({
   selector: "app-finance",
   standalone: true,
@@ -59,13 +80,16 @@ export class FinanceComponent {
     amount: 0,
     orderId: "",
     repairId: "",
+    transportId: "",
     equipmentId: "",
     comment: "",
   };
   readonly categories = [
     "Оплата клиента",
+    "Оплата перевозки",
     "Топливо",
     "Зарплата оператора",
+    "Водитель",
     "Ремонт",
     "Логистика",
     "Запчасти",
@@ -89,6 +113,12 @@ export class FinanceComponent {
     return [...this.state.orders()]
       .filter((order) => order.status !== "completed")
       .sort((a, b) => b.startDate.localeCompare(a.startDate));
+  });
+
+  readonly availableTransportLinks = computed(() => {
+    return [...this.state.transports()].sort((a, b) =>
+      b.startDate.localeCompare(a.startDate),
+    );
   });
 
   readonly filteredOps = computed(() => {
@@ -196,14 +226,76 @@ export class FinanceComponent {
   readonly unlinkedOps = computed(() =>
     this.state
       .operations()
-      .filter((op) => !op.orderId && !op.repairId && !op.equipmentId)
+      .filter(
+        (op) =>
+          !op.orderId && !op.repairId && !op.transportId && !op.equipmentId,
+      )
       .sort((a, b) => b.date.localeCompare(a.date)),
   );
+
+  readonly transportFinanceRows = computed((): TransportFinanceRow[] => {
+    const q = this.search().toLowerCase();
+    return [...this.state.transports()]
+      .sort((a, b) => b.startDate.localeCompare(a.startDate))
+      .map((transport) => {
+        const operations = this.state
+          .transportOps(transport.id)
+          .sort((a, b) => b.date.localeCompare(a.date));
+        const incomeOps = operations.filter((op) => op.type === "income");
+        const expenseOps = operations.filter((op) => op.type === "expense");
+        const income = this.state.transportIncome(transport.id);
+        const manualExpense = this.state.transportManualExpense(transport.id);
+        const driverExpense = this.state.transportDriverCost(transport);
+        const expense = manualExpense + driverExpense;
+        const route = `${transport.loadingPoint || "—"} → ${transport.unloadingPoint || "—"}`;
+        const driverName =
+          this.state.byId(this.state.operators(), transport.driverId)?.name || "—";
+        const equipmentName =
+          this.state.byId(this.state.equipment(), transport.equipmentId)?.name ||
+          "—";
+
+        return {
+          transport,
+          route,
+          driverName,
+          equipmentName,
+          plan: this.state.transportTotal(transport),
+          income,
+          expense,
+          manualExpense,
+          driverExpense,
+          profit: income - expense,
+          remaining: this.state.transportRemaining(transport),
+          incomeOps,
+          expenseOps,
+        };
+      })
+      .filter((row) => {
+        if (!q) return true;
+        return (
+          row.transport.id.toLowerCase().includes(q) ||
+          row.route.toLowerCase().includes(q) ||
+          row.driverName.toLowerCase().includes(q) ||
+          row.equipmentName.toLowerCase().includes(q) ||
+          (row.transport.cargoName || "").toLowerCase().includes(q)
+        );
+      });
+  });
 
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
       new: "Новая",
       confirmed: "Подтверждена",
+      active: "В работе",
+      completed: "Завершена",
+      cancelled: "Отменена",
+    };
+    return labels[status] || status;
+  }
+
+  transportStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      new: "Новая",
       active: "В работе",
       completed: "Завершена",
       cancelled: "Отменена",
@@ -233,6 +325,7 @@ export class FinanceComponent {
     }
     if (this.form.orderId) {
       this.form.repairId = "";
+      this.form.transportId = "";
       const order = this.state.byId(this.state.orders(), this.form.orderId);
       this.form.equipmentId = order?.equipmentId || this.form.equipmentId;
     }
@@ -241,8 +334,21 @@ export class FinanceComponent {
   onRepairLinkChange(): void {
     if (this.form.repairId) {
       this.form.orderId = "";
+      this.form.transportId = "";
       const repair = this.state.byId(this.state.repairs(), this.form.repairId);
       this.form.equipmentId = repair?.equipmentId || this.form.equipmentId;
+    }
+  }
+
+  onTransportLinkChange(): void {
+    if (this.form.transportId) {
+      this.form.orderId = "";
+      this.form.repairId = "";
+      const transport = this.state.byId(
+        this.state.transports(),
+        this.form.transportId,
+      );
+      this.form.equipmentId = transport?.equipmentId || this.form.equipmentId;
     }
   }
 
@@ -262,6 +368,12 @@ export class FinanceComponent {
       const rep = this.state.byId(this.state.repairs(), op.repairId);
       if (rep)
         return `Ремонт ${rep.id.slice(-5)} • ${this.state.byId(this.state.equipment(), rep.equipmentId)?.name || ""}`;
+    }
+    if (op.transportId) {
+      const transport = this.state.byId(this.state.transports(), op.transportId);
+      if (transport) {
+        return `Перевозка ${transport.id.slice(-5)} • ${transport.loadingPoint || "—"} → ${transport.unloadingPoint || "—"}`;
+      }
     }
     if (op.equipmentId) {
       const equipment = this.state.byId(this.state.equipment(), op.equipmentId);
@@ -326,6 +438,7 @@ export class FinanceComponent {
       amount: op.amount,
       orderId: op.orderId,
       repairId: op.repairId,
+      transportId: op.transportId || "",
       equipmentId: op.equipmentId || "",
       comment: op.comment,
     };
@@ -347,6 +460,7 @@ export class FinanceComponent {
       amount: 0,
       orderId: "",
       repairId: "",
+      transportId: "",
       equipmentId: "",
       comment: "",
     };
@@ -359,6 +473,9 @@ export class FinanceComponent {
         : "";
     if (message.includes("equipment_id")) {
       return "База Supabase еще не готова для привязки финансов к технике. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("transport_id")) {
+      return "База Supabase еще не готова для финансов перевозок. Выполни SQL-файл supabase-transport-finance.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message
       ? `Не удалось сохранить финансовую операцию: ${message}`

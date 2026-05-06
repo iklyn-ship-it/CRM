@@ -57,7 +57,7 @@ export class StateService {
   );
 
   readonly totalExpense = computed(() =>
-    this.manualExpense() + this.operatorPayroll(),
+    this.manualExpense() + this.operatorPayroll() + this.transportDriverPayroll(),
   );
 
   readonly totalProfit = computed(
@@ -72,6 +72,13 @@ export class StateService {
 
   readonly operatorPayroll = computed(() =>
     this.orders().reduce((sum, order) => sum + this.orderOperatorCost(order), 0),
+  );
+
+  readonly transportDriverPayroll = computed(() =>
+    this.transports().reduce(
+      (sum, transport) => sum + this.transportDriverCost(transport),
+      0,
+    ),
   );
 
   readonly avgUtilization = computed(() => {
@@ -392,6 +399,43 @@ export class StateService {
 
   transportTotal(transport: Transport): number {
     return Number(transport.pickupCost || 0) + Number(transport.deliveryCost || 0);
+  }
+
+  transportOps(transportId: string): FinanceOperation[] {
+    return this.operations().filter((operation) => operation.transportId === transportId);
+  }
+
+  transportIncome(transportId: string): number {
+    return this.transportOps(transportId)
+      .filter((operation) => operation.type === "income")
+      .reduce((sum, operation) => sum + Number(operation.amount || 0), 0);
+  }
+
+  transportManualExpense(transportId: string): number {
+    return this.transportOps(transportId)
+      .filter((operation) => operation.type === "expense")
+      .reduce((sum, operation) => sum + Number(operation.amount || 0), 0);
+  }
+
+  transportDriverCost(transport: Transport): number {
+    if (transport.status === "cancelled" || !transport.driverId) return 0;
+    const driver = this.byId(this.operators(), transport.driverId);
+    if (!driver?.rate && !driver?.hourlyRate) return 0;
+    const days = this.utils.daysInclusive(transport.startDate, transport.endDate).length;
+    if (driver.hourlyRate) return days * 8 * Number(driver.hourlyRate || 0);
+    return days * Number(driver.rate || 0);
+  }
+
+  transportExpense(transport: Transport): number {
+    return this.transportManualExpense(transport.id) + this.transportDriverCost(transport);
+  }
+
+  transportProfit(transport: Transport): number {
+    return this.transportIncome(transport.id) - this.transportExpense(transport);
+  }
+
+  transportRemaining(transport: Transport): number {
+    return Math.max(0, this.transportTotal(transport) - this.transportIncome(transport.id));
   }
 
   orderUsesEquipmentOnDate(order: Order, equipmentId: string, date: string): boolean {

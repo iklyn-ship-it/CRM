@@ -147,6 +147,7 @@ export interface FinanceOperation {
   amount: number;
   orderId: string;
   repairId: string;
+  transportId: string;
   equipmentId: string;
   comment: string;
 }
