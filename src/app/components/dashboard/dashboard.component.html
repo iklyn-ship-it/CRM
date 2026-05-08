@@ -8,6 +8,13 @@
     <div class="val expense-val">{{ utils.money(metricSummary().expense) }}</div>
   </div>
   <div class="card metric">
+    <div class="label">Затраты техники</div>
+    <div class="val expense-val">
+      {{ utils.money(metricSummary().equipmentExpense) }}
+    </div>
+    <div class="sub">заявки, ремонты и прямые расходы</div>
+  </div>
+  <div class="card metric">
     <div class="label">Чистая прибыль</div>
     <div class="val profit-val">{{ utils.money(metricSummary().profit) }}</div>
   </div>
@@ -269,23 +276,69 @@
   @if (activeChart() === "equipment") {
   <div class="card panel chart-card wide">
     <div class="chart-head">
-      <h3>Прибыль по технике</h3>
+      <h3>Доход, затраты и прибыль по технике</h3>
       <span class="small">{{ periodLabel() }}</span>
     </div>
     @if (periodEquipmentAnalytics().length) {
       <div class="hchart-list">
         @for (item of periodEquipmentAnalytics(); track item.name) {
-          <div class="hchart-row">
-            <div class="hchart-name">{{ item.name }}</div>
-            <div class="hchart-track">
-              <div
-                class="hchart-fill profit"
-                [style.width.%]="
-                  maxProfit() ? (Math.abs(item.profit) / maxProfit()) * 100 : 0
-                "
-              ></div>
+          <div class="hchart-row equipment-row">
+            <div class="hchart-name equipment-name">
+              <strong>{{ item.name }}</strong>
+              <span>
+                Затраты: {{ utils.money(item.expense) }}
+              </span>
             </div>
-            <div class="hchart-val">{{ utils.money(item.profit) }}</div>
+            <div class="equipment-bars">
+              <div class="equipment-bar-line">
+                <span>Доход</span>
+                <div class="hchart-track">
+                  <div
+                    class="hchart-fill income"
+                    [style.width.%]="
+                      maxProfit()
+                        ? (Math.abs(item.income) / maxProfit()) * 100
+                        : 0
+                    "
+                  ></div>
+                </div>
+                <strong>{{ utils.money(item.income) }}</strong>
+              </div>
+              <div class="equipment-bar-line">
+                <span>Затраты</span>
+                <div class="hchart-track">
+                  <div
+                    class="hchart-fill expense"
+                    [style.width.%]="
+                      maxProfit()
+                        ? (Math.abs(item.expense) / maxProfit()) * 100
+                        : 0
+                    "
+                  ></div>
+                </div>
+                <strong>{{ utils.money(item.expense) }}</strong>
+              </div>
+              <div class="equipment-bar-line">
+                <span>Прибыль</span>
+                <div class="hchart-track">
+                  <div
+                    class="hchart-fill profit"
+                    [style.width.%]="
+                      maxProfit()
+                        ? (Math.abs(item.profit) / maxProfit()) * 100
+                        : 0
+                    "
+                  ></div>
+                </div>
+                <strong>{{ utils.money(item.profit) }}</strong>
+              </div>
+            </div>
+            <div class="hchart-val equipment-expense-detail">
+              <span>Заявки {{ utils.money(item.orderExpense) }}</span>
+              <span>Операторы {{ utils.money(item.operatorExpense) }}</span>
+              <span>Ремонт {{ utils.money(item.repairExpense) }}</span>
+              <span>Прямые {{ utils.money(item.directExpense) }}</span>
+            </div>
           </div>
         }
       </div>
@@ -373,6 +426,7 @@
             <div class="item">
               <div class="small">{{ i + 1 }}. {{ item.name }}</div>
               <div>
+                <span class="small">Затраты {{ utils.money(item.expense) }}</span>
                 <strong>{{ utils.money(item.profit) }}</strong>
               </div>
             </div>

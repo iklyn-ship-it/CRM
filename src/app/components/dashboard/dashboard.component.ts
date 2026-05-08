@@ -20,6 +20,13 @@ interface MonthlyFinancePoint {
   profit: number;
 }
 
+interface EquipmentDashboardAnalytics extends EquipmentAnalytics {
+  directExpense: number;
+  operatorExpense: number;
+  orderExpense: number;
+  repairExpense: number;
+}
+
 interface ConflictDetail {
   id: string;
   kind: string;
@@ -197,6 +204,7 @@ export class DashboardComponent {
         ["planned", "active"].includes(r.status),
       ).length,
       utilization: this.periodUtilization(),
+      equipmentExpense: this.periodEquipmentExpense(),
     };
   });
 
@@ -294,7 +302,7 @@ export class DashboardComponent {
     return events;
   });
 
-  readonly periodEquipmentAnalytics = computed((): EquipmentAnalytics[] => {
+  readonly periodEquipmentAnalytics = computed((): EquipmentDashboardAnalytics[] => {
     const orders = this.periodOrders();
     const repairs = this.periodRepairs();
     const ops = this.periodOperations();
@@ -310,6 +318,14 @@ export class DashboardComponent {
         );
         const income = ops
           .filter((op) => op.type === "income" && orderIds.has(op.orderId))
+          .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+        const directIncome = ops
+          .filter(
+            (op) =>
+              op.type === "income" &&
+              op.equipmentId === eq.id &&
+              !orderIds.has(op.orderId),
+          )
           .reduce((sum, op) => sum + Number(op.amount || 0), 0);
         const operatorExpense = orders
           .filter((o) => o.equipmentId === eq.id)
@@ -329,11 +345,27 @@ export class DashboardComponent {
         const repairExpense = ops
           .filter((op) => op.type === "expense" && repairIds.has(op.repairId))
           .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+        const directExpense = ops
+          .filter(
+            (op) =>
+              op.type === "expense" &&
+              op.equipmentId === eq.id &&
+              !orderIds.has(op.orderId) &&
+              !repairIds.has(op.repairId),
+          )
+          .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+        const totalIncome = income + directIncome;
+        const totalExpense =
+          orderExpense + operatorExpense + repairExpense + directExpense;
         return {
           name: eq.name,
-          income,
-          expense: orderExpense + operatorExpense + repairExpense,
-          profit: income - orderExpense - operatorExpense - repairExpense,
+          income: totalIncome,
+          expense: totalExpense,
+          profit: totalIncome - totalExpense,
+          directExpense,
+          operatorExpense,
+          orderExpense,
+          repairExpense,
         };
       })
       .filter((item) => item.income || item.expense || item.profit)
@@ -344,7 +376,11 @@ export class DashboardComponent {
   readonly maxProfit = computed(() =>
     Math.max(
       1,
-      ...this.periodEquipmentAnalytics().map((x) => Math.abs(x.profit)),
+      ...this.periodEquipmentAnalytics().flatMap((x) => [
+        Math.abs(x.income),
+        Math.abs(x.expense),
+        Math.abs(x.profit),
+      ]),
     ),
   );
 
@@ -360,11 +396,13 @@ export class DashboardComponent {
       .filter((o) => o.type === "expense" && o.orderId)
       .reduce((s, o) => s + Number(o.amount || 0), 0);
     const operatorSpend = this.periodOperatorPayroll();
+    const equipmentSpend = this.periodEquipmentExpense();
     return [
       { label: "Доход по аренде", value: linkedIncome },
       { label: "Расходы по аренде", value: linkedExpense },
       { label: "Зарплата операторов", value: operatorSpend },
       { label: "Расходы на ремонты", value: repairSpend },
+      { label: "Затраты по технике", value: equipmentSpend },
       {
         label: "Cashflow за период",
         value: this.periodIncome() - this.periodExpense(),
@@ -404,14 +442,20 @@ export class DashboardComponent {
     const repairExpense = ops
       .filter((o) => o.type === "expense" && o.repairId)
       .reduce((s, o) => s + Number(o.amount || 0), 0);
+    const equipmentExpense = this.periodDirectEquipmentExpense();
     const operatorExpense = this.periodOperatorPayroll();
     const otherExpense = Math.max(
       0,
-      this.periodExpense() - orderExpense - operatorExpense - repairExpense,
+      this.periodExpense() -
+        orderExpense -
+        operatorExpense -
+        repairExpense -
+        equipmentExpense,
     );
     const rows = [
       { label: "Приходы", value: income, color: "#22c55e" },
       { label: "Расходы по заявкам", value: orderExpense, color: "#f59e0b" },
+      { label: "Затраты техники", value: equipmentExpense, color: "#06b6d4" },
       {
         label: "Зарплата операторов",
         value: operatorExpense,
@@ -652,6 +696,25 @@ export class DashboardComponent {
           this.periodStart(),
           this.periodEnd(),
         ),
+      0,
+    );
+  }
+
+  private periodDirectEquipmentExpense(): number {
+    return this.periodOperations()
+      .filter(
+        (op) =>
+          op.type === "expense" &&
+          op.equipmentId &&
+          !op.orderId &&
+          !op.repairId,
+      )
+      .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+  }
+
+  private periodEquipmentExpense(): number {
+    return this.periodEquipmentAnalytics().reduce(
+      (sum, item) => sum + Number(item.expense || 0),
       0,
     );
   }
