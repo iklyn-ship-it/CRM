@@ -66,6 +66,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "projects",
+        loadComponent: () =>
+          import("./components/projects/projects.component").then(
+            (m) => m.ProjectsComponent,
+          ),
+      },
+      {
         path: "equipment",
         loadComponent: () =>
           import("./components/equipment/equipment.component").then(

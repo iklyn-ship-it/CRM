@@ -142,6 +142,21 @@ create table if not exists public.transports (
 );
 
 -- 7. Финансовые операции
+create table if not exists public.projects (
+  id         text primary key,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  name       text not null default '',
+  client_id  text not null default '',
+  start_date text not null default '',
+  end_date   text not null default '',
+  status     text not null default 'new',
+  budget     numeric not null default 0,
+  location   text not null default '',
+  notes      text not null default '',
+  created_at timestamptz not null default now()
+);
+
+-- 8. Финансовые операции
 create table if not exists public.operations (
   id         text primary key,
   user_id    uuid not null references auth.users(id) on delete cascade,
@@ -157,7 +172,7 @@ create table if not exists public.operations (
   created_at timestamptz not null default now()
 );
 
--- 8. Настройки интеграций (одна строка на пользователя)
+-- 9. Настройки интеграций (одна строка на пользователя)
 create table if not exists public.integrations (
   user_id              uuid primary key references auth.users(id) on delete cascade,
   google_sheets_url    text not null default '',
@@ -168,7 +183,7 @@ create table if not exists public.integrations (
   updated_at           timestamptz not null default now()
 );
 
--- 9. Пользовательские настройки (режим графика, календаря)
+-- 10. Пользовательские настройки (режим графика, календаря)
 create table if not exists public.user_settings (
   user_id       uuid primary key references auth.users(id) on delete cascade,
   chart_mode    text not null default 'bars',
@@ -185,7 +200,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array ARRAY['clients','equipment','operators','orders','repairs','transports','operations','integrations','user_settings']
+  foreach t in array ARRAY['clients','equipment','operators','orders','repairs','transports','projects','operations','integrations','user_settings']
   loop
     execute format('alter table public.%I enable row level security', t);
 
@@ -212,6 +227,8 @@ create index if not exists idx_orders_status   on public.orders(user_id, status)
 create index if not exists idx_repairs_user    on public.repairs(user_id);
 create index if not exists idx_transports_user on public.transports(user_id);
 create index if not exists idx_transports_dates on public.transports(user_id, start_date, end_date);
+create index if not exists idx_projects_user   on public.projects(user_id);
+create index if not exists idx_projects_status on public.projects(user_id, status);
 create index if not exists idx_operations_user on public.operations(user_id);
 create index if not exists idx_operations_equipment on public.operations(equipment_id);
 create index if not exists idx_operations_transport on public.operations(transport_id);
@@ -228,6 +245,7 @@ alter publication supabase_realtime add table public.operators;
 alter publication supabase_realtime add table public.orders;
 alter publication supabase_realtime add table public.repairs;
 alter publication supabase_realtime add table public.transports;
+alter publication supabase_realtime add table public.projects;
 alter publication supabase_realtime add table public.operations;
 alter publication supabase_realtime add table public.integrations;
 alter publication supabase_realtime add table public.user_settings;

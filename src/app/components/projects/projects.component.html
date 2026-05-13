@@ -1,0 +1,252 @@
+<div class="section-heading">
+  <div>
+    <h2>Проекты</h2>
+    <p>Объединяем будущие заявки, клиентов, технику и финансы в один проект.</p>
+  </div>
+  @if (!selectedProject()) {
+    <button type="button" class="btn primary" (click)="openCreate()">
+      + Создать проект
+    </button>
+  }
+</div>
+
+@if (selectedProject() || editing()) {
+  <section class="project-workspace">
+    <div class="project-topbar">
+      <button type="button" class="btn ghost" (click)="closeProject()">
+        ← К списку проектов
+      </button>
+      <div class="project-topbar-actions">
+        @if (!editing() && selectedProject(); as project) {
+          <button type="button" class="btn ghost" (click)="editSelected()">
+            Редактировать
+          </button>
+          <button type="button" class="btn ghost" (click)="remove(project)">
+            Удалить
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="card panel project-full-card">
+      @if (editing()) {
+        <form (ngSubmit)="save()" class="project-form">
+          <div class="project-hero edit">
+            <div>
+              <label>Название проекта</label>
+              <input
+                type="text"
+                [(ngModel)]="form.name"
+                name="name"
+                placeholder="Например: ЖК Центральный, демонтаж и аренда"
+                required
+              />
+            </div>
+            <div class="project-save-actions">
+              <button type="submit" class="btn primary">Сохранить проект</button>
+              <button type="button" class="btn ghost" (click)="cancelEdit()">
+                Отмена
+              </button>
+            </div>
+          </div>
+
+          <div class="project-form-grid">
+            <div class="field">
+              <label>Клиент</label>
+              <select [(ngModel)]="form.clientId" name="clientId">
+                <option value="">— выбрать клиента —</option>
+                @for (client of state.clients(); track client.id) {
+                  <option [value]="client.id">{{ client.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>Статус</label>
+              <select [(ngModel)]="form.status" name="status">
+                @for (status of statuses; track status.value) {
+                  <option [value]="status.value">{{ status.label }}</option>
+                }
+              </select>
+            </div>
+            <div class="field">
+              <label>Дата начала</label>
+              <input type="date" [(ngModel)]="form.startDate" name="startDate" />
+            </div>
+            <div class="field">
+              <label>Дата окончания</label>
+              <input type="date" [(ngModel)]="form.endDate" name="endDate" />
+            </div>
+            <div class="field">
+              <label>Бюджет / план, ₴</label>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="form.budget"
+                name="budget"
+              />
+            </div>
+            <div class="field">
+              <label>Локация / объект</label>
+              <input
+                type="text"
+                [(ngModel)]="form.location"
+                name="location"
+                placeholder="Город, объект, адрес"
+              />
+            </div>
+            <div class="field wide">
+              <label>Комментарий</label>
+              <textarea
+                [(ngModel)]="form.notes"
+                name="notes"
+                placeholder="Что важно знать по проекту"
+              ></textarea>
+            </div>
+          </div>
+        </form>
+      } @else if (selectedProject(); as project) {
+        <div class="project-hero">
+          <div>
+            <div class="project-id">Проект {{ project.id | slice: -5 }}</div>
+            <h3>{{ project.name }}</h3>
+            <p>
+              {{ clientName(project.clientId) }} •
+              {{ project.location || "локация не указана" }}
+            </p>
+          </div>
+          <span class="badge" [ngClass]="statusBadgeClass(project.status)">
+            {{ statusLabel(project.status) }}
+          </span>
+        </div>
+
+        <div class="project-metrics">
+          <div class="metric">
+            <span>Период</span>
+            <strong>
+              {{ utils.fmtDate(project.startDate) }} -
+              {{ utils.fmtDate(project.endDate) }}
+            </strong>
+          </div>
+          <div class="metric">
+            <span>Длительность</span>
+            <strong>
+              {{
+                project.startDate && project.endDate
+                  ? utils.daysInclusive(project.startDate, project.endDate)
+                  : 0
+              }}
+              дн.
+            </strong>
+          </div>
+          <div class="metric">
+            <span>Бюджет / план</span>
+            <strong>{{ utils.money(project.budget) }}</strong>
+          </div>
+          <div class="metric">
+            <span>Создан</span>
+            <strong>
+              {{
+                project.createdAt
+                  ? utils.fmtDate(project.createdAt.slice(0, 10))
+                  : "—"
+              }}
+            </strong>
+          </div>
+        </div>
+
+        <div class="project-section">
+          <h4>Комментарий</h4>
+          <p>{{ project.notes || "Комментариев пока нет." }}</p>
+        </div>
+
+        <div class="project-section muted-section">
+          <h4>Следующий шаг</h4>
+          <p>
+            Сюда постепенно добавим привязанные заявки, технику, операторов,
+            финансы, документы и этапы проекта.
+          </p>
+        </div>
+      }
+    </div>
+  </section>
+} @else {
+  <div class="card panel internal-scroll-panel">
+    <div class="toolbar">
+      <input
+        type="text"
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+        placeholder="Поиск: проект, клиент, локация, комментарий..."
+      />
+      <select
+        [value]="filterStatus()"
+        (change)="filterStatus.set($any($event.target).value)"
+      >
+        <option value="">Все статусы</option>
+        @for (status of statuses; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="table-wrap internal-scroll-body">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Проект</th>
+            <th>Клиент</th>
+            <th>Период</th>
+            <th>Бюджет</th>
+            <th>Статус</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (project of filteredProjects(); track project.id) {
+            <tr class="clickable-row" (click)="openProject(project)">
+              <td>{{ project.id | slice: -5 }}</td>
+              <td>
+                <strong>{{ project.name }}</strong>
+                <div class="small">{{ project.location || "—" }}</div>
+              </td>
+              <td>{{ clientName(project.clientId) }}</td>
+              <td>
+                {{ utils.fmtDate(project.startDate) }}
+                <div class="small">
+                  {{ utils.fmtDate(project.endDate) }} •
+                  {{
+                    project.startDate && project.endDate
+                      ? utils.daysInclusive(project.startDate, project.endDate)
+                      : 0
+                  }}
+                  дн.
+                </div>
+              </td>
+              <td>{{ utils.money(project.budget) }}</td>
+              <td>
+                <span class="badge" [ngClass]="statusBadgeClass(project.status)">
+                  {{ statusLabel(project.status) }}
+                </span>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  (click)="$event.stopPropagation(); openProject(project)"
+                >
+                  Открыть
+                </button>
+              </td>
+            </tr>
+          }
+          @if (!filteredProjects().length) {
+            <tr>
+              <td colspan="7"><div class="empty">Проектов пока нет.</div></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+}

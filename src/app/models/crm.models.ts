@@ -139,6 +139,21 @@ export interface Transport {
 
 export type TransportStatus = 'new' | 'active' | 'completed' | 'cancelled';
 
+export interface Project {
+  id: string;
+  name: string;
+  clientId: string;
+  startDate: string;
+  endDate: string;
+  status: ProjectStatus;
+  budget: number;
+  location: string;
+  notes: string;
+  createdAt: string;
+}
+
+export type ProjectStatus = 'new' | 'active' | 'paused' | 'completed' | 'cancelled';
+
 export interface FinanceOperation {
   id: string;
   date: string;
@@ -186,6 +201,7 @@ export interface CrmState {
   operators: Operator[];
   orders: Order[];
   transports: Transport[];
+  projects: Project[];
   operations: FinanceOperation[];
   repairs: Repair[];
   calendarDate: string;

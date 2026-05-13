@@ -25,6 +25,7 @@ export class AuditLogComponent {
     { value: "equipment", label: "Техника" },
     { value: "operators", label: "Операторы" },
     { value: "repairs", label: "Ремонты" },
+    { value: "projects", label: "Проекты" },
     { value: "operations", label: "Финансы" },
     { value: "integrations", label: "Интеграции" },
   ];
@@ -70,6 +71,7 @@ export class AuditLogComponent {
       equipment: "Техника",
       operators: "Оператор",
       repairs: "Ремонт",
+      projects: "Проект",
       operations: "Финансы",
       integrations: "Интеграция",
     };
