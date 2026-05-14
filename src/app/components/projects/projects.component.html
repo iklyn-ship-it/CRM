@@ -3,9 +3,146 @@
     <h2>Новая версия заявок</h2>
     <p>Клиент → локация → техника/заявки → полноэкранная карточка заявки.</p>
   </div>
+  @if (!selectedOrder() && !selectedLocation() && !creatingOrder()) {
+    <button type="button" class="btn primary" (click)="openCreateOrder()">
+      + Создать заявку
+    </button>
+  }
 </div>
 
-@if (selectedOrder(); as order) {
+@if (creatingOrder()) {
+  <section class="order-workspace">
+    <div class="workspace-topbar">
+      <button type="button" class="btn ghost" (click)="cancelCreateOrder()">
+        ← Назад
+      </button>
+      <button type="button" class="btn primary" (click)="createOrder()">
+        Сохранить заявку
+      </button>
+    </div>
+
+    <div class="card panel order-full-card">
+      <div class="order-hero create">
+        <div>
+          <div class="eyebrow">Новая заявка</div>
+          <h3>Создать заявку</h3>
+          <p>Заполни основные данные, расширенные блоки добавим постепенно.</p>
+        </div>
+      </div>
+
+      <div class="create-order-grid">
+        <label class="edit-chip">
+          <span>Клиент</span>
+          <select [(ngModel)]="createForm.clientId" name="createClientId">
+            <option value="">— клиент —</option>
+            @for (client of state.clients(); track client.id) {
+              <option [value]="client.id">{{ client.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="edit-chip">
+          <span>Локация</span>
+          <input
+            type="text"
+            [(ngModel)]="createForm.location"
+            name="createLocation"
+            placeholder="Объект / адрес"
+          />
+        </label>
+
+        <label class="edit-chip">
+          <span>Дата начала</span>
+          <input
+            type="date"
+            [(ngModel)]="createForm.startDate"
+            name="createStartDate"
+          />
+        </label>
+
+        <label class="edit-chip">
+          <span>Дата окончания</span>
+          <input
+            type="date"
+            [(ngModel)]="createForm.endDate"
+            name="createEndDate"
+          />
+        </label>
+
+        <label class="edit-chip">
+          <span>Техника</span>
+          <select [(ngModel)]="createForm.equipmentId" name="createEquipmentId">
+            <option value="">— техника —</option>
+            @for (item of state.equipment(); track item.id) {
+              <option [value]="item.id">{{ item.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="edit-chip">
+          <span>Оператор</span>
+          <select [(ngModel)]="createForm.operatorId" name="createOperatorId">
+            <option value="">— оператор —</option>
+            @for (operator of state.operators(); track operator.id) {
+              <option [value]="operator.id">{{ operator.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="edit-chip">
+          <span>Статус</span>
+          <select [(ngModel)]="createForm.status" name="createStatus">
+            @for (status of statuses; track status.value) {
+              <option [value]="status.value">{{ status.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="edit-chip money-chip">
+          <span>Общая стоимость / план</span>
+          <input
+            type="number"
+            min="0"
+            [(ngModel)]="createForm.plan"
+            name="createPlan"
+          />
+        </label>
+
+        <div class="edit-chip discount-chip">
+          <span>Скидка</span>
+          <label class="inline-check">
+            <input
+              type="checkbox"
+              [(ngModel)]="createForm.discountEnabled"
+              name="createDiscountEnabled"
+            />
+            включить
+          </label>
+          <div class="discount-fields">
+            <select
+              [(ngModel)]="createForm.discountType"
+              name="createDiscountType"
+            >
+              <option value="percent">%</option>
+              <option value="amount">₴</option>
+            </select>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="createForm.discountValue"
+              name="createDiscountValue"
+            />
+          </div>
+        </div>
+
+        <label class="edit-chip comments-chip">
+          <span>Комментарии</span>
+          <textarea [(ngModel)]="createForm.notes" name="createNotes"></textarea>
+        </label>
+      </div>
+    </div>
+  </section>
+} @else if (selectedOrder(); as order) {
   <section class="order-workspace">
     <div class="workspace-topbar">
       <button type="button" class="btn ghost" (click)="closeOrder()">
@@ -216,6 +353,9 @@
     <div class="workspace-topbar">
       <button type="button" class="btn ghost" (click)="closeLocation()">
         ← К клиентам
+      </button>
+      <button type="button" class="btn primary" (click)="openCreateOrder(location)">
+        + Создать заявку
       </button>
     </div>
 

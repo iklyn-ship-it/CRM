@@ -48,9 +48,11 @@ export class ProjectsComponent {
   expandedClientIds = signal<string[]>([]);
   selectedLocationKey = signal("");
   selectedOrderId = signal("");
+  creatingOrder = signal(false);
 
   orderForm = this.emptyOrderForm();
   operationForm = this.emptyOperationForm();
+  createForm = this.emptyCreateForm();
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
     { value: "new", label: "Новая" },
@@ -171,10 +173,125 @@ export class ProjectsComponent {
   closeLocation(): void {
     this.selectedLocationKey.set("");
     this.selectedOrderId.set("");
+    this.creatingOrder.set(false);
     this.orderForm = this.emptyOrderForm();
+    this.createForm = this.emptyCreateForm();
+  }
+
+  openCreateOrder(location?: LocationGroup): void {
+    const today = this.utils.todayStr();
+    this.selectedOrderId.set("");
+    this.creatingOrder.set(true);
+    this.createForm = {
+      ...this.emptyCreateForm(),
+      clientId: location?.clientId === "no-client" ? "" : location?.clientId || "",
+      location: location?.location === "Без локации" ? "" : location?.location || "",
+      startDate: today,
+      endDate: today,
+    };
+  }
+
+  cancelCreateOrder(): void {
+    this.creatingOrder.set(false);
+    this.createForm = this.emptyCreateForm();
+  }
+
+  async createOrder(): Promise<void> {
+    if (!this.createForm.clientId) {
+      alert("Выбери клиента.");
+      return;
+    }
+    if (!this.createForm.equipmentId) {
+      alert("Выбери технику.");
+      return;
+    }
+    if (!this.createForm.startDate || !this.createForm.endDate) {
+      alert("Укажи даты брони.");
+      return;
+    }
+    if (this.createForm.startDate > this.createForm.endDate) {
+      alert("Дата начала не может быть позже даты окончания.");
+      return;
+    }
+    const id = this.utils.uid("ord");
+    const days = this.utils.daysInclusive(
+      this.createForm.startDate,
+      this.createForm.endDate,
+    );
+    const plan = Number(this.createForm.plan || 0);
+    try {
+      await this.db.insert("orders", {
+        id,
+        clientId: this.createForm.clientId,
+        equipmentId: this.createForm.equipmentId,
+        operatorId: this.createForm.operatorId,
+        startDate: this.createForm.startDate,
+        endDate: this.createForm.endDate,
+        location: this.createForm.location,
+        rate: days ? plan / days : plan,
+        equipmentHourlyRate: 0,
+        standardWorkHours: 8,
+        additionalWorkHours: 0,
+        vatEnabled: false,
+        discountEnabled: Boolean(this.createForm.discountEnabled),
+        discountType: this.createForm.discountType,
+        discountValue: Number(this.createForm.discountValue || 0),
+        status: this.createForm.status,
+        notes: this.createForm.notes,
+        equipmentIdleDates: [],
+        operatorIdleDates: [],
+        operatorShifts: [],
+        logisticsEnabled: false,
+        logisticsProvider: "own_trawl",
+        logisticsTrailerId: "",
+        logisticsStartDate: "",
+        logisticsEndDate: "",
+        logisticsDistanceKm: 0,
+        logisticsPricePerKm: 0,
+        logisticsCost: 0,
+        logisticsPickupPricePerKm: 50,
+        logisticsDeliveryPricePerKm: 250,
+        logisticsPickupKm: 0,
+        logisticsDeliveryKm: 0,
+        logisticsPickupCost: 0,
+        logisticsDeliveryCost: 0,
+        assemblyEnabled: false,
+        assemblyDisassemblyDate: "",
+        assemblyAssemblyDate: "",
+        assemblyDisassemblyCost: 0,
+        assemblyAssemblyCost: 0,
+        breakdownEnabled: false,
+        breakdownDate: "",
+        breakdownEndDate: "",
+        breakdownStatus: "reported",
+        breakdownDescription: "",
+        breakdownReporter: "",
+        breakdownResponsible: "",
+        breakdownFaultParty: "unknown",
+        breakdownAffectsPayment: true,
+        breakdownOperatorIdle: true,
+        breakdownLaborCost: 0,
+        breakdownPartsCost: 0,
+        breakdownCreateRepair: false,
+        breakdownRepairId: "",
+        createdAt: new Date().toISOString(),
+      });
+      this.creatingOrder.set(false);
+      this.createForm = this.emptyCreateForm();
+      const created = this.state.byId(this.state.orders(), id);
+      if (created) {
+        this.selectedLocationKey.set(
+          `${created.clientId || "no-client"}::${this.locationLabel(created.location)}`,
+        );
+        this.openOrder(created);
+      }
+    } catch (error) {
+      alert(`Не удалось создать заявку: ${this.errorMessage(error)}`);
+    }
   }
 
   openOrder(order: Order): void {
+    this.creatingOrder.set(false);
     this.selectedOrderId.set(order.id);
     this.orderForm = this.orderToForm(order);
     this.operationForm = this.emptyOperationForm(order);
@@ -348,6 +465,23 @@ export class ProjectsComponent {
       amount: 0,
       billClient: false,
       comment: order ? `Заявка ${order.id.slice(-5)}` : "",
+    };
+  }
+
+  private emptyCreateForm() {
+    return {
+      clientId: "",
+      equipmentId: "",
+      operatorId: "",
+      startDate: "",
+      endDate: "",
+      location: "",
+      status: "new" as OrderStatus,
+      plan: 0,
+      discountEnabled: false,
+      discountType: "percent" as "percent" | "amount",
+      discountValue: 0,
+      notes: "",
     };
   }
 

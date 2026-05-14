@@ -183,6 +183,12 @@
   gap: 12px;
 }
 
+.create-order-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .edit-chip {
   display: grid;
   gap: 8px;
@@ -335,6 +341,7 @@
   .location-totals,
   .finance-summary,
   .editable-strip,
+  .create-order-grid,
   .order-finance-grid,
   .operation-form {
     grid-template-columns: 1fr;
