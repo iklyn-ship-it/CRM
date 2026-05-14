@@ -1,172 +1,282 @@
 <div class="section-heading">
   <div>
-    <h2>Проекты</h2>
-    <p>Объединяем будущие заявки, клиентов, технику и финансы в один проект.</p>
+    <h2>Новая версия заявок</h2>
+    <p>Клиент → локация → техника/заявки → полноэкранная карточка заявки.</p>
   </div>
-  @if (!selectedProject()) {
-    <button type="button" class="btn primary" (click)="openCreate()">
-      + Создать проект
-    </button>
-  }
 </div>
 
-@if (selectedProject() || editing()) {
-  <section class="project-workspace">
-    <div class="project-topbar">
-      <button type="button" class="btn ghost" (click)="closeProject()">
-        ← К списку проектов
+@if (selectedOrder(); as order) {
+  <section class="order-workspace">
+    <div class="workspace-topbar">
+      <button type="button" class="btn ghost" (click)="closeOrder()">
+        ← К технике на локации
       </button>
-      <div class="project-topbar-actions">
-        @if (!editing() && selectedProject(); as project) {
-          <button type="button" class="btn ghost" (click)="editSelected()">
-            Редактировать
-          </button>
-          <button type="button" class="btn ghost" (click)="remove(project)">
-            Удалить
-          </button>
-        }
-      </div>
+      <button type="button" class="btn primary" (click)="saveOrder()">
+        Сохранить изменения
+      </button>
     </div>
 
-    <div class="card panel project-full-card">
-      @if (editing()) {
-        <form (ngSubmit)="save()" class="project-form">
-          <div class="project-hero edit">
-            <div>
-              <label>Название проекта</label>
-              <input
-                type="text"
-                [(ngModel)]="form.name"
-                name="name"
-                placeholder="Например: ЖК Центральный, демонтаж и аренда"
-                required
-              />
-            </div>
-            <div class="project-save-actions">
-              <button type="submit" class="btn primary">Сохранить проект</button>
-              <button type="button" class="btn ghost" (click)="cancelEdit()">
-                Отмена
-              </button>
-            </div>
-          </div>
+    <div class="card panel order-full-card">
+      <div class="order-hero">
+        <div>
+          <div class="eyebrow">Заявка {{ order.id | slice: -5 }}</div>
+          <h3>{{ clientName(order.clientId) }}</h3>
+          <p>
+            {{ order.location || "локация не указана" }} •
+            {{ utils.fmtDate(order.startDate) }} -
+            {{ utils.fmtDate(order.endDate) }} •
+            {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+          </p>
+        </div>
+        <span class="badge" [ngClass]="statusBadgeClass(order.status)">
+          {{ statusLabel(order.status) }}
+        </span>
+      </div>
 
-          <div class="project-form-grid">
+      <div class="editable-strip">
+        <label class="edit-chip">
+          <span>Статус</span>
+          <select [(ngModel)]="orderForm.status" name="status">
+            @for (status of statuses; track status.value) {
+              <option [value]="status.value">{{ status.label }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="edit-chip">
+          <span>Наименование техники</span>
+          <select [(ngModel)]="orderForm.equipmentId" name="equipmentId">
+            <option value="">— техника —</option>
+            @for (item of state.equipment(); track item.id) {
+              <option [value]="item.id">{{ item.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="edit-chip">
+          <span>Оператор</span>
+          <select [(ngModel)]="orderForm.operatorId" name="operatorId">
+            <option value="">— оператор —</option>
+            @for (operator of state.operators(); track operator.id) {
+              <option [value]="operator.id">{{ operator.name }}</option>
+            }
+          </select>
+        </label>
+
+        <label class="edit-chip money-chip">
+          <span>Общая стоимость / план</span>
+          <input
+            type="number"
+            min="0"
+            [(ngModel)]="orderForm.plan"
+            name="plan"
+          />
+        </label>
+
+        <div class="edit-chip discount-chip">
+          <span>Скидка</span>
+          <label class="inline-check">
+            <input
+              type="checkbox"
+              [(ngModel)]="orderForm.discountEnabled"
+              name="discountEnabled"
+            />
+            включить
+          </label>
+          <div class="discount-fields">
+            <select [(ngModel)]="orderForm.discountType" name="discountType">
+              <option value="percent">%</option>
+              <option value="amount">₴</option>
+            </select>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="orderForm.discountValue"
+              name="discountValue"
+            />
+          </div>
+        </div>
+
+        <label class="edit-chip comments-chip">
+          <span>Комментарии</span>
+          <textarea [(ngModel)]="orderForm.notes" name="notes"></textarea>
+        </label>
+      </div>
+
+      <div class="finance-summary">
+        <div class="metric">
+          <span>План</span>
+          <strong>{{ utils.money(state.orderPlan(order)) }}</strong>
+        </div>
+        <div class="metric income">
+          <span>Приход</span>
+          <strong>{{ utils.money(state.orderIncome(order.id)) }}</strong>
+        </div>
+        <div class="metric expense">
+          <span>Расход</span>
+          <strong>{{ utils.money(state.orderExpense(order.id)) }}</strong>
+        </div>
+        <div class="metric">
+          <span>Прибыль</span>
+          <strong>{{ utils.money(state.orderProfit(order.id)) }}</strong>
+        </div>
+      </div>
+
+      <div class="order-finance-grid">
+        <div class="card inner-card">
+          <h4>Добавить приход / расход</h4>
+          <div class="operation-type">
+            <button
+              type="button"
+              class="filter-chip finance-income"
+              [class.active]="operationForm.type === 'income'"
+              (click)="setOperationType('income')"
+            >
+              Приход
+            </button>
+            <button
+              type="button"
+              class="filter-chip finance-expense"
+              [class.active]="operationForm.type === 'expense'"
+              (click)="setOperationType('expense')"
+            >
+              Расход
+            </button>
+          </div>
+          <div class="operation-form">
             <div class="field">
-              <label>Клиент</label>
-              <select [(ngModel)]="form.clientId" name="clientId">
-                <option value="">— выбрать клиента —</option>
-                @for (client of state.clients(); track client.id) {
-                  <option [value]="client.id">{{ client.name }}</option>
+              <label>Дата</label>
+              <input type="date" [(ngModel)]="operationForm.date" name="opDate" />
+            </div>
+            <div class="field">
+              <label>Категория</label>
+              <select [(ngModel)]="operationForm.category" name="opCategory">
+                @for (category of operationCategories; track category) {
+                  <option [value]="category">{{ category }}</option>
                 }
               </select>
             </div>
             <div class="field">
-              <label>Статус</label>
-              <select [(ngModel)]="form.status" name="status">
-                @for (status of statuses; track status.value) {
-                  <option [value]="status.value">{{ status.label }}</option>
-                }
-              </select>
-            </div>
-            <div class="field">
-              <label>Дата начала</label>
-              <input type="date" [(ngModel)]="form.startDate" name="startDate" />
-            </div>
-            <div class="field">
-              <label>Дата окончания</label>
-              <input type="date" [(ngModel)]="form.endDate" name="endDate" />
-            </div>
-            <div class="field">
-              <label>Бюджет / план, ₴</label>
+              <label>Сумма, ₴</label>
               <input
                 type="number"
                 min="0"
-                [(ngModel)]="form.budget"
-                name="budget"
+                [(ngModel)]="operationForm.amount"
+                name="opAmount"
               />
             </div>
-            <div class="field">
-              <label>Локация / объект</label>
-              <input
-                type="text"
-                [(ngModel)]="form.location"
-                name="location"
-                placeholder="Город, объект, адрес"
-              />
-            </div>
+            @if (operationForm.type === "expense") {
+              <label class="bill-client">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="operationForm.billClient"
+                  name="billClient"
+                />
+                <span>Выставить клиенту</span>
+              </label>
+            }
             <div class="field wide">
               <label>Комментарий</label>
               <textarea
-                [(ngModel)]="form.notes"
-                name="notes"
-                placeholder="Что важно знать по проекту"
+                [(ngModel)]="operationForm.comment"
+                name="opComment"
               ></textarea>
             </div>
-          </div>
-        </form>
-      } @else if (selectedProject(); as project) {
-        <div class="project-hero">
-          <div>
-            <div class="project-id">Проект {{ project.id | slice: -5 }}</div>
-            <h3>{{ project.name }}</h3>
-            <p>
-              {{ clientName(project.clientId) }} •
-              {{ project.location || "локация не указана" }}
-            </p>
-          </div>
-          <span class="badge" [ngClass]="statusBadgeClass(project.status)">
-            {{ statusLabel(project.status) }}
-          </span>
-        </div>
-
-        <div class="project-metrics">
-          <div class="metric">
-            <span>Период</span>
-            <strong>
-              {{ utils.fmtDate(project.startDate) }} -
-              {{ utils.fmtDate(project.endDate) }}
-            </strong>
-          </div>
-          <div class="metric">
-            <span>Длительность</span>
-            <strong>
-              {{
-                project.startDate && project.endDate
-                  ? utils.daysInclusive(project.startDate, project.endDate)
-                  : 0
-              }}
-              дн.
-            </strong>
-          </div>
-          <div class="metric">
-            <span>Бюджет / план</span>
-            <strong>{{ utils.money(project.budget) }}</strong>
-          </div>
-          <div class="metric">
-            <span>Создан</span>
-            <strong>
-              {{
-                project.createdAt
-                  ? utils.fmtDate(project.createdAt.slice(0, 10))
-                  : "—"
-              }}
-            </strong>
+            <button type="button" class="btn primary" (click)="addOperation()">
+              Добавить операцию
+            </button>
           </div>
         </div>
 
-        <div class="project-section">
-          <h4>Комментарий</h4>
-          <p>{{ project.notes || "Комментариев пока нет." }}</p>
+        <div class="card inner-card">
+          <h4>Операции по заявке</h4>
+          <div class="operation-list">
+            @for (op of selectedOrderOps(); track op.id) {
+              <div class="operation-line" [ngClass]="op.type">
+                <div>
+                  <strong>{{ utils.money(op.amount) }}</strong>
+                  <span>{{ opTypeLabel(op.type) }} • {{ op.category }}</span>
+                </div>
+                <small>{{ utils.fmtDate(op.date) }}</small>
+                @if (op.comment) {
+                  <p>{{ op.comment }}</p>
+                }
+              </div>
+            }
+            @if (!selectedOrderOps().length) {
+              <div class="empty">Операций по заявке пока нет.</div>
+            }
+          </div>
         </div>
+      </div>
+    </div>
+  </section>
+} @else if (selectedLocation(); as location) {
+  <section class="location-workspace">
+    <div class="workspace-topbar">
+      <button type="button" class="btn ghost" (click)="closeLocation()">
+        ← К клиентам
+      </button>
+    </div>
 
-        <div class="project-section muted-section">
-          <h4>Следующий шаг</h4>
-          <p>
-            Сюда постепенно добавим привязанные заявки, технику, операторов,
-            финансы, документы и этапы проекта.
-          </p>
+    <div class="card panel location-card">
+      <div class="location-head">
+        <div>
+          <div class="eyebrow">{{ location.clientName }}</div>
+          <h3>{{ location.location }}</h3>
+          <p>{{ location.orders.length }} заявк. на этой локации</p>
         </div>
-      }
+        <div class="location-totals">
+          <div><span>План</span><strong>{{ utils.money(location.plan) }}</strong></div>
+          <div><span>Приход</span><strong>{{ utils.money(location.income) }}</strong></div>
+          <div><span>Расход</span><strong>{{ utils.money(location.expense) }}</strong></div>
+          <div><span>Прибыль</span><strong>{{ utils.money(location.profit) }}</strong></div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Техника</th>
+              <th>Даты брони</th>
+              <th>План</th>
+              <th>Приход</th>
+              <th>Расход</th>
+              <th>Прибыль</th>
+              <th>Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of location.orders; track order.id) {
+              <tr class="clickable-row" (click)="openOrder(order)">
+                <td>{{ order.id | slice: -5 }}</td>
+                <td>
+                  <strong>{{ equipmentName(order.equipmentId) }}</strong>
+                  <div class="small">{{ operatorName(order.operatorId) }}</div>
+                </td>
+                <td>
+                  {{ utils.fmtDate(order.startDate) }}
+                  <div class="small">
+                    {{ utils.fmtDate(order.endDate) }} •
+                    {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+                  </div>
+                </td>
+                <td>{{ utils.money(state.orderPlan(order)) }}</td>
+                <td>{{ utils.money(state.orderIncome(order.id)) }}</td>
+                <td>{{ utils.money(state.orderExpense(order.id)) }}</td>
+                <td>{{ utils.money(state.orderProfit(order.id)) }}</td>
+                <td>
+                  <span class="badge" [ngClass]="statusBadgeClass(order.status)">
+                    {{ statusLabel(order.status) }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 } @else {
@@ -176,7 +286,7 @@
         type="text"
         [value]="search()"
         (input)="search.set($any($event.target).value)"
-        placeholder="Поиск: проект, клиент, локация, комментарий..."
+        placeholder="Поиск: клиент, техника, локация, заявка..."
       />
       <select
         [value]="filterStatus()"
@@ -189,64 +299,50 @@
       </select>
     </div>
 
-    <div class="table-wrap internal-scroll-body">
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Проект</th>
-            <th>Клиент</th>
-            <th>Период</th>
-            <th>Бюджет</th>
-            <th>Статус</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (project of filteredProjects(); track project.id) {
-            <tr class="clickable-row" (click)="openProject(project)">
-              <td>{{ project.id | slice: -5 }}</td>
-              <td>
-                <strong>{{ project.name }}</strong>
-                <div class="small">{{ project.location || "—" }}</div>
-              </td>
-              <td>{{ clientName(project.clientId) }}</td>
-              <td>
-                {{ utils.fmtDate(project.startDate) }}
-                <div class="small">
-                  {{ utils.fmtDate(project.endDate) }} •
-                  {{
-                    project.startDate && project.endDate
-                      ? utils.daysInclusive(project.startDate, project.endDate)
-                      : 0
-                  }}
-                  дн.
-                </div>
-              </td>
-              <td>{{ utils.money(project.budget) }}</td>
-              <td>
-                <span class="badge" [ngClass]="statusBadgeClass(project.status)">
-                  {{ statusLabel(project.status) }}
-                </span>
-              </td>
-              <td>
+    <div class="client-tree internal-scroll-body">
+      @for (client of clientGroups(); track client.clientId) {
+        <section class="client-group">
+          <button
+            type="button"
+            class="client-head"
+            (click)="toggleClient(client.clientId)"
+          >
+            <span class="chevron">
+              {{ isClientExpanded(client.clientId) ? "▾" : "▸" }}
+            </span>
+            <strong>{{ client.clientName }}</strong>
+            <span>{{ client.ordersCount }} заявк.</span>
+            <span>{{ client.locations.length }} локац.</span>
+            <span>План {{ utils.money(client.plan) }}</span>
+            <span>Прибыль {{ utils.money(client.profit) }}</span>
+          </button>
+
+          @if (isClientExpanded(client.clientId)) {
+            <div class="location-list">
+              @for (location of client.locations; track location.key) {
                 <button
                   type="button"
-                  class="btn ghost"
-                  (click)="$event.stopPropagation(); openProject(project)"
+                  class="location-row"
+                  (click)="openLocation(location)"
                 >
-                  Открыть
+                  <div>
+                    <strong>{{ location.location }}</strong>
+                    <span>{{ location.orders.length }} заявк.</span>
+                  </div>
+                  <div>{{ utils.money(location.plan) }}</div>
+                  <div>{{ utils.money(location.income) }}</div>
+                  <div>{{ utils.money(location.expense) }}</div>
+                  <div>{{ utils.money(location.profit) }}</div>
                 </button>
-              </td>
-            </tr>
+              }
+            </div>
           }
-          @if (!filteredProjects().length) {
-            <tr>
-              <td colspan="7"><div class="empty">Проектов пока нет.</div></td>
-            </tr>
-          }
-        </tbody>
-      </table>
+        </section>
+      }
+
+      @if (!clientGroups().length) {
+        <div class="empty">Заявок пока нет.</div>
+      }
     </div>
   </div>
 }

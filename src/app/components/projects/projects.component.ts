@@ -4,7 +4,32 @@ import { FormsModule } from "@angular/forms";
 import { DbService } from "../../services/db.service";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
-import { Project, ProjectStatus } from "../../models/crm.models";
+import { FinanceOperation, Order, OrderStatus } from "../../models/crm.models";
+
+interface LocationGroup {
+  key: string;
+  clientId: string;
+  clientName: string;
+  location: string;
+  orders: Order[];
+  plan: number;
+  income: number;
+  expense: number;
+  profit: number;
+  latestDate: string;
+}
+
+interface ClientGroup {
+  clientId: string;
+  clientName: string;
+  locations: LocationGroup[];
+  ordersCount: number;
+  plan: number;
+  income: number;
+  expense: number;
+  profit: number;
+  latestDate: string;
+}
 
 @Component({
   selector: "app-projects",
@@ -20,147 +45,230 @@ export class ProjectsComponent {
 
   search = signal("");
   filterStatus = signal("");
-  selectedProjectId = signal("");
-  editing = signal(false);
+  expandedClientIds = signal<string[]>([]);
+  selectedLocationKey = signal("");
+  selectedOrderId = signal("");
 
-  form = this.emptyForm();
+  orderForm = this.emptyOrderForm();
+  operationForm = this.emptyOperationForm();
 
-  readonly statuses: { value: ProjectStatus; label: string }[] = [
-    { value: "new", label: "Новый" },
+  readonly statuses: { value: OrderStatus; label: string }[] = [
+    { value: "new", label: "Новая" },
+    { value: "confirmed", label: "Подтверждена" },
     { value: "active", label: "В работе" },
-    { value: "paused", label: "Пауза" },
-    { value: "completed", label: "Завершен" },
-    { value: "cancelled", label: "Отменен" },
+    { value: "completed", label: "Завершена" },
+    { value: "cancelled", label: "Отменена" },
   ];
 
-  readonly filteredProjects = computed(() => {
+  readonly operationCategories = [
+    "Оплата клиента",
+    "Топливо",
+    "Ремонт",
+    "Логистика",
+    "Запчасти",
+    "Зарплата оператора",
+    "Прочее",
+  ];
+
+  readonly filteredOrders = computed(() => {
     const q = this.search().trim().toLowerCase();
     const status = this.filterStatus();
-    let rows = [...this.state.projects()];
-    if (status) rows = rows.filter((project) => project.status === status);
+    let rows = [...this.state.orders()];
+    if (status) rows = rows.filter((order) => order.status === status);
     if (q) {
-      rows = rows.filter((project) =>
+      rows = rows.filter((order) =>
         [
-          project.name,
-          this.clientName(project.clientId),
-          project.location,
-          project.notes,
-          this.statusLabel(project.status),
+          order.id,
+          this.clientName(order.clientId),
+          this.equipmentName(order.equipmentId),
+          this.operatorName(order.operatorId),
+          order.location,
+          order.notes,
         ]
           .join(" ")
           .toLowerCase()
           .includes(q),
       );
     }
-    return rows.sort((a, b) => {
-      const byDate = (b.startDate || "").localeCompare(a.startDate || "");
-      return byDate || b.id.localeCompare(a.id);
-    });
+    return rows.sort((a, b) => b.startDate.localeCompare(a.startDate));
   });
 
-  readonly selectedProject = computed(() =>
-    this.state.byId(this.state.projects(), this.selectedProjectId()),
+  readonly clientGroups = computed((): ClientGroup[] => {
+    const clientMap = new Map<string, Order[]>();
+    this.filteredOrders().forEach((order) => {
+      const clientId = order.clientId || "no-client";
+      clientMap.set(clientId, [...(clientMap.get(clientId) || []), order]);
+    });
+
+    return [...clientMap.entries()]
+      .map(([clientId, orders]) => {
+        const clientName = this.clientName(clientId);
+        const locationMap = new Map<string, Order[]>();
+        orders.forEach((order) => {
+          const location = this.locationLabel(order.location);
+          locationMap.set(location, [...(locationMap.get(location) || []), order]);
+        });
+        const locations = [...locationMap.entries()]
+          .map(([location, locationOrders]) =>
+            this.buildLocationGroup(clientId, clientName, location, locationOrders),
+          )
+          .sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+
+        return {
+          clientId,
+          clientName,
+          locations,
+          ordersCount: orders.length,
+          plan: orders.reduce((sum, order) => sum + this.state.orderPlan(order), 0),
+          income: orders.reduce((sum, order) => sum + this.state.orderIncome(order.id), 0),
+          expense: orders.reduce((sum, order) => sum + this.state.orderExpense(order.id), 0),
+          profit: orders.reduce((sum, order) => sum + this.state.orderProfit(order.id), 0),
+          latestDate: orders.reduce(
+            (latest, order) => (order.startDate > latest ? order.startDate : latest),
+            "",
+          ),
+        };
+      })
+      .sort((a, b) => b.latestDate.localeCompare(a.latestDate));
+  });
+
+  readonly selectedLocation = computed(() =>
+    this.clientGroups()
+      .flatMap((group) => group.locations)
+      .find((location) => location.key === this.selectedLocationKey()),
   );
 
-  openCreate(): void {
-    const today = this.utils.todayStr();
-    const project: Project = {
-      id: this.utils.uid("prj"),
-      name: "Новый проект",
-      clientId: "",
-      startDate: today,
-      endDate: today,
-      status: "new",
-      budget: 0,
-      location: "",
-      notes: "",
-      createdAt: new Date().toISOString(),
+  readonly selectedOrder = computed(() =>
+    this.state.byId(this.state.orders(), this.selectedOrderId()),
+  );
+
+  readonly selectedOrderOps = computed(() => {
+    const order = this.selectedOrder();
+    if (!order) return [];
+    return this.state
+      .orderOps(order.id)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  });
+
+  toggleClient(clientId: string): void {
+    const expanded = this.expandedClientIds();
+    this.expandedClientIds.set(
+      expanded.includes(clientId)
+        ? expanded.filter((id) => id !== clientId)
+        : [...expanded, clientId],
+    );
+  }
+
+  isClientExpanded(clientId: string): boolean {
+    return this.expandedClientIds().includes(clientId);
+  }
+
+  openLocation(location: LocationGroup): void {
+    this.selectedLocationKey.set(location.key);
+    this.selectedOrderId.set("");
+  }
+
+  closeLocation(): void {
+    this.selectedLocationKey.set("");
+    this.selectedOrderId.set("");
+    this.orderForm = this.emptyOrderForm();
+  }
+
+  openOrder(order: Order): void {
+    this.selectedOrderId.set(order.id);
+    this.orderForm = this.orderToForm(order);
+    this.operationForm = this.emptyOperationForm(order);
+  }
+
+  closeOrder(): void {
+    this.selectedOrderId.set("");
+    this.orderForm = this.emptyOrderForm();
+    const location = this.selectedLocation();
+    this.operationForm = this.emptyOperationForm(location?.orders[0]);
+  }
+
+  async saveOrder(): Promise<void> {
+    const order = this.selectedOrder();
+    if (!order) return;
+    const patch: Record<string, any> = {
+      status: this.orderForm.status,
+      equipmentId: this.orderForm.equipmentId,
+      operatorId: this.orderForm.operatorId,
+      discountEnabled: this.orderForm.discountEnabled,
+      discountType: this.orderForm.discountType,
+      discountValue: Number(this.orderForm.discountValue || 0),
+      notes: this.orderForm.notes,
     };
-    this.selectedProjectId.set(project.id);
-    this.form = this.projectToForm(project);
-    this.editing.set(true);
-  }
-
-  openProject(project: Project): void {
-    this.selectedProjectId.set(project.id);
-    this.form = this.projectToForm(project);
-    this.editing.set(false);
-  }
-
-  editSelected(): void {
-    const project = this.selectedProject();
-    if (!project) return;
-    this.form = this.projectToForm(project);
-    this.editing.set(true);
-  }
-
-  closeProject(): void {
-    this.selectedProjectId.set("");
-    this.editing.set(false);
-    this.form = this.emptyForm();
-  }
-
-  cancelEdit(): void {
-    const project = this.selectedProject();
-    if (project) {
-      this.form = this.projectToForm(project);
-      this.editing.set(false);
-      return;
-    }
-    this.closeProject();
-  }
-
-  async save(): Promise<void> {
-    if (!this.form.name.trim()) {
-      alert("Укажи название проекта.");
-      return;
-    }
-    if (this.form.startDate && this.form.endDate && this.form.startDate > this.form.endDate) {
-      alert("Дата начала проекта не может быть позже даты окончания.");
-      return;
-    }
-    const payload = {
-      ...this.form,
-      name: this.form.name.trim(),
-      budget: Number(this.form.budget || 0),
-    };
-
+    Object.assign(patch, this.planPatch(order, Number(this.orderForm.plan || 0), patch));
     try {
-      const exists = Boolean(this.state.byId(this.state.projects(), payload.id));
-      if (exists) {
-        await this.db.update("projects", payload.id, payload);
-      } else {
-        await this.db.insert("projects", payload);
-      }
-      this.selectedProjectId.set(payload.id);
-      this.editing.set(false);
+      await this.db.update("orders", order.id, patch);
+      const updated = this.state.byId(this.state.orders(), order.id) || {
+        ...order,
+        ...patch,
+      };
+      this.orderForm = this.orderToForm(updated as Order);
     } catch (error) {
-      alert(this.saveErrorMessage(error));
+      alert(`Не удалось сохранить заявку: ${this.errorMessage(error)}`);
     }
   }
 
-  async remove(project: Project): Promise<void> {
-    if (!confirm(`Удалить проект "${project.name}"?`)) return;
-    try {
-      await this.db.remove("projects", project.id);
-      this.closeProject();
-    } catch (error) {
-      alert(this.saveErrorMessage(error));
+  async addOperation(): Promise<void> {
+    const order = this.selectedOrder();
+    if (!order) return;
+    if (!this.operationForm.amount || Number(this.operationForm.amount) <= 0) {
+      alert("Укажи сумму операции.");
+      return;
     }
+    const billClientPrefix =
+      this.operationForm.type === "expense" && this.operationForm.billClient
+        ? "[Выставить клиенту] "
+        : "";
+    try {
+      await this.db.insert("operations", {
+        id: this.utils.uid("op"),
+        date: this.operationForm.date || this.utils.todayStr(),
+        type: this.operationForm.type,
+        category: this.operationForm.category,
+        amount: Number(this.operationForm.amount || 0),
+        orderId: order.id,
+        repairId: "",
+        transportId: "",
+        equipmentId: order.equipmentId,
+        comment: `${billClientPrefix}${this.operationForm.comment || ""}`.trim(),
+      });
+      this.operationForm = this.emptyOperationForm(order);
+    } catch (error) {
+      alert(`Не удалось добавить операцию: ${this.errorMessage(error)}`);
+    }
+  }
+
+  setOperationType(type: "income" | "expense"): void {
+    this.operationForm.type = type;
+    this.operationForm.category =
+      type === "income" ? "Оплата клиента" : "Прочее";
   }
 
   clientName(id: string): string {
+    if (id === "no-client") return "Без клиента";
     return this.state.byId(this.state.clients(), id)?.name || "—";
+  }
+
+  equipmentName(id: string): string {
+    return this.state.byId(this.state.equipment(), id)?.name || "—";
+  }
+
+  operatorName(id: string): string {
+    return this.state.byId(this.state.operators(), id)?.name || "—";
   }
 
   statusLabel(status: string): string {
     return (
       {
-        new: "Новый",
+        new: "Новая",
+        confirmed: "Подтверждена",
         active: "В работе",
-        paused: "Пауза",
-        completed: "Завершен",
-        cancelled: "Отменен",
+        completed: "Завершена",
+        cancelled: "Отменена",
       }[status] || status
     );
   }
@@ -169,52 +277,119 @@ export class ProjectsComponent {
     return (
       {
         new: "new",
+        confirmed: "confirmed",
         active: "active",
-        paused: "confirmed",
         completed: "completed",
         cancelled: "cancelled",
       }[status] || "new"
     );
   }
 
-  private emptyForm() {
+  opTypeLabel(type: string): string {
+    return type === "income" ? "Приход" : "Расход";
+  }
+
+  private buildLocationGroup(
+    clientId: string,
+    clientName: string,
+    location: string,
+    orders: Order[],
+  ): LocationGroup {
+    const sorted = [...orders].sort((a, b) => b.startDate.localeCompare(a.startDate));
     return {
-      id: "",
-      name: "",
-      clientId: "",
-      startDate: "",
-      endDate: "",
-      status: "new" as ProjectStatus,
-      budget: 0,
-      location: "",
+      key: `${clientId}::${location}`,
+      clientId,
+      clientName,
+      location,
+      orders: sorted,
+      plan: sorted.reduce((sum, order) => sum + this.state.orderPlan(order), 0),
+      income: sorted.reduce((sum, order) => sum + this.state.orderIncome(order.id), 0),
+      expense: sorted.reduce((sum, order) => sum + this.state.orderExpense(order.id), 0),
+      profit: sorted.reduce((sum, order) => sum + this.state.orderProfit(order.id), 0),
+      latestDate: sorted[0]?.startDate || "",
+    };
+  }
+
+  private locationLabel(location: string): string {
+    return (location || "").trim() || "Без локации";
+  }
+
+  private emptyOrderForm() {
+    return {
+      status: "new" as OrderStatus,
+      equipmentId: "",
+      operatorId: "",
+      plan: 0,
+      discountEnabled: false,
+      discountType: "percent" as "percent" | "amount",
+      discountValue: 0,
       notes: "",
-      createdAt: "",
     };
   }
 
-  private projectToForm(project: Project) {
+  private orderToForm(order: Order) {
     return {
-      id: project.id,
-      name: project.name || "",
-      clientId: project.clientId || "",
-      startDate: project.startDate || "",
-      endDate: project.endDate || "",
-      status: project.status || ("new" as ProjectStatus),
-      budget: Number(project.budget || 0),
-      location: project.location || "",
-      notes: project.notes || "",
-      createdAt: project.createdAt || new Date().toISOString(),
+      status: order.status || ("new" as OrderStatus),
+      equipmentId: order.equipmentId || "",
+      operatorId: order.operatorId || "",
+      plan: Math.round(this.state.orderPlan(order)),
+      discountEnabled: Boolean(order.discountEnabled),
+      discountType: order.discountType || ("percent" as "percent" | "amount"),
+      discountValue: Number(order.discountValue || 0),
+      notes: order.notes || "",
     };
   }
 
-  private saveErrorMessage(error: any): string {
-    const message = `${error?.message || ""} ${error?.details || ""}`;
-    if (
-      ["42P01", "PGRST205"].includes(error?.code) ||
-      message.toLowerCase().includes("projects")
-    ) {
-      return "База Supabase еще не готова для проектов. Выполни SQL-файл supabase-projects.sql в Supabase SQL Editor и попробуй снова.";
+  private emptyOperationForm(order?: Order) {
+    return {
+      date: this.utils.todayStr(),
+      type: "expense" as "income" | "expense",
+      category: "Прочее",
+      amount: 0,
+      billClient: false,
+      comment: order ? `Заявка ${order.id.slice(-5)}` : "",
+    };
+  }
+
+  private planPatch(
+    order: Order,
+    desiredPlan: number,
+    basePatch: Record<string, any>,
+  ): Record<string, any> {
+    if (!desiredPlan || Math.abs(desiredPlan - this.state.orderPlan(order)) < 1) {
+      return {};
     }
-    return `Не удалось сохранить проект: ${error?.message || error}`;
+    const draft = { ...order, ...basePatch } as Order;
+    const logistics = this.state.orderLogisticsCost(draft);
+    const assembly = this.state.orderAssemblyCost(draft);
+    const discountValue = Number(draft.discountValue || 0);
+    let subtotalTarget = desiredPlan;
+    if (draft.discountEnabled && discountValue > 0) {
+      subtotalTarget =
+        draft.discountType === "amount"
+          ? desiredPlan + discountValue
+          : desiredPlan / Math.max(0.01, 1 - discountValue / 100);
+    }
+    const targetEquipmentCharge = Math.max(0, subtotalTarget - logistics - assembly);
+    const targetEquipmentBase = draft.vatEnabled
+      ? targetEquipmentCharge / 1.2
+      : targetEquipmentCharge;
+
+    if (Number(order.equipmentHourlyRate || 0) > 0) {
+      return {
+        equipmentHourlyRate:
+          targetEquipmentBase /
+          Math.max(1, this.state.orderEquipmentWorkHours(draft)),
+      };
+    }
+    return {
+      rate:
+        targetEquipmentBase /
+        Math.max(1, this.state.orderEquipmentWorkDays(draft)),
+    };
+  }
+
+  private errorMessage(error: any): string {
+    return error?.message || error?.details || String(error || "ошибка");
   }
 }
