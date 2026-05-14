@@ -13,137 +13,396 @@
 @if (creatingOrder()) {
   <section class="order-workspace">
     <div class="workspace-topbar">
-      <button type="button" class="btn ghost" (click)="cancelCreateOrder()">
-        ← Назад
-      </button>
+      @if (createCostEditorOpen()) {
+        <button
+          type="button"
+          class="btn ghost"
+          (click)="closeCreateCostEditor()"
+        >
+          ← К созданию заявки
+        </button>
+      } @else {
+        <button type="button" class="btn ghost" (click)="cancelCreateOrder()">
+          ← Назад
+        </button>
+      }
       <button type="button" class="btn primary" (click)="createOrder()">
         Сохранить заявку
       </button>
     </div>
 
-    <div class="card panel order-full-card">
-      <div class="order-hero create">
-        <div>
-          <div class="eyebrow">Новая заявка</div>
-          <h3>Создать заявку</h3>
-          <p>Заполни основные данные, расширенные блоки добавим постепенно.</p>
+    @if (createCostEditorOpen()) {
+      <div class="card panel order-full-card cost-workspace">
+        <div class="order-hero cost-hero">
+          <div>
+            <div class="eyebrow">Расчет новой заявки</div>
+            <h3>{{ utils.money(createDraftPlan()) }}</h3>
+            <p>
+              Ставки техники и оператора подтягиваются из карточек, но их можно
+              изменить вручную перед сохранением заявки.
+            </p>
+          </div>
+          <span class="badge new">Новая</span>
         </div>
-      </div>
 
-      <div class="create-order-grid">
-        <label class="edit-chip">
-          <span>Клиент</span>
-          <select [(ngModel)]="createForm.clientId" name="createClientId">
-            <option value="">— клиент —</option>
-            @for (client of state.clients(); track client.id) {
-              <option [value]="client.id">{{ client.name }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="edit-chip">
-          <span>Локация</span>
-          <input
-            type="text"
-            [(ngModel)]="createForm.location"
-            name="createLocation"
-            placeholder="Объект / адрес"
-          />
-        </label>
-
-        <label class="edit-chip">
-          <span>Дата начала</span>
-          <input
-            type="date"
-            [(ngModel)]="createForm.startDate"
-            name="createStartDate"
-          />
-        </label>
-
-        <label class="edit-chip">
-          <span>Дата окончания</span>
-          <input
-            type="date"
-            [(ngModel)]="createForm.endDate"
-            name="createEndDate"
-          />
-        </label>
-
-        <label class="edit-chip">
-          <span>Техника</span>
-          <select [(ngModel)]="createForm.equipmentId" name="createEquipmentId">
-            <option value="">— техника —</option>
-            @for (item of state.equipment(); track item.id) {
-              <option [value]="item.id">{{ item.name }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="edit-chip">
-          <span>Оператор</span>
-          <select [(ngModel)]="createForm.operatorId" name="createOperatorId">
-            <option value="">— оператор —</option>
-            @for (operator of state.operators(); track operator.id) {
-              <option [value]="operator.id">{{ operator.name }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="edit-chip">
-          <span>Статус</span>
-          <select [(ngModel)]="createForm.status" name="createStatus">
-            @for (status of statuses; track status.value) {
-              <option [value]="status.value">{{ status.label }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="edit-chip money-chip">
-          <span>Общая стоимость / план</span>
-          <input
-            type="number"
-            min="0"
-            [(ngModel)]="createForm.plan"
-            name="createPlan"
-          />
-        </label>
-
-        <div class="edit-chip discount-chip">
-          <span>Скидка</span>
-          <label class="inline-check">
-            <input
-              type="checkbox"
-              [(ngModel)]="createForm.discountEnabled"
-              name="createDiscountEnabled"
-            />
-            включить
-          </label>
-          <div class="discount-fields">
-            <select
-              [(ngModel)]="createForm.discountType"
-              name="createDiscountType"
-            >
-              <option value="percent">%</option>
-              <option value="amount">₴</option>
-            </select>
-            <input
-              type="number"
-              min="0"
-              [(ngModel)]="createForm.discountValue"
-              name="createDiscountValue"
-            />
+        <div class="finance-summary">
+          <div class="metric">
+            <span>Техника с НДС</span>
+            <strong>{{ utils.money(createDraftEquipmentCharge()) }}</strong>
+            <small>
+              {{ createDraftWorkDays() }} дн. / {{ createDraftWorkHours() }} ч.
+            </small>
+          </div>
+          <div class="metric expense">
+            <span>Операторы</span>
+            <strong>{{ utils.money(createDraftOperatorCost()) }}</strong>
+          </div>
+          <div class="metric">
+            <span>Скидка</span>
+            <strong>
+              {{
+                createForm.discountEnabled
+                  ? createForm.discountType === "amount"
+                    ? utils.money(createForm.discountValue)
+                    : createForm.discountValue + "%"
+                  : "нет"
+              }}
+            </strong>
+          </div>
+          <div class="metric">
+            <span>Итого к заявке</span>
+            <strong>{{ utils.money(createDraftPlan()) }}</strong>
           </div>
         </div>
 
-        <label class="edit-chip comments-chip">
-          <span>Комментарии</span>
-          <textarea
-            [(ngModel)]="createForm.notes"
-            name="createNotes"
-          ></textarea>
-        </label>
+        <div class="cost-grid">
+          <div class="card inner-card">
+            <h4>Техника и резерв</h4>
+            <div class="cost-fields">
+              <div class="field wide">
+                <label>Техника</label>
+                <select
+                  [(ngModel)]="createForm.equipmentId"
+                  name="createCostEquipmentId"
+                  (ngModelChange)="onCreateEquipmentChange()"
+                >
+                  <option value="">— техника —</option>
+                  @for (item of state.equipment(); track item.id) {
+                    <option [value]="item.id">{{ item.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>Дата начала резерва</label>
+                <input
+                  type="date"
+                  [(ngModel)]="createForm.startDate"
+                  name="createCostStartDate"
+                />
+              </div>
+              <div class="field">
+                <label>Дата окончания резерва</label>
+                <input
+                  type="date"
+                  [(ngModel)]="createForm.endDate"
+                  name="createCostEndDate"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость 1 часа техники, ₴/час</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="createForm.equipmentHourlyRate"
+                  name="createEquipmentHourlyRate"
+                />
+              </div>
+              <div class="field">
+                <label>Тариф, ₴/день</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="createForm.rate"
+                  name="createRate"
+                />
+              </div>
+              <div class="field">
+                <label>Стандарт часов в день</label>
+                <input
+                  type="number"
+                  min="1"
+                  [(ngModel)]="createForm.standardWorkHours"
+                  name="createStandardWorkHours"
+                />
+              </div>
+              <div class="field">
+                <label>Дополнительные часы</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="createForm.additionalWorkHours"
+                  name="createAdditionalWorkHours"
+                />
+              </div>
+              <label class="bill-client wide">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="createForm.vatEnabled"
+                  name="createVatEnabled"
+                />
+                <span>С НДС +20% к стоимости техники</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="card inner-card">
+            <h4>Операторы и смены</h4>
+            <div class="cost-fields">
+              <div class="field wide">
+                <label>Основной оператор</label>
+                <select
+                  [(ngModel)]="createForm.operatorId"
+                  name="createCostOperatorId"
+                  (ngModelChange)="onCreateOperatorChange()"
+                >
+                  <option value="">— без оператора —</option>
+                  @for (operator of state.operators(); track operator.id) {
+                    <option [value]="operator.id">
+                      {{ operator.name }} •
+                      {{ utils.money(operator.hourlyRate || operator.rate) }}/{{
+                        operator.hourlyRate ? "час" : "день"
+                      }}
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>Работает с</label>
+                <input
+                  type="date"
+                  [(ngModel)]="createForm.primaryOperatorStartDate"
+                  name="createPrimaryOperatorStartDate"
+                />
+              </div>
+              <div class="field">
+                <label>Работает до</label>
+                <input
+                  type="date"
+                  [(ngModel)]="createForm.primaryOperatorEndDate"
+                  name="createPrimaryOperatorEndDate"
+                />
+              </div>
+              <div class="cost-total wide">
+                Основной оператор:
+                <strong
+                  >{{ primaryOperatorWorkDays(createForm) }} дн. •
+                  {{ utils.money(primaryOperatorPayroll(createForm)) }}</strong
+                >
+              </div>
+              <button
+                type="button"
+                class="btn ghost wide"
+                (click)="addOperatorShift('create')"
+              >
+                + Добавить сменщика
+              </button>
+
+              @for (
+                shift of createForm.operatorShifts;
+                track shift.id;
+                let i = $index
+              ) {
+                <div class="operator-shift-card wide">
+                  <div class="operator-shift-grid">
+                    <div class="field">
+                      <label>Оператор смены</label>
+                      <select
+                        [(ngModel)]="shift.operatorId"
+                        [name]="'createShiftOperator' + i"
+                      >
+                        <option value="">— выбрать —</option>
+                        @for (
+                          operator of state.operators();
+                          track operator.id
+                        ) {
+                          <option [value]="operator.id">
+                            {{ operator.name }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Начало смены</label>
+                      <input
+                        type="date"
+                        [(ngModel)]="shift.startDate"
+                        [name]="'createShiftStart' + i"
+                      />
+                    </div>
+                    <div class="field">
+                      <label>Окончание смены</label>
+                      <input
+                        type="date"
+                        [(ngModel)]="shift.endDate"
+                        [name]="'createShiftEnd' + i"
+                      />
+                    </div>
+                    <div class="field">
+                      <label>Начисление</label>
+                      <div class="shift-payroll">
+                        {{ shiftWorkDays(shift, createForm) }} дн. •
+                        {{ utils.money(shiftPayroll(shift, createForm)) }}
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn ghost remove-shift-btn"
+                    (click)="removeOperatorShift('create', i)"
+                  >
+                    Удалить смену
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+    } @else {
+      <div class="card panel order-full-card">
+        <div class="order-hero create">
+          <div>
+            <div class="eyebrow">Новая заявка</div>
+            <h3>Создать заявку</h3>
+            <p>
+              Заполни основные данные, расширенные блоки добавим постепенно.
+            </p>
+          </div>
+        </div>
+
+        <div class="create-order-grid">
+          <label class="edit-chip">
+            <span>Клиент</span>
+            <select [(ngModel)]="createForm.clientId" name="createClientId">
+              <option value="">— клиент —</option>
+              @for (client of state.clients(); track client.id) {
+                <option [value]="client.id">{{ client.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="edit-chip">
+            <span>Локация</span>
+            <input
+              type="text"
+              [(ngModel)]="createForm.location"
+              name="createLocation"
+              placeholder="Объект / адрес"
+            />
+          </label>
+
+          <label class="edit-chip">
+            <span>Дата начала</span>
+            <input
+              type="date"
+              [(ngModel)]="createForm.startDate"
+              name="createStartDate"
+            />
+          </label>
+
+          <label class="edit-chip">
+            <span>Дата окончания</span>
+            <input
+              type="date"
+              [(ngModel)]="createForm.endDate"
+              name="createEndDate"
+            />
+          </label>
+
+          <label class="edit-chip">
+            <span>Техника</span>
+            <select
+              [(ngModel)]="createForm.equipmentId"
+              name="createEquipmentId"
+              (ngModelChange)="onCreateEquipmentChange()"
+            >
+              <option value="">— техника —</option>
+              @for (item of state.equipment(); track item.id) {
+                <option [value]="item.id">{{ item.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="edit-chip">
+            <span>Оператор</span>
+            <select
+              [(ngModel)]="createForm.operatorId"
+              name="createOperatorId"
+              (ngModelChange)="onCreateOperatorChange()"
+            >
+              <option value="">— оператор —</option>
+              @for (operator of state.operators(); track operator.id) {
+                <option [value]="operator.id">{{ operator.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="edit-chip">
+            <span>Статус</span>
+            <select [(ngModel)]="createForm.status" name="createStatus">
+              @for (status of statuses; track status.value) {
+                <option [value]="status.value">{{ status.label }}</option>
+              }
+            </select>
+          </label>
+
+          <button
+            type="button"
+            class="edit-chip money-chip plan-open-chip"
+            (click)="openCreateCostEditor()"
+          >
+            <span>Общая стоимость / план</span>
+            <strong>{{ utils.money(createDraftPlan()) }}</strong>
+            <small>Открыть расчет</small>
+          </button>
+
+          <div class="edit-chip discount-chip">
+            <span>Скидка</span>
+            <label class="inline-check">
+              <input
+                type="checkbox"
+                [(ngModel)]="createForm.discountEnabled"
+                name="createDiscountEnabled"
+              />
+              включить
+            </label>
+            <div class="discount-fields">
+              <select
+                [(ngModel)]="createForm.discountType"
+                name="createDiscountType"
+              >
+                <option value="percent">%</option>
+                <option value="amount">₴</option>
+              </select>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="createForm.discountValue"
+                name="createDiscountValue"
+              />
+            </div>
+          </div>
+
+          <label class="edit-chip comments-chip">
+            <span>Комментарии</span>
+            <textarea
+              [(ngModel)]="createForm.notes"
+              name="createNotes"
+            ></textarea>
+          </label>
+        </div>
+      </div>
+    }
   </section>
 } @else if (selectedOrder(); as order) {
   <section class="order-workspace">
@@ -219,6 +478,22 @@
                 </select>
               </div>
               <div class="field">
+                <label>Дата начала резерва</label>
+                <input
+                  type="date"
+                  [(ngModel)]="orderForm.startDate"
+                  name="costStartDate"
+                />
+              </div>
+              <div class="field">
+                <label>Дата окончания резерва</label>
+                <input
+                  type="date"
+                  [(ngModel)]="orderForm.endDate"
+                  name="costEndDate"
+                />
+              </div>
+              <div class="field">
                 <label>Стоимость 1 часа техники, ₴/час</label>
                 <input
                   type="number"
@@ -263,13 +538,13 @@
                 <span>С НДС +20% к стоимости техники</span>
               </label>
 
-              @if (orderDates(order).length) {
+              @if (orderDraftDates(order).length) {
                 <div class="field wide">
                   <label>Дни, когда техника не работала</label>
                   <details class="idle-date-picker">
                     <summary>
                       Выбрано: {{ idleDatesCount("equipment") }}
-                      <span>из {{ orderDates(order).length }} дней</span>
+                      <span>из {{ orderDraftDates(order).length }} дней</span>
                     </summary>
                     <div class="idle-date-actions">
                       <button
@@ -288,7 +563,7 @@
                       </button>
                     </div>
                     <div class="idle-date-grid">
-                      @for (date of orderDates(order); track date) {
+                      @for (date of orderDraftDates(order); track date) {
                         <button
                           type="button"
                           class="idle-date-chip"
@@ -309,7 +584,7 @@
                   <details class="idle-date-picker">
                     <summary>
                       Выбрано: {{ idleDatesCount("operator") }}
-                      <span>из {{ orderDates(order).length }} дней</span>
+                      <span>из {{ orderDraftDates(order).length }} дней</span>
                     </summary>
                     <div class="idle-date-actions">
                       <button
@@ -328,7 +603,7 @@
                       </button>
                     </div>
                     <div class="idle-date-grid">
-                      @for (date of orderDates(order); track date) {
+                      @for (date of orderDraftDates(order); track date) {
                         <button
                           type="button"
                           class="idle-date-chip"
@@ -344,6 +619,159 @@
                       оператора.
                     </div>
                   </details>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="card inner-card">
+            <h4>Операторы и смены</h4>
+            <div class="cost-fields">
+              <div class="field wide">
+                <label>Основной оператор</label>
+                <select
+                  [(ngModel)]="orderForm.operatorId"
+                  name="costOperatorId"
+                >
+                  <option value="">— без оператора —</option>
+                  @for (operator of state.operators(); track operator.id) {
+                    <option [value]="operator.id">
+                      {{ operator.name }} •
+                      {{ utils.money(operator.hourlyRate || operator.rate) }}/{{
+                        operator.hourlyRate ? "час" : "день"
+                      }}
+                    </option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>Работает с</label>
+                <input
+                  type="date"
+                  [(ngModel)]="orderForm.primaryOperatorStartDate"
+                  name="primaryOperatorStartDate"
+                />
+              </div>
+              <div class="field">
+                <label>Работает до</label>
+                <input
+                  type="date"
+                  [(ngModel)]="orderForm.primaryOperatorEndDate"
+                  name="primaryOperatorEndDate"
+                />
+              </div>
+              <div class="cost-total wide">
+                Основной оператор:
+                <strong
+                  >{{ primaryOperatorWorkDays(orderForm) }} дн. •
+                  {{ utils.money(primaryOperatorPayroll(orderForm)) }}</strong
+                >
+              </div>
+              <div class="cost-total wide">
+                Всего зарплата операторов:
+                <strong>{{
+                  utils.money(orderDraftOperatorCost(order))
+                }}</strong>
+              </div>
+              <button
+                type="button"
+                class="btn ghost wide"
+                (click)="addOperatorShift('order')"
+              >
+                + Добавить сменщика
+              </button>
+
+              @for (
+                shift of orderForm.operatorShifts;
+                track shift.id;
+                let i = $index
+              ) {
+                <div class="operator-shift-card wide">
+                  <div class="operator-shift-grid">
+                    <div class="field">
+                      <label>Оператор смены</label>
+                      <select
+                        [(ngModel)]="shift.operatorId"
+                        [name]="'orderShiftOperator' + i"
+                      >
+                        <option value="">— выбрать —</option>
+                        @for (
+                          operator of state.operators();
+                          track operator.id
+                        ) {
+                          <option [value]="operator.id">
+                            {{ operator.name }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Начало смены</label>
+                      <input
+                        type="date"
+                        [(ngModel)]="shift.startDate"
+                        [name]="'orderShiftStart' + i"
+                      />
+                    </div>
+                    <div class="field">
+                      <label>Окончание смены</label>
+                      <input
+                        type="date"
+                        [(ngModel)]="shift.endDate"
+                        [name]="'orderShiftEnd' + i"
+                      />
+                    </div>
+                    <div class="field">
+                      <label>Начисление</label>
+                      <div class="shift-payroll">
+                        {{ shiftWorkDays(shift, orderForm) }} дн. •
+                        {{ utils.money(shiftPayroll(shift, orderForm)) }}
+                      </div>
+                    </div>
+                  </div>
+                  <details class="idle-date-picker shift-idle-picker">
+                    <summary>
+                      Дни без работы в смене: {{ shift.idleDates.length }}
+                      <span
+                        >из {{ shiftDates(shift, orderForm).length }} дней</span
+                      >
+                    </summary>
+                    <div class="idle-date-actions">
+                      <button
+                        type="button"
+                        class="btn ghost"
+                        (click)="excludeShiftWeekends(shift, orderForm)"
+                      >
+                        Исключить выходные дни
+                      </button>
+                      <button
+                        type="button"
+                        class="btn ghost"
+                        (click)="clearShiftIdleDates(shift)"
+                      >
+                        Очистить
+                      </button>
+                    </div>
+                    <div class="idle-date-grid">
+                      @for (date of shiftDates(shift, orderForm); track date) {
+                        <button
+                          type="button"
+                          class="idle-date-chip"
+                          [class.active]="isShiftIdleDate(shift, date)"
+                          (click)="toggleShiftIdleDate(shift, date)"
+                        >
+                          {{ utils.fmtDate(date) }}
+                        </button>
+                      }
+                    </div>
+                  </details>
+                  <button
+                    type="button"
+                    class="btn ghost remove-shift-btn"
+                    (click)="removeOperatorShift('order', i)"
+                  >
+                    Удалить смену
+                  </button>
                 </div>
               }
             </div>

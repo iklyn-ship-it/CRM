@@ -4,7 +4,12 @@ import { FormsModule } from "@angular/forms";
 import { DbService } from "../../services/db.service";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
-import { FinanceOperation, Order, OrderStatus } from "../../models/crm.models";
+import {
+  FinanceOperation,
+  OperatorShift,
+  Order,
+  OrderStatus,
+} from "../../models/crm.models";
 
 interface LocationGroup {
   key: string;
@@ -50,6 +55,7 @@ export class ProjectsComponent {
   selectedOrderId = signal("");
   creatingOrder = signal(false);
   costEditorOpen = signal(false);
+  createCostEditorOpen = signal(false);
   operationEditorOpen = signal(false);
 
   orderForm = this.emptyOrderForm();
@@ -199,6 +205,7 @@ export class ProjectsComponent {
     this.selectedOrderId.set("");
     this.creatingOrder.set(false);
     this.costEditorOpen.set(false);
+    this.createCostEditorOpen.set(false);
     this.operationEditorOpen.set(false);
     this.orderForm = this.emptyOrderForm();
     this.createForm = this.emptyCreateForm();
@@ -208,6 +215,7 @@ export class ProjectsComponent {
     const today = this.utils.todayStr();
     this.selectedOrderId.set("");
     this.costEditorOpen.set(false);
+    this.createCostEditorOpen.set(false);
     this.operationEditorOpen.set(false);
     this.creatingOrder.set(true);
     this.createForm = {
@@ -223,7 +231,16 @@ export class ProjectsComponent {
 
   cancelCreateOrder(): void {
     this.creatingOrder.set(false);
+    this.createCostEditorOpen.set(false);
     this.createForm = this.emptyCreateForm();
+  }
+
+  openCreateCostEditor(): void {
+    this.createCostEditorOpen.set(true);
+  }
+
+  closeCreateCostEditor(): void {
+    this.createCostEditorOpen.set(false);
   }
 
   async createOrder(): Promise<void> {
@@ -244,69 +261,15 @@ export class ProjectsComponent {
       return;
     }
     const id = this.utils.uid("ord");
-    const days = this.utils.daysInclusive(
-      this.createForm.startDate,
-      this.createForm.endDate,
-    );
-    const plan = Number(this.createForm.plan || 0);
+    const draft = this.createDraftOrder(id);
     try {
       await this.db.insert("orders", {
+        ...draft,
         id,
-        clientId: this.createForm.clientId,
-        equipmentId: this.createForm.equipmentId,
-        operatorId: this.createForm.operatorId,
-        startDate: this.createForm.startDate,
-        endDate: this.createForm.endDate,
-        location: this.createForm.location,
-        rate: days ? plan / days : plan,
-        equipmentHourlyRate: 0,
-        standardWorkHours: 8,
-        additionalWorkHours: 0,
-        vatEnabled: false,
-        discountEnabled: Boolean(this.createForm.discountEnabled),
-        discountType: this.createForm.discountType,
-        discountValue: Number(this.createForm.discountValue || 0),
-        status: this.createForm.status,
-        notes: this.createForm.notes,
-        equipmentIdleDates: [],
-        operatorIdleDates: [],
-        operatorShifts: [],
-        logisticsEnabled: false,
-        logisticsProvider: "own_trawl",
-        logisticsTrailerId: "",
-        logisticsStartDate: "",
-        logisticsEndDate: "",
-        logisticsDistanceKm: 0,
-        logisticsPricePerKm: 0,
-        logisticsCost: 0,
-        logisticsPickupPricePerKm: 50,
-        logisticsDeliveryPricePerKm: 250,
-        logisticsPickupKm: 0,
-        logisticsDeliveryKm: 0,
-        logisticsPickupCost: 0,
-        logisticsDeliveryCost: 0,
-        assemblyEnabled: false,
-        assemblyDisassemblyDate: "",
-        assemblyAssemblyDate: "",
-        assemblyDisassemblyCost: 0,
-        assemblyAssemblyCost: 0,
-        breakdownEnabled: false,
-        breakdownDate: "",
-        breakdownEndDate: "",
-        breakdownStatus: "reported",
-        breakdownDescription: "",
-        breakdownReporter: "",
-        breakdownResponsible: "",
-        breakdownFaultParty: "unknown",
-        breakdownAffectsPayment: true,
-        breakdownOperatorIdle: true,
-        breakdownLaborCost: 0,
-        breakdownPartsCost: 0,
-        breakdownCreateRepair: false,
-        breakdownRepairId: "",
         createdAt: new Date().toISOString(),
       });
       this.creatingOrder.set(false);
+      this.createCostEditorOpen.set(false);
       this.createForm = this.emptyCreateForm();
       const created = this.state.byId(this.state.orders(), id);
       if (created) {
@@ -363,11 +326,19 @@ export class ProjectsComponent {
       status: this.orderForm.status,
       equipmentId: this.orderForm.equipmentId,
       operatorId: this.orderForm.operatorId,
+      startDate: this.orderForm.startDate,
+      endDate: this.orderForm.endDate,
       rate: Number(this.orderForm.rate || 0),
       equipmentHourlyRate: Number(this.orderForm.equipmentHourlyRate || 0),
       standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
       additionalWorkHours: Number(this.orderForm.additionalWorkHours || 0),
       vatEnabled: Boolean(this.orderForm.vatEnabled),
+      operatorShifts: this.normalizeOperatorShifts(
+        this.orderForm.operatorShifts,
+        order,
+        this.orderForm.primaryOperatorStartDate,
+        this.orderForm.primaryOperatorEndDate,
+      ),
       discountEnabled: this.orderForm.discountEnabled,
       discountType: this.orderForm.discountType,
       discountValue: Number(this.orderForm.discountValue || 0),
@@ -515,6 +486,26 @@ export class ProjectsComponent {
       type === "income" ? "Оплата клиента" : "Прочее";
   }
 
+  createDraftPlan(): number {
+    return this.state.orderPlan(this.createDraftOrder());
+  }
+
+  createDraftEquipmentCharge(): number {
+    return this.state.orderEquipmentCharge(this.createDraftOrder());
+  }
+
+  createDraftOperatorCost(): number {
+    return this.state.orderOperatorCost(this.createDraftOrder());
+  }
+
+  createDraftWorkDays(): number {
+    return this.state.orderEquipmentWorkDays(this.createDraftOrder());
+  }
+
+  createDraftWorkHours(): number {
+    return this.state.orderEquipmentWorkHours(this.createDraftOrder());
+  }
+
   orderDraftPlan(order: Order): number {
     return this.state.orderPlan(this.draftOrder(order));
   }
@@ -529,6 +520,10 @@ export class ProjectsComponent {
 
   orderDraftWorkHours(order: Order): number {
     return this.state.orderEquipmentWorkHours(this.draftOrder(order));
+  }
+
+  orderDraftOperatorCost(order: Order): number {
+    return this.state.orderOperatorCost(this.draftOrder(order));
   }
 
   orderDraftExpense(order: Order): number {
@@ -575,6 +570,25 @@ export class ProjectsComponent {
     }
   }
 
+  onCreateEquipmentChange(): void {
+    const equipment = this.state.byId(
+      this.state.equipment(),
+      this.createForm.equipmentId,
+    );
+    if (!equipment) return;
+    if (!this.createForm.rate) {
+      this.createForm.rate = Number(equipment.defaultRate || 0);
+    }
+    if (!this.createForm.equipmentHourlyRate) {
+      this.createForm.equipmentHourlyRate = Number(equipment.hourlyRate || 0);
+    }
+  }
+
+  onCreateOperatorChange(): void {
+    this.createForm.primaryOperatorStartDate ||= this.createForm.startDate;
+    this.createForm.primaryOperatorEndDate ||= this.createForm.endDate;
+  }
+
   recalcLogisticsCost(): void {
     this.orderForm.logisticsPickupCost =
       Number(this.orderForm.logisticsPickupKm || 0) *
@@ -616,6 +630,10 @@ export class ProjectsComponent {
     return this.utils.datesInclusive(order.startDate, order.endDate);
   }
 
+  orderDraftDates(order: Order): string[] {
+    return this.orderDates(this.draftOrder(order));
+  }
+
   isIdleDate(kind: "equipment" | "operator", date: string): boolean {
     const dates =
       kind === "equipment"
@@ -637,7 +655,7 @@ export class ProjectsComponent {
     const key =
       kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
     const dates = new Set(this.orderForm[key]);
-    this.orderDates(order)
+    this.orderDraftDates(order)
       .filter((date) => {
         const day = new Date(`${date}T00:00:00`).getDay();
         return day === 0 || day === 6;
@@ -656,6 +674,115 @@ export class ProjectsComponent {
     return kind === "equipment"
       ? this.orderForm.equipmentIdleDates.length
       : this.orderForm.operatorIdleDates.length;
+  }
+
+  addOperatorShift(form: "order" | "create"): void {
+    const target = form === "order" ? this.orderForm : this.createForm;
+    target.operatorShifts = [
+      ...target.operatorShifts,
+      {
+        id: this.utils.uid("shift"),
+        operatorId: target.operatorId || "",
+        startDate: target.primaryOperatorStartDate || target.startDate,
+        endDate: target.primaryOperatorEndDate || target.endDate,
+        idleDates: [],
+      },
+    ];
+  }
+
+  removeOperatorShift(form: "order" | "create", index: number): void {
+    const target = form === "order" ? this.orderForm : this.createForm;
+    target.operatorShifts = target.operatorShifts.filter((_, i) => i !== index);
+  }
+
+  shiftDates(
+    shift: OperatorShift,
+    fallback: { startDate: string; endDate: string },
+  ): string[] {
+    const start = shift.startDate || fallback.startDate;
+    const end = shift.endDate || shift.startDate || fallback.endDate;
+    if (!start || !end || start > end) return [];
+    return this.utils.datesInclusive(start, end);
+  }
+
+  shiftWorkDays(
+    shift: OperatorShift,
+    fallback: { startDate: string; endDate: string },
+  ): number {
+    const idle = new Set(shift.idleDates || []);
+    return this.shiftDates(shift, fallback).filter((date) => !idle.has(date))
+      .length;
+  }
+
+  shiftPayroll(
+    shift: OperatorShift,
+    fallback: { startDate: string; endDate: string; standardWorkHours: number },
+  ): number {
+    const operator = this.state.byId(this.state.operators(), shift.operatorId);
+    if (operator?.hourlyRate) {
+      return (
+        this.shiftWorkDays(shift, fallback) *
+        Number(fallback.standardWorkHours || 8) *
+        Number(operator.hourlyRate || 0)
+      );
+    }
+    return this.shiftWorkDays(shift, fallback) * Number(operator?.rate || 0);
+  }
+
+  primaryOperatorWorkDays(
+    form: typeof this.orderForm | typeof this.createForm,
+  ): number {
+    if (!form.operatorId) return 0;
+    const startDate = form.primaryOperatorStartDate || form.startDate;
+    const endDate = form.primaryOperatorEndDate || form.endDate;
+    if (!startDate || !endDate || startDate > endDate) return 0;
+    const idle = new Set(form.operatorIdleDates || []);
+    return this.utils
+      .datesInclusive(startDate, endDate)
+      .filter((date) => !idle.has(date)).length;
+  }
+
+  primaryOperatorPayroll(
+    form: typeof this.orderForm | typeof this.createForm,
+  ): number {
+    const operator = this.state.byId(this.state.operators(), form.operatorId);
+    if (operator?.hourlyRate) {
+      return (
+        this.primaryOperatorWorkDays(form) *
+        Number(form.standardWorkHours || 8) *
+        Number(operator.hourlyRate || 0)
+      );
+    }
+    return this.primaryOperatorWorkDays(form) * Number(operator?.rate || 0);
+  }
+
+  isShiftIdleDate(shift: OperatorShift, date: string): boolean {
+    return (shift.idleDates || []).includes(date);
+  }
+
+  toggleShiftIdleDate(shift: OperatorShift, date: string): void {
+    const dates = new Set(shift.idleDates || []);
+    if (dates.has(date)) dates.delete(date);
+    else dates.add(date);
+    shift.idleDates = [...dates].sort();
+  }
+
+  excludeShiftWeekends(
+    shift: OperatorShift,
+    fallback: { startDate: string; endDate: string },
+  ): void {
+    const dates = new Set(shift.idleDates || []);
+    this.shiftDates(shift, fallback)
+      .filter((date) => {
+        const day = new Date(`${date}T00:00:00`).getDay();
+        return day === 0 || day === 6;
+      })
+      .forEach((date) => dates.add(date));
+    shift.idleDates = [...dates].sort();
+  }
+
+  clearShiftIdleDates(shift: OperatorShift): void {
+    shift.idleDates = [];
   }
 
   clientName(id: string): string {
@@ -740,6 +867,10 @@ export class ProjectsComponent {
       status: "new" as OrderStatus,
       equipmentId: "",
       operatorId: "",
+      startDate: "",
+      endDate: "",
+      primaryOperatorStartDate: "",
+      primaryOperatorEndDate: "",
       plan: 0,
       rate: 0,
       equipmentHourlyRate: 0,
@@ -748,6 +879,7 @@ export class ProjectsComponent {
       vatEnabled: false,
       equipmentIdleDates: [] as string[],
       operatorIdleDates: [] as string[],
+      operatorShifts: [] as OperatorShift[],
       discountEnabled: false,
       discountType: "percent" as "percent" | "amount",
       discountValue: 0,
@@ -802,6 +934,10 @@ export class ProjectsComponent {
       status: order.status || ("new" as OrderStatus),
       equipmentId: order.equipmentId || "",
       operatorId: order.operatorId || "",
+      startDate: order.startDate || "",
+      endDate: order.endDate || "",
+      primaryOperatorStartDate: this.primaryOperatorPeriod(order).startDate,
+      primaryOperatorEndDate: this.primaryOperatorPeriod(order).endDate,
       plan: Math.round(this.state.orderPlan(order)),
       rate: Number(order.rate || 0),
       equipmentHourlyRate: Number(order.equipmentHourlyRate || 0),
@@ -810,6 +946,7 @@ export class ProjectsComponent {
       vatEnabled: Boolean(order.vatEnabled),
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
       operatorIdleDates: [...(order.operatorIdleDates || [])],
+      operatorShifts: this.cloneOperatorShifts(order.operatorShifts || []),
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || ("percent" as "percent" | "amount"),
       discountValue: Number(order.discountValue || 0),
@@ -866,6 +1003,14 @@ export class ProjectsComponent {
       status: this.orderForm.status,
       equipmentId: this.orderForm.equipmentId,
       operatorId: this.orderForm.operatorId,
+      startDate: this.orderForm.startDate,
+      endDate: this.orderForm.endDate,
+      operatorShifts: this.normalizeOperatorShifts(
+        this.orderForm.operatorShifts,
+        order,
+        this.orderForm.primaryOperatorStartDate,
+        this.orderForm.primaryOperatorEndDate,
+      ),
       rate: Number(this.orderForm.rate || 0),
       equipmentHourlyRate: Number(this.orderForm.equipmentHourlyRate || 0),
       standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
@@ -1027,6 +1172,150 @@ export class ProjectsComponent {
       .filter((date) => date >= order.startDate && date <= order.endDate);
   }
 
+  private createDraftOrder(id = "draft"): Order {
+    const baseOrder = {
+      id,
+      clientId: this.createForm.clientId,
+      equipmentId: this.createForm.equipmentId,
+      operatorId: this.createForm.operatorId,
+      startDate: this.createForm.startDate,
+      endDate: this.createForm.endDate,
+      location: this.createForm.location,
+      rate: Number(this.createForm.rate || 0),
+      equipmentHourlyRate: Number(this.createForm.equipmentHourlyRate || 0),
+      standardWorkHours: Number(this.createForm.standardWorkHours || 8),
+      additionalWorkHours: Number(this.createForm.additionalWorkHours || 0),
+      vatEnabled: Boolean(this.createForm.vatEnabled),
+      discountEnabled: Boolean(this.createForm.discountEnabled),
+      discountType: this.createForm.discountType,
+      discountValue: Number(this.createForm.discountValue || 0),
+      status: this.createForm.status,
+      notes: this.createForm.notes,
+      createdAt: "",
+      equipmentIdleDates: [],
+      operatorIdleDates: [...(this.createForm.operatorIdleDates || [])],
+      operatorShifts: [],
+      logisticsEnabled: false,
+      logisticsProvider: "own_trawl" as const,
+      logisticsTrailerId: "",
+      logisticsStartDate: "",
+      logisticsEndDate: "",
+      logisticsDistanceKm: 0,
+      logisticsPricePerKm: 0,
+      logisticsCost: 0,
+      logisticsPickupPricePerKm: 50,
+      logisticsDeliveryPricePerKm: 250,
+      logisticsPickupKm: 0,
+      logisticsDeliveryKm: 0,
+      logisticsPickupCost: 0,
+      logisticsDeliveryCost: 0,
+      assemblyEnabled: false,
+      assemblyDisassemblyDate: "",
+      assemblyAssemblyDate: "",
+      assemblyDisassemblyCost: 0,
+      assemblyAssemblyCost: 0,
+      breakdownEnabled: false,
+      breakdownDate: "",
+      breakdownEndDate: "",
+      breakdownStatus: "reported" as const,
+      breakdownDescription: "",
+      breakdownReporter: "",
+      breakdownResponsible: "",
+      breakdownFaultParty: "unknown" as const,
+      breakdownAffectsPayment: false,
+      breakdownOperatorIdle: false,
+      breakdownLaborCost: 0,
+      breakdownPartsCost: 0,
+      breakdownCreateRepair: false,
+      breakdownRepairId: "",
+    } satisfies Order;
+    return {
+      ...baseOrder,
+      operatorShifts: this.normalizeOperatorShifts(
+        this.createForm.operatorShifts,
+        baseOrder,
+        this.createForm.primaryOperatorStartDate,
+        this.createForm.primaryOperatorEndDate,
+      ),
+    };
+  }
+
+  private normalizeOperatorShifts(
+    shifts: OperatorShift[],
+    order: Pick<
+      Order,
+      "operatorId" | "startDate" | "endDate" | "operatorIdleDates"
+    >,
+    primaryStartDate = "",
+    primaryEndDate = "",
+  ): OperatorShift[] {
+    if (!shifts.length && order.operatorId) {
+      const startDate = primaryStartDate || order.startDate;
+      const endDate = primaryEndDate || order.endDate;
+      const usesCustomPeriod =
+        startDate &&
+        endDate &&
+        (startDate !== order.startDate || endDate !== order.endDate);
+      if (usesCustomPeriod) {
+        const periodDates = new Set(
+          this.utils.datesInclusive(startDate, endDate),
+        );
+        return [
+          {
+            id: this.utils.uid("shift"),
+            operatorId: order.operatorId,
+            startDate,
+            endDate,
+            idleDates: [...new Set(order.operatorIdleDates || [])]
+              .filter((date) => periodDates.has(date))
+              .sort(),
+          },
+        ];
+      }
+    }
+    return shifts
+      .filter((shift) => shift.operatorId && shift.startDate && shift.endDate)
+      .map((shift) => {
+        const dates = new Set(
+          this.utils.datesInclusive(shift.startDate, shift.endDate),
+        );
+        return {
+          id: shift.id || this.utils.uid("shift"),
+          operatorId: shift.operatorId,
+          startDate: shift.startDate,
+          endDate: shift.endDate,
+          idleDates: [...new Set(shift.idleDates || [])]
+            .filter((date) => dates.has(date))
+            .sort(),
+        };
+      });
+  }
+
+  private cloneOperatorShifts(shifts: OperatorShift[]): OperatorShift[] {
+    return shifts.map((shift) => ({
+      id: shift.id || this.utils.uid("shift"),
+      operatorId: shift.operatorId || "",
+      startDate: shift.startDate || "",
+      endDate: shift.endDate || "",
+      idleDates: [...(shift.idleDates || [])],
+    }));
+  }
+
+  private primaryOperatorPeriod(order: Order): {
+    startDate: string;
+    endDate: string;
+  } {
+    const shift =
+      (order.operatorShifts || []).length === 1 &&
+      order.operatorShifts[0].operatorId === order.operatorId
+        ? order.operatorShifts[0]
+        : null;
+    return {
+      startDate: shift?.startDate || order.startDate,
+      endDate: shift?.endDate || order.endDate,
+    };
+  }
+
   private emptyOperationForm(order?: Order) {
     return {
       date: this.utils.todayStr(),
@@ -1043,11 +1332,20 @@ export class ProjectsComponent {
       clientId: "",
       equipmentId: "",
       operatorId: "",
+      primaryOperatorStartDate: "",
+      primaryOperatorEndDate: "",
       startDate: "",
       endDate: "",
       location: "",
       status: "new" as OrderStatus,
       plan: 0,
+      rate: 0,
+      equipmentHourlyRate: 0,
+      standardWorkHours: 8,
+      additionalWorkHours: 0,
+      vatEnabled: false,
+      operatorIdleDates: [] as string[],
+      operatorShifts: [] as OperatorShift[],
       discountEnabled: false,
       discountType: "percent" as "percent" | "amount",
       discountValue: 0,
