@@ -148,360 +148,684 @@
 } @else if (selectedOrder(); as order) {
   <section class="order-workspace">
     <div class="workspace-topbar">
-      <button type="button" class="btn ghost" (click)="closeOrder()">
-        ← К технике на локации
-      </button>
+      @if (costEditorOpen()) {
+        <button type="button" class="btn ghost" (click)="closeCostEditor()">
+          ← К карточке заявки
+        </button>
+      } @else {
+        <button type="button" class="btn ghost" (click)="closeOrder()">
+          ← К технике на локации
+        </button>
+      }
       <button type="button" class="btn primary" (click)="saveOrder()">
         Сохранить изменения
       </button>
     </div>
 
-    <div class="card panel order-full-card">
-      <div class="order-hero">
-        <div>
-          <div class="eyebrow">Заявка {{ order.id | slice: -5 }}</div>
-          <h3>{{ clientName(order.clientId) }}</h3>
-          <p>
-            {{ order.location || "локация не указана" }} •
-            {{ utils.fmtDate(order.startDate) }} -
-            {{ utils.fmtDate(order.endDate) }} •
-            {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
-          </p>
+    @if (costEditorOpen()) {
+      <div class="card panel order-full-card cost-workspace">
+        <div class="order-hero cost-hero">
+          <div>
+            <div class="eyebrow">Расчет стоимости</div>
+            <h3>{{ utils.money(orderDraftPlan(order)) }}</h3>
+            <p>
+              Техника, НДС, скидка, логистика и сборка/разборка считаются по той
+              же схеме, что в первой версии заявок.
+            </p>
+          </div>
+          <span class="badge" [ngClass]="statusBadgeClass(orderForm.status)">
+            {{ statusLabel(orderForm.status) }}
+          </span>
         </div>
-        <span class="badge" [ngClass]="statusBadgeClass(order.status)">
-          {{ statusLabel(order.status) }}
-        </span>
+
+        <div class="finance-summary">
+          <div class="metric">
+            <span>Техника с НДС</span>
+            <strong>{{ utils.money(orderDraftEquipmentCharge(order)) }}</strong>
+            <small>
+              {{ orderDraftWorkDays(order) }} дн. /
+              {{ orderDraftWorkHours(order) }} ч.
+            </small>
+          </div>
+          <div class="metric">
+            <span>Логистика</span>
+            <strong>{{ utils.money(logisticsSubtotal()) }}</strong>
+          </div>
+          <div class="metric">
+            <span>Сборка/разборка</span>
+            <strong>{{ utils.money(assemblyTotal()) }}</strong>
+          </div>
+          <div class="metric">
+            <span>Итого к заявке</span>
+            <strong>{{ utils.money(orderDraftPlan(order)) }}</strong>
+          </div>
+        </div>
+
+        <div class="cost-grid">
+          <div class="card inner-card">
+            <h4>Техника и часы</h4>
+            <div class="cost-fields">
+              <div class="field wide">
+                <label>Техника</label>
+                <select
+                  [(ngModel)]="orderForm.equipmentId"
+                  name="costEquipmentId"
+                  (ngModelChange)="onOrderEquipmentChange()"
+                >
+                  <option value="">— техника —</option>
+                  @for (item of state.equipment(); track item.id) {
+                    <option [value]="item.id">{{ item.name }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>Стоимость 1 часа техники, ₴/час</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.equipmentHourlyRate"
+                  name="equipmentHourlyRate"
+                />
+              </div>
+              <div class="field">
+                <label>Тариф, ₴/день</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.rate"
+                  name="rate"
+                />
+              </div>
+              <div class="field">
+                <label>Стандарт часов в день</label>
+                <input
+                  type="number"
+                  min="1"
+                  [(ngModel)]="orderForm.standardWorkHours"
+                  name="standardWorkHours"
+                />
+              </div>
+              <div class="field">
+                <label>Дополнительные часы</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.additionalWorkHours"
+                  name="additionalWorkHours"
+                />
+              </div>
+              <label class="bill-client wide">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="orderForm.vatEnabled"
+                  name="vatEnabled"
+                />
+                <span>С НДС +20% к стоимости техники</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="card inner-card">
+            <h4>Скидка</h4>
+            <div class="cost-fields">
+              <label class="bill-client wide">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="orderForm.discountEnabled"
+                  name="costDiscountEnabled"
+                />
+                <span>Применить скидку на всю заявку</span>
+              </label>
+              <div class="field">
+                <label>Тип скидки</label>
+                <select
+                  [(ngModel)]="orderForm.discountType"
+                  name="costDiscountType"
+                >
+                  <option value="percent">Процент</option>
+                  <option value="amount">Сумма</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Значение скидки</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.discountValue"
+                  name="costDiscountValue"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="card inner-card logistics-card">
+            <h4>Логистика</h4>
+            <div class="cost-fields">
+              <label class="bill-client wide">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="orderForm.logisticsEnabled"
+                  name="logisticsEnabled"
+                />
+                <span>Добавить логистику к заявке</span>
+              </label>
+
+              @if (orderForm.logisticsEnabled) {
+                <div class="field">
+                  <label>Перевозчик</label>
+                  <select
+                    [(ngModel)]="orderForm.logisticsProvider"
+                    name="logisticsProvider"
+                  >
+                    <option value="own_trawl">Наш трал</option>
+                    <option value="third_party">Сторонний перевозчик</option>
+                    <option value="self_drive">Своим ходом</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Трал</label>
+                  <select
+                    [(ngModel)]="orderForm.logisticsTrailerId"
+                    name="logisticsTrailerId"
+                  >
+                    <option value="">— не выбран —</option>
+                    @for (item of state.equipment(); track item.id) {
+                      <option [value]="item.id">{{ item.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Дата начала логистики</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="orderForm.logisticsStartDate"
+                    name="logisticsStartDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Дата окончания логистики</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="orderForm.logisticsEndDate"
+                    name="logisticsEndDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Цена 1 км подачи, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsPickupPricePerKm"
+                    name="logisticsPickupPricePerKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Подача, км</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsPickupKm"
+                    name="logisticsPickupKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость подачи, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsPickupCost"
+                    name="logisticsPickupCost"
+                    (ngModelChange)="syncLogisticsTotalField()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Цена 1 км доставки, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsDeliveryPricePerKm"
+                    name="logisticsDeliveryPricePerKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Доставка, км</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsDeliveryKm"
+                    name="logisticsDeliveryKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость доставки, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsDeliveryCost"
+                    name="logisticsDeliveryCost"
+                    (ngModelChange)="syncLogisticsTotalField()"
+                  />
+                </div>
+                <div class="cost-total wide">
+                  Итого логистика:
+                  <strong>{{ utils.money(logisticsSubtotal()) }}</strong>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="card inner-card assembly-card">
+            <h4>Сборка/разборка техники</h4>
+            <div class="cost-fields">
+              <label class="bill-client wide">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="orderForm.assemblyEnabled"
+                  name="assemblyEnabled"
+                />
+                <span>Добавить сборку/разборку к заявке</span>
+              </label>
+
+              @if (orderForm.assemblyEnabled) {
+                <div class="field">
+                  <label>Дата демонтажа</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="orderForm.assemblyDisassemblyDate"
+                    name="assemblyDisassemblyDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость демонтажа, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.assemblyDisassemblyCost"
+                    name="assemblyDisassemblyCost"
+                  />
+                </div>
+                <div class="field">
+                  <label>Дата монтажа</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="orderForm.assemblyAssemblyDate"
+                    name="assemblyAssemblyDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость монтажа, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.assemblyAssemblyCost"
+                    name="assemblyAssemblyCost"
+                  />
+                </div>
+                <div class="cost-total wide">
+                  Итого сборка/разборка:
+                  <strong>{{ utils.money(assemblyTotal()) }}</strong>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
       </div>
+    } @else {
+      <div class="card panel order-full-card">
+        <div class="order-hero">
+          <div>
+            <div class="eyebrow">Заявка {{ order.id | slice: -5 }}</div>
+            <h3>{{ clientName(order.clientId) }}</h3>
+            <p>
+              {{ order.location || "локация не указана" }} •
+              {{ utils.fmtDate(order.startDate) }} -
+              {{ utils.fmtDate(order.endDate) }} •
+              {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+            </p>
+          </div>
+          <span class="badge" [ngClass]="statusBadgeClass(order.status)">
+            {{ statusLabel(order.status) }}
+          </span>
+        </div>
 
-      <div class="editable-strip">
-        <label class="edit-chip">
-          <span>Статус</span>
-          <select [(ngModel)]="orderForm.status" name="status">
-            @for (status of statuses; track status.value) {
-              <option [value]="status.value">{{ status.label }}</option>
+        <div class="editable-strip">
+          <label class="edit-chip">
+            <span>Статус</span>
+            <select [(ngModel)]="orderForm.status" name="status">
+              @for (status of statuses; track status.value) {
+                <option [value]="status.value">{{ status.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="edit-chip">
+            <span>Наименование техники</span>
+            <select [(ngModel)]="orderForm.equipmentId" name="equipmentId">
+              <option value="">— техника —</option>
+              @for (item of state.equipment(); track item.id) {
+                <option [value]="item.id">{{ item.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="edit-chip">
+            <span>Оператор</span>
+            <select [(ngModel)]="orderForm.operatorId" name="operatorId">
+              <option value="">— оператор —</option>
+              @for (operator of state.operators(); track operator.id) {
+                <option [value]="operator.id">{{ operator.name }}</option>
+              }
+            </select>
+          </label>
+
+          <button
+            type="button"
+            class="edit-chip money-chip plan-open-chip"
+            (click)="openCostEditor()"
+          >
+            <span>Общая стоимость / план</span>
+            <strong>{{ utils.money(orderDraftPlan(order)) }}</strong>
+            <small>Открыть расчет</small>
+          </button>
+
+          <div class="edit-chip discount-chip">
+            <span>Скидка</span>
+            <label class="inline-check">
+              <input
+                type="checkbox"
+                [(ngModel)]="orderForm.discountEnabled"
+                name="discountEnabled"
+              />
+              включить
+            </label>
+            <div class="discount-fields">
+              <select [(ngModel)]="orderForm.discountType" name="discountType">
+                <option value="percent">%</option>
+                <option value="amount">₴</option>
+              </select>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="orderForm.discountValue"
+                name="discountValue"
+              />
+            </div>
+          </div>
+
+          <label class="edit-chip comments-chip">
+            <span>Комментарии</span>
+            <textarea [(ngModel)]="orderForm.notes" name="notes"></textarea>
+          </label>
+        </div>
+
+        <div class="finance-summary">
+          <div class="metric">
+            <span>План после правок</span>
+            <strong>{{ utils.money(orderDraftPlan(order)) }}</strong>
+            @if (breakdownPaymentDelta(order) > 0) {
+              <small
+                >-{{ utils.money(breakdownPaymentDelta(order)) }} из-за
+                простоя</small
+              >
             }
-          </select>
-        </label>
-
-        <label class="edit-chip">
-          <span>Наименование техники</span>
-          <select [(ngModel)]="orderForm.equipmentId" name="equipmentId">
-            <option value="">— техника —</option>
-            @for (item of state.equipment(); track item.id) {
-              <option [value]="item.id">{{ item.name }}</option>
+          </div>
+          <div class="metric income">
+            <span>Приход</span>
+            <strong>{{ utils.money(state.orderIncome(order.id)) }}</strong>
+          </div>
+          <div class="metric expense">
+            <span>Расход после правок</span>
+            <strong>{{ utils.money(orderDraftExpense(order)) }}</strong>
+            @if (breakdownOperatorDelta(order) > 0) {
+              <small
+                >-{{ utils.money(breakdownOperatorDelta(order)) }} зарплаты
+                оператора</small
+              >
             }
-          </select>
-        </label>
+          </div>
+          <div class="metric">
+            <span>Прибыль после правок</span>
+            <strong>{{ utils.money(orderDraftProfit(order)) }}</strong>
+          </div>
+        </div>
 
-        <label class="edit-chip">
-          <span>Оператор</span>
-          <select [(ngModel)]="orderForm.operatorId" name="operatorId">
-            <option value="">— оператор —</option>
-            @for (operator of state.operators(); track operator.id) {
-              <option [value]="operator.id">{{ operator.name }}</option>
-            }
-          </select>
-        </label>
-
-        <label class="edit-chip money-chip">
-          <span>Общая стоимость / план</span>
-          <input
-            type="number"
-            min="0"
-            [(ngModel)]="orderForm.plan"
-            name="plan"
-          />
-        </label>
-
-        <div class="edit-chip discount-chip">
-          <span>Скидка</span>
-          <label class="inline-check">
+        <div class="card inner-card breakdown-card">
+          <label class="breakdown-toggle">
             <input
               type="checkbox"
-              [(ngModel)]="orderForm.discountEnabled"
-              name="discountEnabled"
+              [(ngModel)]="orderForm.breakdownEnabled"
+              name="breakdownEnabled"
             />
-            включить
+            <span>Поломка во время аренды</span>
           </label>
-          <div class="discount-fields">
-            <select [(ngModel)]="orderForm.discountType" name="discountType">
-              <option value="percent">%</option>
-              <option value="amount">₴</option>
-            </select>
-            <input
-              type="number"
-              min="0"
-              [(ngModel)]="orderForm.discountValue"
-              name="discountValue"
-            />
-          </div>
-        </div>
 
-        <label class="edit-chip comments-chip">
-          <span>Комментарии</span>
-          <textarea [(ngModel)]="orderForm.notes" name="notes"></textarea>
-        </label>
-      </div>
-
-      <div class="finance-summary">
-        <div class="metric">
-          <span>План после правок</span>
-          <strong>{{ utils.money(orderDraftPlan(order)) }}</strong>
-          @if (breakdownPaymentDelta(order) > 0) {
-            <small
-              >-{{ utils.money(breakdownPaymentDelta(order)) }} из-за
-              простоя</small
-            >
-          }
-        </div>
-        <div class="metric income">
-          <span>Приход</span>
-          <strong>{{ utils.money(state.orderIncome(order.id)) }}</strong>
-        </div>
-        <div class="metric expense">
-          <span>Расход после правок</span>
-          <strong>{{ utils.money(orderDraftExpense(order)) }}</strong>
-          @if (breakdownOperatorDelta(order) > 0) {
-            <small
-              >-{{ utils.money(breakdownOperatorDelta(order)) }} зарплаты
-              оператора</small
-            >
-          }
-        </div>
-        <div class="metric">
-          <span>Прибыль после правок</span>
-          <strong>{{ utils.money(orderDraftProfit(order)) }}</strong>
-        </div>
-      </div>
-
-      <div class="card inner-card breakdown-card">
-        <label class="breakdown-toggle">
-          <input
-            type="checkbox"
-            [(ngModel)]="orderForm.breakdownEnabled"
-            name="breakdownEnabled"
-          />
-          <span>Поломка во время аренды</span>
-        </label>
-
-        @if (orderForm.breakdownEnabled) {
-          <div class="breakdown-grid">
-            <div class="field">
-              <label>Дата поломки</label>
-              <input
-                type="date"
-                [(ngModel)]="orderForm.breakdownDate"
-                name="breakdownDate"
-              />
-            </div>
-            <div class="field">
-              <label>Дата устранения</label>
-              <input
-                type="date"
-                [(ngModel)]="orderForm.breakdownEndDate"
-                name="breakdownEndDate"
-              />
-            </div>
-            <div class="field">
-              <label>Статус поломки</label>
-              <select
-                [(ngModel)]="orderForm.breakdownStatus"
-                name="breakdownStatus"
-              >
-                <option value="reported">Зафиксирована</option>
-                <option value="diagnostics">Диагностика</option>
-                <option value="repair">Ремонт</option>
-                <option value="resolved">Устранена</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Ответственность</label>
-              <select
-                [(ngModel)]="orderForm.breakdownFaultParty"
-                name="breakdownFaultParty"
-              >
-                <option value="unknown">Не установлено</option>
-                <option value="ours">Наша сторона</option>
-                <option value="client">Клиент</option>
-                <option value="operator">Оператор</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>Кто сообщил</label>
-              <input
-                type="text"
-                [(ngModel)]="orderForm.breakdownReporter"
-                name="breakdownReporter"
-                placeholder="Имя / контакт"
-              />
-            </div>
-            <div class="field">
-              <label>Ответственный</label>
-              <input
-                type="text"
-                [(ngModel)]="orderForm.breakdownResponsible"
-                name="breakdownResponsible"
-                placeholder="Кто ведет ремонт"
-              />
-            </div>
-            <div class="field">
-              <label>Стоимость работ, ₴</label>
-              <input
-                type="number"
-                min="0"
-                [(ngModel)]="orderForm.breakdownLaborCost"
-                name="breakdownLaborCost"
-              />
-            </div>
-            <div class="field">
-              <label>Стоимость запчастей, ₴</label>
-              <input
-                type="number"
-                min="0"
-                [(ngModel)]="orderForm.breakdownPartsCost"
-                name="breakdownPartsCost"
-              />
-            </div>
-            <label class="bill-client">
-              <input
-                type="checkbox"
-                [(ngModel)]="orderForm.breakdownAffectsPayment"
-                name="breakdownAffectsPayment"
-              />
-              <span>Поломка влияет на оплату аренды</span>
-            </label>
-            <label class="bill-client">
-              <input
-                type="checkbox"
-                [(ngModel)]="orderForm.breakdownOperatorIdle"
-                name="breakdownOperatorIdle"
-              />
-              <span>Считать простой оператора</span>
-            </label>
-            <div class="field wide">
-              <label>Описание поломки</label>
-              <textarea
-                [(ngModel)]="orderForm.breakdownDescription"
-                name="breakdownDescription"
-                placeholder="Что случилось, что нужно сделать"
-              ></textarea>
-            </div>
-            <div class="breakdown-impact wide">
-              <span
-                >Дней поломки в периоде заявки:
-                {{ breakdownDatesCount(order) }}</span
-              >
-              @if (orderForm.breakdownAffectsPayment) {
-                <strong>
-                  План уменьшится на
-                  {{ utils.money(breakdownPaymentDelta(order)) }}
-                </strong>
-              } @else {
-                <strong>На оплату аренды не влияет</strong>
-              }
-              @if (orderForm.breakdownOperatorIdle) {
-                <small>
-                  Зарплатный расход оператора уменьшится на
-                  {{ utils.money(breakdownOperatorDelta(order)) }}
-                </small>
-              }
-            </div>
-          </div>
-        }
-      </div>
-
-      <div class="order-finance-grid">
-        <div class="card inner-card">
-          <h4>Добавить приход / расход</h4>
-          <div class="operation-type">
-            <button
-              type="button"
-              class="filter-chip finance-income"
-              [class.active]="operationForm.type === 'income'"
-              (click)="setOperationType('income')"
-            >
-              Приход
-            </button>
-            <button
-              type="button"
-              class="filter-chip finance-expense"
-              [class.active]="operationForm.type === 'expense'"
-              (click)="setOperationType('expense')"
-            >
-              Расход
-            </button>
-          </div>
-          <div class="operation-form">
-            <div class="field">
-              <label>Дата</label>
-              <input
-                type="date"
-                [(ngModel)]="operationForm.date"
-                name="opDate"
-              />
-            </div>
-            <div class="field">
-              <label>Категория</label>
-              <select [(ngModel)]="operationForm.category" name="opCategory">
-                @for (category of operationCategories; track category) {
-                  <option [value]="category">{{ category }}</option>
-                }
-              </select>
-            </div>
-            <div class="field">
-              <label>Сумма, ₴</label>
-              <input
-                type="number"
-                min="0"
-                [(ngModel)]="operationForm.amount"
-                name="opAmount"
-              />
-            </div>
-            @if (operationForm.type === "expense") {
+          @if (orderForm.breakdownEnabled) {
+            <div class="breakdown-grid">
+              <div class="field">
+                <label>Дата поломки</label>
+                <input
+                  type="date"
+                  [(ngModel)]="orderForm.breakdownDate"
+                  name="breakdownDate"
+                />
+              </div>
+              <div class="field">
+                <label>Дата устранения</label>
+                <input
+                  type="date"
+                  [(ngModel)]="orderForm.breakdownEndDate"
+                  name="breakdownEndDate"
+                />
+              </div>
+              <div class="field">
+                <label>Статус поломки</label>
+                <select
+                  [(ngModel)]="orderForm.breakdownStatus"
+                  name="breakdownStatus"
+                >
+                  <option value="reported">Зафиксирована</option>
+                  <option value="diagnostics">Диагностика</option>
+                  <option value="repair">Ремонт</option>
+                  <option value="resolved">Устранена</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Ответственность</label>
+                <select
+                  [(ngModel)]="orderForm.breakdownFaultParty"
+                  name="breakdownFaultParty"
+                >
+                  <option value="unknown">Не установлено</option>
+                  <option value="ours">Наша сторона</option>
+                  <option value="client">Клиент</option>
+                  <option value="operator">Оператор</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Кто сообщил</label>
+                <input
+                  type="text"
+                  [(ngModel)]="orderForm.breakdownReporter"
+                  name="breakdownReporter"
+                  placeholder="Имя / контакт"
+                />
+              </div>
+              <div class="field">
+                <label>Ответственный</label>
+                <input
+                  type="text"
+                  [(ngModel)]="orderForm.breakdownResponsible"
+                  name="breakdownResponsible"
+                  placeholder="Кто ведет ремонт"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость работ, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.breakdownLaborCost"
+                  name="breakdownLaborCost"
+                />
+              </div>
+              <div class="field">
+                <label>Стоимость запчастей, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.breakdownPartsCost"
+                  name="breakdownPartsCost"
+                />
+              </div>
               <label class="bill-client">
                 <input
                   type="checkbox"
-                  [(ngModel)]="operationForm.billClient"
-                  name="billClient"
+                  [(ngModel)]="orderForm.breakdownAffectsPayment"
+                  name="breakdownAffectsPayment"
                 />
-                <span>Выставить клиенту</span>
+                <span>Поломка влияет на оплату аренды</span>
               </label>
-            }
-            <div class="field wide">
-              <label>Комментарий</label>
-              <textarea
-                [(ngModel)]="operationForm.comment"
-                name="opComment"
-              ></textarea>
-            </div>
-            <button type="button" class="btn primary" (click)="addOperation()">
-              Добавить операцию
-            </button>
-          </div>
-        </div>
-
-        <div class="card inner-card">
-          <h4>Операции по заявке</h4>
-          <div class="operation-list">
-            @for (op of selectedOrderOps(); track op.id) {
-              <div class="operation-line" [ngClass]="op.type">
-                <div>
-                  <strong>{{ utils.money(op.amount) }}</strong>
-                  <span>{{ opTypeLabel(op.type) }} • {{ op.category }}</span>
-                </div>
-                <small>{{ utils.fmtDate(op.date) }}</small>
-                @if (op.comment) {
-                  <p>{{ op.comment }}</p>
+              <label class="bill-client">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="orderForm.breakdownOperatorIdle"
+                  name="breakdownOperatorIdle"
+                />
+                <span>Считать простой оператора</span>
+              </label>
+              <div class="field wide">
+                <label>Описание поломки</label>
+                <textarea
+                  [(ngModel)]="orderForm.breakdownDescription"
+                  name="breakdownDescription"
+                  placeholder="Что случилось, что нужно сделать"
+                ></textarea>
+              </div>
+              <div class="breakdown-impact wide">
+                <span
+                  >Дней поломки в периоде заявки:
+                  {{ breakdownDatesCount(order) }}</span
+                >
+                @if (orderForm.breakdownAffectsPayment) {
+                  <strong>
+                    План уменьшится на
+                    {{ utils.money(breakdownPaymentDelta(order)) }}
+                  </strong>
+                } @else {
+                  <strong>На оплату аренды не влияет</strong>
+                }
+                @if (orderForm.breakdownOperatorIdle) {
+                  <small>
+                    Зарплатный расход оператора уменьшится на
+                    {{ utils.money(breakdownOperatorDelta(order)) }}
+                  </small>
                 }
               </div>
-            }
-            @if (!selectedOrderOps().length) {
-              <div class="empty">Операций по заявке пока нет.</div>
-            }
+            </div>
+          }
+        </div>
+
+        <div class="order-finance-grid">
+          <div class="card inner-card">
+            <h4>Добавить приход / расход</h4>
+            <div class="operation-type">
+              <button
+                type="button"
+                class="filter-chip finance-income"
+                [class.active]="operationForm.type === 'income'"
+                (click)="setOperationType('income')"
+              >
+                Приход
+              </button>
+              <button
+                type="button"
+                class="filter-chip finance-expense"
+                [class.active]="operationForm.type === 'expense'"
+                (click)="setOperationType('expense')"
+              >
+                Расход
+              </button>
+            </div>
+            <div class="operation-form">
+              <div class="field">
+                <label>Дата</label>
+                <input
+                  type="date"
+                  [(ngModel)]="operationForm.date"
+                  name="opDate"
+                />
+              </div>
+              <div class="field">
+                <label>Категория</label>
+                <select [(ngModel)]="operationForm.category" name="opCategory">
+                  @for (category of operationCategories; track category) {
+                    <option [value]="category">{{ category }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>Сумма, ₴</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="operationForm.amount"
+                  name="opAmount"
+                />
+              </div>
+              @if (operationForm.type === "expense") {
+                <label class="bill-client">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="operationForm.billClient"
+                    name="billClient"
+                  />
+                  <span>Выставить клиенту</span>
+                </label>
+              }
+              <div class="field wide">
+                <label>Комментарий</label>
+                <textarea
+                  [(ngModel)]="operationForm.comment"
+                  name="opComment"
+                ></textarea>
+              </div>
+              <button
+                type="button"
+                class="btn primary"
+                (click)="addOperation()"
+              >
+                Добавить операцию
+              </button>
+            </div>
+          </div>
+
+          <div class="card inner-card">
+            <h4>Операции по заявке</h4>
+            <div class="operation-list">
+              @for (op of selectedOrderOps(); track op.id) {
+                <div class="operation-line" [ngClass]="op.type">
+                  <div>
+                    <strong>{{ utils.money(op.amount) }}</strong>
+                    <span>{{ opTypeLabel(op.type) }} • {{ op.category }}</span>
+                  </div>
+                  <small>{{ utils.fmtDate(op.date) }}</small>
+                  @if (op.comment) {
+                    <p>{{ op.comment }}</p>
+                  }
+                </div>
+              }
+              @if (!selectedOrderOps().length) {
+                <div class="empty">Операций по заявке пока нет.</div>
+              }
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    }
   </section>
 } @else if (selectedLocation(); as location) {
   <section class="location-workspace">
@@ -570,9 +894,7 @@
                   {{ utils.fmtDate(order.startDate) }}
                   <div class="small">
                     {{ utils.fmtDate(order.endDate) }} •
-                    {{
-                      utils.daysInclusive(order.startDate, order.endDate)
-                    }}
+                    {{ utils.daysInclusive(order.startDate, order.endDate) }}
                     дн.
                   </div>
                 </td>

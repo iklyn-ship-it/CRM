@@ -207,9 +207,30 @@
   background: rgba(15, 23, 42, 0.72);
 }
 
+button.edit-chip {
+  color: #e5e7eb;
+  cursor: pointer;
+  text-align: left;
+}
+
+button.edit-chip:hover {
+  border-color: rgba(250, 204, 21, 0.42);
+  background: rgba(250, 204, 21, 0.08);
+}
+
 .edit-chip > span {
   color: var(--muted);
   font-size: 12px;
+  font-weight: 800;
+}
+
+.plan-open-chip strong {
+  color: #facc15;
+  font-size: 22px;
+}
+
+.plan-open-chip small {
+  color: #93c5fd;
   font-weight: 800;
 }
 
@@ -218,7 +239,9 @@
 .edit-chip textarea,
 .operation-form input,
 .operation-form select,
-.operation-form textarea {
+.operation-form textarea,
+.cost-fields input,
+.cost-fields select {
   width: 100%;
   border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 12px;
@@ -229,7 +252,9 @@
 .edit-chip select,
 .edit-chip input,
 .operation-form input,
-.operation-form select {
+.operation-form select,
+.cost-fields input,
+.cost-fields select {
   height: 42px;
   padding: 0 12px;
 }
@@ -369,6 +394,47 @@
   grid-column: 1 / -1;
 }
 
+.cost-workspace {
+  align-content: start;
+}
+
+.cost-hero {
+  border-color: rgba(250, 204, 21, 0.2);
+  background:
+    radial-gradient(circle at 0 0, rgba(250, 204, 21, 0.18), transparent 34%),
+    rgba(2, 6, 23, 0.34);
+}
+
+.cost-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+  gap: 14px;
+}
+
+.cost-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cost-fields .wide {
+  grid-column: 1 / -1;
+}
+
+.cost-total {
+  padding: 14px;
+  border: 1px solid rgba(250, 204, 21, 0.24);
+  border-radius: 14px;
+  background: rgba(250, 204, 21, 0.08);
+  color: #fde68a;
+  font-weight: 900;
+}
+
+.logistics-card,
+.assembly-card {
+  grid-column: 1 / -1;
+}
+
 .operation-list {
   display: grid;
   gap: 8px;
@@ -418,6 +484,8 @@
   .editable-strip,
   .create-order-grid,
   .breakdown-grid,
+  .cost-grid,
+  .cost-fields,
   .order-finance-grid,
   .operation-form {
     grid-template-columns: 1fr;
@@ -427,7 +495,10 @@
     grid-column: auto;
   }
 
-  .breakdown-grid .wide {
+  .breakdown-grid .wide,
+  .cost-fields .wide,
+  .logistics-card,
+  .assembly-card {
     grid-column: auto;
   }
 

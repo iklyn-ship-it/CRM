@@ -49,6 +49,7 @@ export class ProjectsComponent {
   selectedLocationKey = signal("");
   selectedOrderId = signal("");
   creatingOrder = signal(false);
+  costEditorOpen = signal(false);
 
   orderForm = this.emptyOrderForm();
   operationForm = this.emptyOperationForm();
@@ -189,12 +190,14 @@ export class ProjectsComponent {
   openLocation(location: LocationGroup): void {
     this.selectedLocationKey.set(location.key);
     this.selectedOrderId.set("");
+    this.costEditorOpen.set(false);
   }
 
   closeLocation(): void {
     this.selectedLocationKey.set("");
     this.selectedOrderId.set("");
     this.creatingOrder.set(false);
+    this.costEditorOpen.set(false);
     this.orderForm = this.emptyOrderForm();
     this.createForm = this.emptyCreateForm();
   }
@@ -202,6 +205,7 @@ export class ProjectsComponent {
   openCreateOrder(location?: LocationGroup): void {
     const today = this.utils.todayStr();
     this.selectedOrderId.set("");
+    this.costEditorOpen.set(false);
     this.creatingOrder.set(true);
     this.createForm = {
       ...this.emptyCreateForm(),
@@ -315,6 +319,7 @@ export class ProjectsComponent {
 
   openOrder(order: Order): void {
     this.creatingOrder.set(false);
+    this.costEditorOpen.set(false);
     this.selectedOrderId.set(order.id);
     this.orderForm = this.orderToForm(order);
     this.operationForm = this.emptyOperationForm(order);
@@ -322,9 +327,18 @@ export class ProjectsComponent {
 
   closeOrder(): void {
     this.selectedOrderId.set("");
+    this.costEditorOpen.set(false);
     this.orderForm = this.emptyOrderForm();
     const location = this.selectedLocation();
     this.operationForm = this.emptyOperationForm(location?.orders[0]);
+  }
+
+  openCostEditor(): void {
+    this.costEditorOpen.set(true);
+  }
+
+  closeCostEditor(): void {
+    this.costEditorOpen.set(false);
   }
 
   async saveOrder(): Promise<void> {
@@ -335,10 +349,71 @@ export class ProjectsComponent {
       status: this.orderForm.status,
       equipmentId: this.orderForm.equipmentId,
       operatorId: this.orderForm.operatorId,
+      rate: Number(this.orderForm.rate || 0),
+      equipmentHourlyRate: Number(this.orderForm.equipmentHourlyRate || 0),
+      standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
+      additionalWorkHours: Number(this.orderForm.additionalWorkHours || 0),
+      vatEnabled: Boolean(this.orderForm.vatEnabled),
       discountEnabled: this.orderForm.discountEnabled,
       discountType: this.orderForm.discountType,
       discountValue: Number(this.orderForm.discountValue || 0),
       notes: this.orderForm.notes,
+      logisticsEnabled: Boolean(this.orderForm.logisticsEnabled),
+      logisticsProvider: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsProvider
+        : "own_trawl",
+      logisticsTrailerId:
+        this.orderForm.logisticsEnabled &&
+        this.orderForm.logisticsProvider === "own_trawl"
+          ? this.orderForm.logisticsTrailerId
+          : "",
+      logisticsStartDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsStartDate || order.startDate
+        : "",
+      logisticsEndDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsEndDate || order.endDate
+        : "",
+      logisticsDistanceKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupKm || 0) +
+          Number(this.orderForm.logisticsDeliveryKm || 0)
+        : 0,
+      logisticsPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryPricePerKm || 0)
+        : 0,
+      logisticsCost: this.orderForm.logisticsEnabled
+        ? this.logisticsSubtotal()
+        : 0,
+      logisticsPickupPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupPricePerKm || 0)
+        : 50,
+      logisticsDeliveryPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryPricePerKm || 0)
+        : 250,
+      logisticsPickupKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupKm || 0)
+        : 0,
+      logisticsDeliveryKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryKm || 0)
+        : 0,
+      logisticsPickupCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupCost || 0)
+        : 0,
+      logisticsDeliveryCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryCost || 0)
+        : 0,
+      assemblyEnabled: Boolean(this.orderForm.assemblyEnabled),
+      assemblyDisassemblyDate: this.orderForm.assemblyEnabled
+        ? this.orderForm.assemblyDisassemblyDate
+        : "",
+      assemblyAssemblyDate: this.orderForm.assemblyEnabled
+        ? this.orderForm.assemblyAssemblyDate
+        : "",
+      assemblyDisassemblyCost: this.orderForm.assemblyEnabled
+        ? Number(this.orderForm.assemblyDisassemblyCost || 0)
+        : 0,
+      assemblyAssemblyCost: this.orderForm.assemblyEnabled
+        ? Number(this.orderForm.assemblyAssemblyCost || 0)
+        : 0,
       breakdownEnabled: Boolean(this.orderForm.breakdownEnabled),
       breakdownDate: this.orderForm.breakdownEnabled
         ? this.orderForm.breakdownDate
@@ -376,10 +451,6 @@ export class ProjectsComponent {
       equipmentIdleDates: idlePatch.equipmentIdleDates,
       operatorIdleDates: idlePatch.operatorIdleDates,
     };
-    Object.assign(
-      patch,
-      this.planPatch(order, Number(this.orderForm.plan || 0), patch),
-    );
     try {
       await this.db.update("orders", order.id, patch);
       const updated = this.state.byId(this.state.orders(), order.id) || {
@@ -433,6 +504,18 @@ export class ProjectsComponent {
     return this.state.orderPlan(this.draftOrder(order));
   }
 
+  orderDraftEquipmentCharge(order: Order): number {
+    return this.state.orderEquipmentCharge(this.draftOrder(order));
+  }
+
+  orderDraftWorkDays(order: Order): number {
+    return this.state.orderEquipmentWorkDays(this.draftOrder(order));
+  }
+
+  orderDraftWorkHours(order: Order): number {
+    return this.state.orderEquipmentWorkHours(this.draftOrder(order));
+  }
+
   orderDraftExpense(order: Order): number {
     return (
       this.state.orderExpense(order.id) -
@@ -461,6 +544,55 @@ export class ProjectsComponent {
       0,
       this.state.orderOperatorCost(order) -
         this.state.orderOperatorCost(this.draftOrder(order)),
+    );
+  }
+
+  onOrderEquipmentChange(): void {
+    const equipment = this.state.byId(
+      this.state.equipment(),
+      this.orderForm.equipmentId,
+    );
+    if (!equipment) return;
+    if (!this.orderForm.rate)
+      this.orderForm.rate = Number(equipment.defaultRate || 0);
+    if (!this.orderForm.equipmentHourlyRate) {
+      this.orderForm.equipmentHourlyRate = Number(equipment.hourlyRate || 0);
+    }
+  }
+
+  recalcLogisticsCost(): void {
+    this.orderForm.logisticsPickupCost =
+      Number(this.orderForm.logisticsPickupKm || 0) *
+      Number(this.orderForm.logisticsPickupPricePerKm || 0);
+    this.orderForm.logisticsDeliveryCost =
+      Number(this.orderForm.logisticsDeliveryKm || 0) *
+      Number(this.orderForm.logisticsDeliveryPricePerKm || 0);
+    this.syncLogisticsTotalField();
+  }
+
+  syncLogisticsTotalField(): void {
+    this.orderForm.logisticsCost = this.logisticsSubtotal();
+    this.orderForm.logisticsDistanceKm =
+      Number(this.orderForm.logisticsPickupKm || 0) +
+      Number(this.orderForm.logisticsDeliveryKm || 0);
+    this.orderForm.logisticsPricePerKm = Number(
+      this.orderForm.logisticsDeliveryPricePerKm || 0,
+    );
+  }
+
+  logisticsSubtotal(): number {
+    if (!this.orderForm.logisticsEnabled) return 0;
+    return (
+      Number(this.orderForm.logisticsPickupCost || 0) +
+      Number(this.orderForm.logisticsDeliveryCost || 0)
+    );
+  }
+
+  assemblyTotal(): number {
+    if (!this.orderForm.assemblyEnabled) return 0;
+    return (
+      Number(this.orderForm.assemblyDisassemblyCost || 0) +
+      Number(this.orderForm.assemblyAssemblyCost || 0)
     );
   }
 
@@ -547,10 +679,37 @@ export class ProjectsComponent {
       equipmentId: "",
       operatorId: "",
       plan: 0,
+      rate: 0,
+      equipmentHourlyRate: 0,
+      standardWorkHours: 8,
+      additionalWorkHours: 0,
+      vatEnabled: false,
       discountEnabled: false,
       discountType: "percent" as "percent" | "amount",
       discountValue: 0,
       notes: "",
+      logisticsEnabled: false,
+      logisticsProvider: "own_trawl" as
+        | "own_trawl"
+        | "third_party"
+        | "self_drive",
+      logisticsTrailerId: "",
+      logisticsStartDate: "",
+      logisticsEndDate: "",
+      logisticsDistanceKm: 0,
+      logisticsPricePerKm: 0,
+      logisticsCost: 0,
+      logisticsPickupPricePerKm: 50,
+      logisticsDeliveryPricePerKm: 250,
+      logisticsPickupKm: 0,
+      logisticsDeliveryKm: 0,
+      logisticsPickupCost: 0,
+      logisticsDeliveryCost: 0,
+      assemblyEnabled: false,
+      assemblyDisassemblyDate: "",
+      assemblyAssemblyDate: "",
+      assemblyDisassemblyCost: 0,
+      assemblyAssemblyCost: 0,
       breakdownEnabled: false,
       breakdownDate: "",
       breakdownEndDate: "",
@@ -580,10 +739,41 @@ export class ProjectsComponent {
       equipmentId: order.equipmentId || "",
       operatorId: order.operatorId || "",
       plan: Math.round(this.state.orderPlan(order)),
+      rate: Number(order.rate || 0),
+      equipmentHourlyRate: Number(order.equipmentHourlyRate || 0),
+      standardWorkHours: Number(order.standardWorkHours || 8),
+      additionalWorkHours: Number(order.additionalWorkHours || 0),
+      vatEnabled: Boolean(order.vatEnabled),
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || ("percent" as "percent" | "amount"),
       discountValue: Number(order.discountValue || 0),
       notes: order.notes || "",
+      logisticsEnabled: Boolean(order.logisticsEnabled),
+      logisticsProvider: order.logisticsProvider || "own_trawl",
+      logisticsTrailerId: order.logisticsTrailerId || "",
+      logisticsStartDate: order.logisticsStartDate || order.startDate || "",
+      logisticsEndDate: order.logisticsEndDate || order.endDate || "",
+      logisticsDistanceKm: Number(order.logisticsDistanceKm || 0),
+      logisticsPricePerKm: Number(order.logisticsPricePerKm || 0),
+      logisticsCost: Number(order.logisticsCost || 0),
+      logisticsPickupPricePerKm: Number(order.logisticsPickupPricePerKm || 50),
+      logisticsDeliveryPricePerKm: Number(
+        order.logisticsDeliveryPricePerKm || 250,
+      ),
+      logisticsPickupKm: Number(order.logisticsPickupKm || 0),
+      logisticsDeliveryKm: Number(
+        order.logisticsDeliveryKm || order.logisticsDistanceKm || 0,
+      ),
+      logisticsPickupCost: Number(order.logisticsPickupCost || 0),
+      logisticsDeliveryCost: Number(
+        order.logisticsDeliveryCost ||
+          (order.logisticsPickupCost ? 0 : order.logisticsCost || 0),
+      ),
+      assemblyEnabled: Boolean(order.assemblyEnabled),
+      assemblyDisassemblyDate: order.assemblyDisassemblyDate || "",
+      assemblyAssemblyDate: order.assemblyAssemblyDate || "",
+      assemblyDisassemblyCost: Number(order.assemblyDisassemblyCost || 0),
+      assemblyAssemblyCost: Number(order.assemblyAssemblyCost || 0),
       breakdownEnabled: Boolean(order.breakdownEnabled),
       breakdownDate: order.breakdownDate || "",
       breakdownEndDate: order.breakdownEndDate || "",
@@ -610,10 +800,71 @@ export class ProjectsComponent {
       status: this.orderForm.status,
       equipmentId: this.orderForm.equipmentId,
       operatorId: this.orderForm.operatorId,
+      rate: Number(this.orderForm.rate || 0),
+      equipmentHourlyRate: Number(this.orderForm.equipmentHourlyRate || 0),
+      standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
+      additionalWorkHours: Number(this.orderForm.additionalWorkHours || 0),
+      vatEnabled: Boolean(this.orderForm.vatEnabled),
       discountEnabled: this.orderForm.discountEnabled,
       discountType: this.orderForm.discountType,
       discountValue: Number(this.orderForm.discountValue || 0),
       notes: this.orderForm.notes,
+      logisticsEnabled: Boolean(this.orderForm.logisticsEnabled),
+      logisticsProvider: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsProvider
+        : "own_trawl",
+      logisticsTrailerId:
+        this.orderForm.logisticsEnabled &&
+        this.orderForm.logisticsProvider === "own_trawl"
+          ? this.orderForm.logisticsTrailerId
+          : "",
+      logisticsStartDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsStartDate || order.startDate
+        : "",
+      logisticsEndDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsEndDate || order.endDate
+        : "",
+      logisticsDistanceKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupKm || 0) +
+          Number(this.orderForm.logisticsDeliveryKm || 0)
+        : 0,
+      logisticsPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryPricePerKm || 0)
+        : 0,
+      logisticsCost: this.orderForm.logisticsEnabled
+        ? this.logisticsSubtotal()
+        : 0,
+      logisticsPickupPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupPricePerKm || 0)
+        : 50,
+      logisticsDeliveryPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryPricePerKm || 0)
+        : 250,
+      logisticsPickupKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupKm || 0)
+        : 0,
+      logisticsDeliveryKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryKm || 0)
+        : 0,
+      logisticsPickupCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsPickupCost || 0)
+        : 0,
+      logisticsDeliveryCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsDeliveryCost || 0)
+        : 0,
+      assemblyEnabled: Boolean(this.orderForm.assemblyEnabled),
+      assemblyDisassemblyDate: this.orderForm.assemblyEnabled
+        ? this.orderForm.assemblyDisassemblyDate
+        : "",
+      assemblyAssemblyDate: this.orderForm.assemblyEnabled
+        ? this.orderForm.assemblyAssemblyDate
+        : "",
+      assemblyDisassemblyCost: this.orderForm.assemblyEnabled
+        ? Number(this.orderForm.assemblyDisassemblyCost || 0)
+        : 0,
+      assemblyAssemblyCost: this.orderForm.assemblyEnabled
+        ? Number(this.orderForm.assemblyAssemblyCost || 0)
+        : 0,
       breakdownEnabled: Boolean(this.orderForm.breakdownEnabled),
       breakdownDate: this.orderForm.breakdownEnabled
         ? this.orderForm.breakdownDate
