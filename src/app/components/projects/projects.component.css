@@ -310,6 +310,18 @@ button.edit-chip:hover {
   margin: 0 0 12px;
 }
 
+.inner-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.inner-card-head h4 {
+  margin: 0;
+}
+
 .breakdown-card {
   border-color: rgba(239, 68, 68, 0.28);
   background:
@@ -390,8 +402,68 @@ button.edit-chip:hover {
 }
 
 .operation-form .wide,
-.operation-form button {
+.operation-form .btn {
   grid-column: 1 / -1;
+}
+
+.idle-date-picker {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.28);
+  overflow: hidden;
+}
+
+.idle-date-picker summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  color: #f8fafc;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.idle-date-picker summary span,
+.idle-date-picker .small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.idle-date-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 12px 10px;
+}
+
+.idle-date-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 190px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0 12px 12px;
+}
+
+.idle-date-chip {
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78);
+  color: #e5e7eb;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-weight: 800;
+}
+
+.idle-date-chip.active {
+  border-color: rgba(250, 204, 21, 0.7);
+  background: rgba(250, 204, 21, 0.18);
+  color: #fde68a;
+}
+
+.idle-date-picker .small {
+  padding: 0 12px 12px;
 }
 
 .cost-workspace {

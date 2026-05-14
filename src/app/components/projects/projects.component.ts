@@ -50,6 +50,7 @@ export class ProjectsComponent {
   selectedOrderId = signal("");
   creatingOrder = signal(false);
   costEditorOpen = signal(false);
+  operationEditorOpen = signal(false);
 
   orderForm = this.emptyOrderForm();
   operationForm = this.emptyOperationForm();
@@ -198,6 +199,7 @@ export class ProjectsComponent {
     this.selectedOrderId.set("");
     this.creatingOrder.set(false);
     this.costEditorOpen.set(false);
+    this.operationEditorOpen.set(false);
     this.orderForm = this.emptyOrderForm();
     this.createForm = this.emptyCreateForm();
   }
@@ -206,6 +208,7 @@ export class ProjectsComponent {
     const today = this.utils.todayStr();
     this.selectedOrderId.set("");
     this.costEditorOpen.set(false);
+    this.operationEditorOpen.set(false);
     this.creatingOrder.set(true);
     this.createForm = {
       ...this.emptyCreateForm(),
@@ -320,6 +323,7 @@ export class ProjectsComponent {
   openOrder(order: Order): void {
     this.creatingOrder.set(false);
     this.costEditorOpen.set(false);
+    this.operationEditorOpen.set(false);
     this.selectedOrderId.set(order.id);
     this.orderForm = this.orderToForm(order);
     this.operationForm = this.emptyOperationForm(order);
@@ -328,6 +332,7 @@ export class ProjectsComponent {
   closeOrder(): void {
     this.selectedOrderId.set("");
     this.costEditorOpen.set(false);
+    this.operationEditorOpen.set(false);
     this.orderForm = this.emptyOrderForm();
     const location = this.selectedLocation();
     this.operationForm = this.emptyOperationForm(location?.orders[0]);
@@ -339,6 +344,15 @@ export class ProjectsComponent {
 
   closeCostEditor(): void {
     this.costEditorOpen.set(false);
+  }
+
+  openOperationEditor(type: "income" | "expense" = "income"): void {
+    this.setOperationType(type);
+    this.operationEditorOpen.set(true);
+  }
+
+  closeOperationEditor(): void {
+    this.operationEditorOpen.set(false);
   }
 
   async saveOrder(): Promise<void> {
@@ -489,6 +503,7 @@ export class ProjectsComponent {
           `${billClientPrefix}${this.operationForm.comment || ""}`.trim(),
       });
       this.operationForm = this.emptyOperationForm(order);
+      this.operationEditorOpen.set(false);
     } catch (error) {
       alert(`Не удалось добавить операцию: ${this.errorMessage(error)}`);
     }
@@ -596,6 +611,53 @@ export class ProjectsComponent {
     );
   }
 
+  orderDates(order: Order): string[] {
+    if (!order.startDate || !order.endDate) return [];
+    return this.utils.datesInclusive(order.startDate, order.endDate);
+  }
+
+  isIdleDate(kind: "equipment" | "operator", date: string): boolean {
+    const dates =
+      kind === "equipment"
+        ? this.orderForm.equipmentIdleDates
+        : this.orderForm.operatorIdleDates;
+    return dates.includes(date);
+  }
+
+  toggleIdleDate(kind: "equipment" | "operator", date: string): void {
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const dates = new Set(this.orderForm[key]);
+    if (dates.has(date)) dates.delete(date);
+    else dates.add(date);
+    this.orderForm[key] = [...dates].sort();
+  }
+
+  excludeWeekendDates(order: Order, kind: "equipment" | "operator"): void {
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const dates = new Set(this.orderForm[key]);
+    this.orderDates(order)
+      .filter((date) => {
+        const day = new Date(`${date}T00:00:00`).getDay();
+        return day === 0 || day === 6;
+      })
+      .forEach((date) => dates.add(date));
+    this.orderForm[key] = [...dates].sort();
+  }
+
+  clearIdleDates(kind: "equipment" | "operator"): void {
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    this.orderForm[key] = [];
+  }
+
+  idleDatesCount(kind: "equipment" | "operator"): number {
+    return kind === "equipment"
+      ? this.orderForm.equipmentIdleDates.length
+      : this.orderForm.operatorIdleDates.length;
+  }
+
   clientName(id: string): string {
     if (id === "no-client") return "Без клиента";
     return this.state.byId(this.state.clients(), id)?.name || "—";
@@ -684,6 +746,8 @@ export class ProjectsComponent {
       standardWorkHours: 8,
       additionalWorkHours: 0,
       vatEnabled: false,
+      equipmentIdleDates: [] as string[],
+      operatorIdleDates: [] as string[],
       discountEnabled: false,
       discountType: "percent" as "percent" | "amount",
       discountValue: 0,
@@ -744,6 +808,8 @@ export class ProjectsComponent {
       standardWorkHours: Number(order.standardWorkHours || 8),
       additionalWorkHours: Number(order.additionalWorkHours || 0),
       vatEnabled: Boolean(order.vatEnabled),
+      equipmentIdleDates: [...(order.equipmentIdleDates || [])],
+      operatorIdleDates: [...(order.operatorIdleDates || [])],
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || ("percent" as "percent" | "amount"),
       discountValue: Number(order.discountValue || 0),
@@ -911,12 +977,12 @@ export class ProjectsComponent {
     const previousBreakdownDates = new Set(this.breakdownDatesFromOrder(order));
     const currentBreakdownDates = this.breakdownDatesFromForm(order);
     const equipmentIdleDates = new Set(
-      (order.equipmentIdleDates || []).filter(
+      (this.orderForm.equipmentIdleDates || []).filter(
         (date) => !previousBreakdownDates.has(date),
       ),
     );
     const operatorIdleDates = new Set(
-      (order.operatorIdleDates || []).filter(
+      (this.orderForm.operatorIdleDates || []).filter(
         (date) => !previousBreakdownDates.has(date),
       ),
     );

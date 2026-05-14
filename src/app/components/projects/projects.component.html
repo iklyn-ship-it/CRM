@@ -262,6 +262,90 @@
                 />
                 <span>С НДС +20% к стоимости техники</span>
               </label>
+
+              @if (orderDates(order).length) {
+                <div class="field wide">
+                  <label>Дни, когда техника не работала</label>
+                  <details class="idle-date-picker">
+                    <summary>
+                      Выбрано: {{ idleDatesCount("equipment") }}
+                      <span>из {{ orderDates(order).length }} дней</span>
+                    </summary>
+                    <div class="idle-date-actions">
+                      <button
+                        type="button"
+                        class="btn ghost"
+                        (click)="excludeWeekendDates(order, 'equipment')"
+                      >
+                        Исключить выходные дни
+                      </button>
+                      <button
+                        type="button"
+                        class="btn ghost"
+                        (click)="clearIdleDates('equipment')"
+                      >
+                        Очистить
+                      </button>
+                    </div>
+                    <div class="idle-date-grid">
+                      @for (date of orderDates(order); track date) {
+                        <button
+                          type="button"
+                          class="idle-date-chip"
+                          [class.active]="isIdleDate('equipment', date)"
+                          (click)="toggleIdleDate('equipment', date)"
+                        >
+                          {{ utils.fmtDate(date) }}
+                        </button>
+                      }
+                    </div>
+                    <div class="small">
+                      Эти дни не считаются в план заявки и не занимают технику.
+                    </div>
+                  </details>
+                </div>
+                <div class="field wide">
+                  <label>Дни, когда оператор не работал</label>
+                  <details class="idle-date-picker">
+                    <summary>
+                      Выбрано: {{ idleDatesCount("operator") }}
+                      <span>из {{ orderDates(order).length }} дней</span>
+                    </summary>
+                    <div class="idle-date-actions">
+                      <button
+                        type="button"
+                        class="btn ghost"
+                        (click)="excludeWeekendDates(order, 'operator')"
+                      >
+                        Исключить выходные дни
+                      </button>
+                      <button
+                        type="button"
+                        class="btn ghost"
+                        (click)="clearIdleDates('operator')"
+                      >
+                        Очистить
+                      </button>
+                    </div>
+                    <div class="idle-date-grid">
+                      @for (date of orderDates(order); track date) {
+                        <button
+                          type="button"
+                          class="idle-date-chip"
+                          [class.active]="isIdleDate('operator', date)"
+                          (click)="toggleIdleDate('operator', date)"
+                        >
+                          {{ utils.fmtDate(date) }}
+                        </button>
+                      }
+                    </div>
+                    <div class="small">
+                      Эти дни не считаются в зарплату оператора и не занимают
+                      оператора.
+                    </div>
+                  </details>
+                </div>
+              }
             </div>
           </div>
 
@@ -731,76 +815,101 @@
 
         <div class="order-finance-grid">
           <div class="card inner-card">
-            <h4>Добавить приход / расход</h4>
+            <div class="inner-card-head">
+              <h4>Приход / расход</h4>
+              <button
+                type="button"
+                class="btn primary"
+                (click)="openOperationEditor('income')"
+              >
+                + Добавить операцию
+              </button>
+            </div>
             <div class="operation-type">
               <button
                 type="button"
                 class="filter-chip finance-income"
-                [class.active]="operationForm.type === 'income'"
-                (click)="setOperationType('income')"
+                [class.active]="
+                  operationEditorOpen() && operationForm.type === 'income'
+                "
+                (click)="openOperationEditor('income')"
               >
-                Приход
+                + Приход
               </button>
               <button
                 type="button"
                 class="filter-chip finance-expense"
-                [class.active]="operationForm.type === 'expense'"
-                (click)="setOperationType('expense')"
+                [class.active]="
+                  operationEditorOpen() && operationForm.type === 'expense'
+                "
+                (click)="openOperationEditor('expense')"
               >
-                Расход
+                + Расход
               </button>
             </div>
-            <div class="operation-form">
-              <div class="field">
-                <label>Дата</label>
-                <input
-                  type="date"
-                  [(ngModel)]="operationForm.date"
-                  name="opDate"
-                />
-              </div>
-              <div class="field">
-                <label>Категория</label>
-                <select [(ngModel)]="operationForm.category" name="opCategory">
-                  @for (category of operationCategories; track category) {
-                    <option [value]="category">{{ category }}</option>
-                  }
-                </select>
-              </div>
-              <div class="field">
-                <label>Сумма, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="operationForm.amount"
-                  name="opAmount"
-                />
-              </div>
-              @if (operationForm.type === "expense") {
-                <label class="bill-client">
+            @if (operationEditorOpen()) {
+              <div class="operation-form">
+                <div class="field">
+                  <label>Дата</label>
                   <input
-                    type="checkbox"
-                    [(ngModel)]="operationForm.billClient"
-                    name="billClient"
+                    type="date"
+                    [(ngModel)]="operationForm.date"
+                    name="opDate"
                   />
-                  <span>Выставить клиенту</span>
-                </label>
-              }
-              <div class="field wide">
-                <label>Комментарий</label>
-                <textarea
-                  [(ngModel)]="operationForm.comment"
-                  name="opComment"
-                ></textarea>
+                </div>
+                <div class="field">
+                  <label>Категория</label>
+                  <select
+                    [(ngModel)]="operationForm.category"
+                    name="opCategory"
+                  >
+                    @for (category of operationCategories; track category) {
+                      <option [value]="category">{{ category }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Сумма, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="operationForm.amount"
+                    name="opAmount"
+                  />
+                </div>
+                @if (operationForm.type === "expense") {
+                  <label class="bill-client">
+                    <input
+                      type="checkbox"
+                      [(ngModel)]="operationForm.billClient"
+                      name="billClient"
+                    />
+                    <span>Выставить клиенту</span>
+                  </label>
+                }
+                <div class="field wide">
+                  <label>Комментарий</label>
+                  <textarea
+                    [(ngModel)]="operationForm.comment"
+                    name="opComment"
+                  ></textarea>
+                </div>
+                <button
+                  type="button"
+                  class="btn primary"
+                  (click)="addOperation()"
+                >
+                  Сохранить операцию
+                </button>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  (click)="closeOperationEditor()"
+                >
+                  Отмена
+                </button>
               </div>
-              <button
-                type="button"
-                class="btn primary"
-                (click)="addOperation()"
-              >
-                Добавить операцию
-              </button>
-            </div>
+            }
           </div>
 
           <div class="card inner-card">
