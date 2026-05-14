@@ -315,6 +315,40 @@ export class ProjectsComponent {
       discountType: this.orderForm.discountType,
       discountValue: Number(this.orderForm.discountValue || 0),
       notes: this.orderForm.notes,
+      breakdownEnabled: Boolean(this.orderForm.breakdownEnabled),
+      breakdownDate: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownDate
+        : "",
+      breakdownEndDate: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownEndDate || this.orderForm.breakdownDate
+        : "",
+      breakdownStatus: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownStatus
+        : "reported",
+      breakdownDescription: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownDescription
+        : "",
+      breakdownReporter: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownReporter
+        : "",
+      breakdownResponsible: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownResponsible
+        : "",
+      breakdownFaultParty: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownFaultParty
+        : "unknown",
+      breakdownAffectsPayment: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownAffectsPayment
+        : false,
+      breakdownOperatorIdle: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownOperatorIdle
+        : false,
+      breakdownLaborCost: this.orderForm.breakdownEnabled
+        ? Number(this.orderForm.breakdownLaborCost || 0)
+        : 0,
+      breakdownPartsCost: this.orderForm.breakdownEnabled
+        ? Number(this.orderForm.breakdownPartsCost || 0)
+        : 0,
     };
     Object.assign(patch, this.planPatch(order, Number(this.orderForm.plan || 0), patch));
     try {
@@ -441,6 +475,18 @@ export class ProjectsComponent {
       discountType: "percent" as "percent" | "amount",
       discountValue: 0,
       notes: "",
+      breakdownEnabled: false,
+      breakdownDate: "",
+      breakdownEndDate: "",
+      breakdownStatus: "reported" as "reported" | "diagnostics" | "repair" | "resolved",
+      breakdownDescription: "",
+      breakdownReporter: "",
+      breakdownResponsible: "",
+      breakdownFaultParty: "unknown" as "unknown" | "ours" | "client" | "operator",
+      breakdownAffectsPayment: true,
+      breakdownOperatorIdle: true,
+      breakdownLaborCost: 0,
+      breakdownPartsCost: 0,
     };
   }
 
@@ -454,6 +500,22 @@ export class ProjectsComponent {
       discountType: order.discountType || ("percent" as "percent" | "amount"),
       discountValue: Number(order.discountValue || 0),
       notes: order.notes || "",
+      breakdownEnabled: Boolean(order.breakdownEnabled),
+      breakdownDate: order.breakdownDate || "",
+      breakdownEndDate: order.breakdownEndDate || "",
+      breakdownStatus:
+        order.breakdownStatus ||
+        ("reported" as "reported" | "diagnostics" | "repair" | "resolved"),
+      breakdownDescription: order.breakdownDescription || "",
+      breakdownReporter: order.breakdownReporter || "",
+      breakdownResponsible: order.breakdownResponsible || "",
+      breakdownFaultParty:
+        order.breakdownFaultParty ||
+        ("unknown" as "unknown" | "ours" | "client" | "operator"),
+      breakdownAffectsPayment: Boolean(order.breakdownAffectsPayment),
+      breakdownOperatorIdle: Boolean(order.breakdownOperatorIdle),
+      breakdownLaborCost: Number(order.breakdownLaborCost || 0),
+      breakdownPartsCost: Number(order.breakdownPartsCost || 0),
     };
   }
 

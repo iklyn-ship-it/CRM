@@ -259,6 +259,122 @@
         </div>
       </div>
 
+      <div class="card inner-card breakdown-card">
+        <label class="breakdown-toggle">
+          <input
+            type="checkbox"
+            [(ngModel)]="orderForm.breakdownEnabled"
+            name="breakdownEnabled"
+          />
+          <span>Поломка во время аренды</span>
+        </label>
+
+        @if (orderForm.breakdownEnabled) {
+          <div class="breakdown-grid">
+            <div class="field">
+              <label>Дата поломки</label>
+              <input
+                type="date"
+                [(ngModel)]="orderForm.breakdownDate"
+                name="breakdownDate"
+              />
+            </div>
+            <div class="field">
+              <label>Дата устранения</label>
+              <input
+                type="date"
+                [(ngModel)]="orderForm.breakdownEndDate"
+                name="breakdownEndDate"
+              />
+            </div>
+            <div class="field">
+              <label>Статус поломки</label>
+              <select
+                [(ngModel)]="orderForm.breakdownStatus"
+                name="breakdownStatus"
+              >
+                <option value="reported">Зафиксирована</option>
+                <option value="diagnostics">Диагностика</option>
+                <option value="repair">Ремонт</option>
+                <option value="resolved">Устранена</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Ответственность</label>
+              <select
+                [(ngModel)]="orderForm.breakdownFaultParty"
+                name="breakdownFaultParty"
+              >
+                <option value="unknown">Не установлено</option>
+                <option value="ours">Наша сторона</option>
+                <option value="client">Клиент</option>
+                <option value="operator">Оператор</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Кто сообщил</label>
+              <input
+                type="text"
+                [(ngModel)]="orderForm.breakdownReporter"
+                name="breakdownReporter"
+                placeholder="Имя / контакт"
+              />
+            </div>
+            <div class="field">
+              <label>Ответственный</label>
+              <input
+                type="text"
+                [(ngModel)]="orderForm.breakdownResponsible"
+                name="breakdownResponsible"
+                placeholder="Кто ведет ремонт"
+              />
+            </div>
+            <div class="field">
+              <label>Стоимость работ, ₴</label>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="orderForm.breakdownLaborCost"
+                name="breakdownLaborCost"
+              />
+            </div>
+            <div class="field">
+              <label>Стоимость запчастей, ₴</label>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="orderForm.breakdownPartsCost"
+                name="breakdownPartsCost"
+              />
+            </div>
+            <label class="bill-client">
+              <input
+                type="checkbox"
+                [(ngModel)]="orderForm.breakdownAffectsPayment"
+                name="breakdownAffectsPayment"
+              />
+              <span>Поломка влияет на оплату аренды</span>
+            </label>
+            <label class="bill-client">
+              <input
+                type="checkbox"
+                [(ngModel)]="orderForm.breakdownOperatorIdle"
+                name="breakdownOperatorIdle"
+              />
+              <span>Считать простой оператора</span>
+            </label>
+            <div class="field wide">
+              <label>Описание поломки</label>
+              <textarea
+                [(ngModel)]="orderForm.breakdownDescription"
+                name="breakdownDescription"
+                placeholder="Что случилось, что нужно сделать"
+              ></textarea>
+            </div>
+          </div>
+        }
+      </div>
+
       <div class="order-finance-grid">
         <div class="card inner-card">
           <h4>Добавить приход / расход</h4>
