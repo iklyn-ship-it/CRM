@@ -137,7 +137,10 @@
 
         <label class="edit-chip comments-chip">
           <span>Комментарии</span>
-          <textarea [(ngModel)]="createForm.notes" name="createNotes"></textarea>
+          <textarea
+            [(ngModel)]="createForm.notes"
+            name="createNotes"
+          ></textarea>
         </label>
       </div>
     </div>
@@ -242,20 +245,32 @@
 
       <div class="finance-summary">
         <div class="metric">
-          <span>План</span>
-          <strong>{{ utils.money(state.orderPlan(order)) }}</strong>
+          <span>План после правок</span>
+          <strong>{{ utils.money(orderDraftPlan(order)) }}</strong>
+          @if (breakdownPaymentDelta(order) > 0) {
+            <small
+              >-{{ utils.money(breakdownPaymentDelta(order)) }} из-за
+              простоя</small
+            >
+          }
         </div>
         <div class="metric income">
           <span>Приход</span>
           <strong>{{ utils.money(state.orderIncome(order.id)) }}</strong>
         </div>
         <div class="metric expense">
-          <span>Расход</span>
-          <strong>{{ utils.money(state.orderExpense(order.id)) }}</strong>
+          <span>Расход после правок</span>
+          <strong>{{ utils.money(orderDraftExpense(order)) }}</strong>
+          @if (breakdownOperatorDelta(order) > 0) {
+            <small
+              >-{{ utils.money(breakdownOperatorDelta(order)) }} зарплаты
+              оператора</small
+            >
+          }
         </div>
         <div class="metric">
-          <span>Прибыль</span>
-          <strong>{{ utils.money(state.orderProfit(order.id)) }}</strong>
+          <span>Прибыль после правок</span>
+          <strong>{{ utils.money(orderDraftProfit(order)) }}</strong>
         </div>
       </div>
 
@@ -371,6 +386,26 @@
                 placeholder="Что случилось, что нужно сделать"
               ></textarea>
             </div>
+            <div class="breakdown-impact wide">
+              <span
+                >Дней поломки в периоде заявки:
+                {{ breakdownDatesCount(order) }}</span
+              >
+              @if (orderForm.breakdownAffectsPayment) {
+                <strong>
+                  План уменьшится на
+                  {{ utils.money(breakdownPaymentDelta(order)) }}
+                </strong>
+              } @else {
+                <strong>На оплату аренды не влияет</strong>
+              }
+              @if (orderForm.breakdownOperatorIdle) {
+                <small>
+                  Зарплатный расход оператора уменьшится на
+                  {{ utils.money(breakdownOperatorDelta(order)) }}
+                </small>
+              }
+            </div>
           </div>
         }
       </div>
@@ -399,7 +434,11 @@
           <div class="operation-form">
             <div class="field">
               <label>Дата</label>
-              <input type="date" [(ngModel)]="operationForm.date" name="opDate" />
+              <input
+                type="date"
+                [(ngModel)]="operationForm.date"
+                name="opDate"
+              />
             </div>
             <div class="field">
               <label>Категория</label>
@@ -470,7 +509,11 @@
       <button type="button" class="btn ghost" (click)="closeLocation()">
         ← К клиентам
       </button>
-      <button type="button" class="btn primary" (click)="openCreateOrder(location)">
+      <button
+        type="button"
+        class="btn primary"
+        (click)="openCreateOrder(location)"
+      >
         + Создать заявку
       </button>
     </div>
@@ -483,10 +526,21 @@
           <p>{{ location.orders.length }} заявк. на этой локации</p>
         </div>
         <div class="location-totals">
-          <div><span>План</span><strong>{{ utils.money(location.plan) }}</strong></div>
-          <div><span>Приход</span><strong>{{ utils.money(location.income) }}</strong></div>
-          <div><span>Расход</span><strong>{{ utils.money(location.expense) }}</strong></div>
-          <div><span>Прибыль</span><strong>{{ utils.money(location.profit) }}</strong></div>
+          <div>
+            <span>План</span><strong>{{ utils.money(location.plan) }}</strong>
+          </div>
+          <div>
+            <span>Приход</span
+            ><strong>{{ utils.money(location.income) }}</strong>
+          </div>
+          <div>
+            <span>Расход</span
+            ><strong>{{ utils.money(location.expense) }}</strong>
+          </div>
+          <div>
+            <span>Прибыль</span
+            ><strong>{{ utils.money(location.profit) }}</strong>
+          </div>
         </div>
       </div>
 
@@ -516,7 +570,10 @@
                   {{ utils.fmtDate(order.startDate) }}
                   <div class="small">
                     {{ utils.fmtDate(order.endDate) }} •
-                    {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+                    {{
+                      utils.daysInclusive(order.startDate, order.endDate)
+                    }}
+                    дн.
                   </div>
                 </td>
                 <td>{{ utils.money(state.orderPlan(order)) }}</td>
@@ -524,7 +581,10 @@
                 <td>{{ utils.money(state.orderExpense(order.id)) }}</td>
                 <td>{{ utils.money(state.orderProfit(order.id)) }}</td>
                 <td>
-                  <span class="badge" [ngClass]="statusBadgeClass(order.status)">
+                  <span
+                    class="badge"
+                    [ngClass]="statusBadgeClass(order.status)"
+                  >
                     {{ statusLabel(order.status) }}
                   </span>
                 </td>

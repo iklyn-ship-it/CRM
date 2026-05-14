@@ -142,6 +142,14 @@
   font-size: 12px;
 }
 
+.metric small {
+  display: block;
+  margin-top: 4px;
+  color: #fbbf24;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .location-totals strong,
 .metric strong {
   overflow-wrap: anywhere;
@@ -327,6 +335,21 @@
   min-height: 90px;
   padding: 12px;
   resize: vertical;
+}
+
+.breakdown-impact {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 14px;
+  background: rgba(251, 191, 36, 0.08);
+  color: #fde68a;
+}
+
+.breakdown-impact span,
+.breakdown-impact small {
+  color: #cbd5e1;
 }
 
 .operation-type {

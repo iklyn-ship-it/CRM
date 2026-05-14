@@ -108,11 +108,19 @@ export class ProjectsComponent {
         const locationMap = new Map<string, Order[]>();
         orders.forEach((order) => {
           const location = this.locationLabel(order.location);
-          locationMap.set(location, [...(locationMap.get(location) || []), order]);
+          locationMap.set(location, [
+            ...(locationMap.get(location) || []),
+            order,
+          ]);
         });
         const locations = [...locationMap.entries()]
           .map(([location, locationOrders]) =>
-            this.buildLocationGroup(clientId, clientName, location, locationOrders),
+            this.buildLocationGroup(
+              clientId,
+              clientName,
+              location,
+              locationOrders,
+            ),
           )
           .sort((a, b) => b.latestDate.localeCompare(a.latestDate));
 
@@ -121,12 +129,25 @@ export class ProjectsComponent {
           clientName,
           locations,
           ordersCount: orders.length,
-          plan: orders.reduce((sum, order) => sum + this.state.orderPlan(order), 0),
-          income: orders.reduce((sum, order) => sum + this.state.orderIncome(order.id), 0),
-          expense: orders.reduce((sum, order) => sum + this.state.orderExpense(order.id), 0),
-          profit: orders.reduce((sum, order) => sum + this.state.orderProfit(order.id), 0),
+          plan: orders.reduce(
+            (sum, order) => sum + this.state.orderPlan(order),
+            0,
+          ),
+          income: orders.reduce(
+            (sum, order) => sum + this.state.orderIncome(order.id),
+            0,
+          ),
+          expense: orders.reduce(
+            (sum, order) => sum + this.state.orderExpense(order.id),
+            0,
+          ),
+          profit: orders.reduce(
+            (sum, order) => sum + this.state.orderProfit(order.id),
+            0,
+          ),
           latestDate: orders.reduce(
-            (latest, order) => (order.startDate > latest ? order.startDate : latest),
+            (latest, order) =>
+              order.startDate > latest ? order.startDate : latest,
             "",
           ),
         };
@@ -184,8 +205,10 @@ export class ProjectsComponent {
     this.creatingOrder.set(true);
     this.createForm = {
       ...this.emptyCreateForm(),
-      clientId: location?.clientId === "no-client" ? "" : location?.clientId || "",
-      location: location?.location === "Без локации" ? "" : location?.location || "",
+      clientId:
+        location?.clientId === "no-client" ? "" : location?.clientId || "",
+      location:
+        location?.location === "Без локации" ? "" : location?.location || "",
       startDate: today,
       endDate: today,
     };
@@ -307,6 +330,7 @@ export class ProjectsComponent {
   async saveOrder(): Promise<void> {
     const order = this.selectedOrder();
     if (!order) return;
+    const idlePatch = this.breakdownIdlePatch(order);
     const patch: Record<string, any> = {
       status: this.orderForm.status,
       equipmentId: this.orderForm.equipmentId,
@@ -349,8 +373,13 @@ export class ProjectsComponent {
       breakdownPartsCost: this.orderForm.breakdownEnabled
         ? Number(this.orderForm.breakdownPartsCost || 0)
         : 0,
+      equipmentIdleDates: idlePatch.equipmentIdleDates,
+      operatorIdleDates: idlePatch.operatorIdleDates,
     };
-    Object.assign(patch, this.planPatch(order, Number(this.orderForm.plan || 0), patch));
+    Object.assign(
+      patch,
+      this.planPatch(order, Number(this.orderForm.plan || 0), patch),
+    );
     try {
       await this.db.update("orders", order.id, patch);
       const updated = this.state.byId(this.state.orders(), order.id) || {
@@ -385,7 +414,8 @@ export class ProjectsComponent {
         repairId: "",
         transportId: "",
         equipmentId: order.equipmentId,
-        comment: `${billClientPrefix}${this.operationForm.comment || ""}`.trim(),
+        comment:
+          `${billClientPrefix}${this.operationForm.comment || ""}`.trim(),
       });
       this.operationForm = this.emptyOperationForm(order);
     } catch (error) {
@@ -397,6 +427,41 @@ export class ProjectsComponent {
     this.operationForm.type = type;
     this.operationForm.category =
       type === "income" ? "Оплата клиента" : "Прочее";
+  }
+
+  orderDraftPlan(order: Order): number {
+    return this.state.orderPlan(this.draftOrder(order));
+  }
+
+  orderDraftExpense(order: Order): number {
+    return (
+      this.state.orderExpense(order.id) -
+      this.state.orderOperatorCost(order) +
+      this.state.orderOperatorCost(this.draftOrder(order))
+    );
+  }
+
+  orderDraftProfit(order: Order): number {
+    return this.state.orderIncome(order.id) - this.orderDraftExpense(order);
+  }
+
+  breakdownDatesCount(order: Order): number {
+    return this.breakdownDatesFromForm(order).length;
+  }
+
+  breakdownPaymentDelta(order: Order): number {
+    return Math.max(
+      0,
+      this.state.orderPlan(order) - this.orderDraftPlan(order),
+    );
+  }
+
+  breakdownOperatorDelta(order: Order): number {
+    return Math.max(
+      0,
+      this.state.orderOperatorCost(order) -
+        this.state.orderOperatorCost(this.draftOrder(order)),
+    );
   }
 
   clientName(id: string): string {
@@ -446,7 +511,9 @@ export class ProjectsComponent {
     location: string,
     orders: Order[],
   ): LocationGroup {
-    const sorted = [...orders].sort((a, b) => b.startDate.localeCompare(a.startDate));
+    const sorted = [...orders].sort((a, b) =>
+      b.startDate.localeCompare(a.startDate),
+    );
     return {
       key: `${clientId}::${location}`,
       clientId,
@@ -454,9 +521,18 @@ export class ProjectsComponent {
       location,
       orders: sorted,
       plan: sorted.reduce((sum, order) => sum + this.state.orderPlan(order), 0),
-      income: sorted.reduce((sum, order) => sum + this.state.orderIncome(order.id), 0),
-      expense: sorted.reduce((sum, order) => sum + this.state.orderExpense(order.id), 0),
-      profit: sorted.reduce((sum, order) => sum + this.state.orderProfit(order.id), 0),
+      income: sorted.reduce(
+        (sum, order) => sum + this.state.orderIncome(order.id),
+        0,
+      ),
+      expense: sorted.reduce(
+        (sum, order) => sum + this.state.orderExpense(order.id),
+        0,
+      ),
+      profit: sorted.reduce(
+        (sum, order) => sum + this.state.orderProfit(order.id),
+        0,
+      ),
       latestDate: sorted[0]?.startDate || "",
     };
   }
@@ -478,11 +554,19 @@ export class ProjectsComponent {
       breakdownEnabled: false,
       breakdownDate: "",
       breakdownEndDate: "",
-      breakdownStatus: "reported" as "reported" | "diagnostics" | "repair" | "resolved",
+      breakdownStatus: "reported" as
+        | "reported"
+        | "diagnostics"
+        | "repair"
+        | "resolved",
       breakdownDescription: "",
       breakdownReporter: "",
       breakdownResponsible: "",
-      breakdownFaultParty: "unknown" as "unknown" | "ours" | "client" | "operator",
+      breakdownFaultParty: "unknown" as
+        | "unknown"
+        | "ours"
+        | "client"
+        | "operator",
       breakdownAffectsPayment: true,
       breakdownOperatorIdle: true,
       breakdownLaborCost: 0,
@@ -519,6 +603,113 @@ export class ProjectsComponent {
     };
   }
 
+  private draftOrder(order: Order): Order {
+    const idlePatch = this.breakdownIdlePatch(order);
+    return {
+      ...order,
+      status: this.orderForm.status,
+      equipmentId: this.orderForm.equipmentId,
+      operatorId: this.orderForm.operatorId,
+      discountEnabled: this.orderForm.discountEnabled,
+      discountType: this.orderForm.discountType,
+      discountValue: Number(this.orderForm.discountValue || 0),
+      notes: this.orderForm.notes,
+      breakdownEnabled: Boolean(this.orderForm.breakdownEnabled),
+      breakdownDate: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownDate
+        : "",
+      breakdownEndDate: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownEndDate || this.orderForm.breakdownDate
+        : "",
+      breakdownStatus: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownStatus
+        : "reported",
+      breakdownDescription: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownDescription
+        : "",
+      breakdownReporter: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownReporter
+        : "",
+      breakdownResponsible: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownResponsible
+        : "",
+      breakdownFaultParty: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownFaultParty
+        : "unknown",
+      breakdownAffectsPayment: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownAffectsPayment
+        : false,
+      breakdownOperatorIdle: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownOperatorIdle
+        : false,
+      breakdownLaborCost: this.orderForm.breakdownEnabled
+        ? Number(this.orderForm.breakdownLaborCost || 0)
+        : 0,
+      breakdownPartsCost: this.orderForm.breakdownEnabled
+        ? Number(this.orderForm.breakdownPartsCost || 0)
+        : 0,
+      equipmentIdleDates: idlePatch.equipmentIdleDates,
+      operatorIdleDates: idlePatch.operatorIdleDates,
+    };
+  }
+
+  private breakdownIdlePatch(order: Order): {
+    equipmentIdleDates: string[];
+    operatorIdleDates: string[];
+  } {
+    const previousBreakdownDates = new Set(this.breakdownDatesFromOrder(order));
+    const currentBreakdownDates = this.breakdownDatesFromForm(order);
+    const equipmentIdleDates = new Set(
+      (order.equipmentIdleDates || []).filter(
+        (date) => !previousBreakdownDates.has(date),
+      ),
+    );
+    const operatorIdleDates = new Set(
+      (order.operatorIdleDates || []).filter(
+        (date) => !previousBreakdownDates.has(date),
+      ),
+    );
+
+    if (
+      this.orderForm.breakdownEnabled &&
+      this.orderForm.breakdownAffectsPayment
+    ) {
+      currentBreakdownDates.forEach((date) => equipmentIdleDates.add(date));
+      if (this.orderForm.breakdownOperatorIdle) {
+        currentBreakdownDates.forEach((date) => operatorIdleDates.add(date));
+      }
+    }
+
+    return {
+      equipmentIdleDates: [...equipmentIdleDates]
+        .filter((date) => date >= order.startDate && date <= order.endDate)
+        .sort(),
+      operatorIdleDates: [...operatorIdleDates]
+        .filter((date) => date >= order.startDate && date <= order.endDate)
+        .sort(),
+    };
+  }
+
+  private breakdownDatesFromForm(order: Order): string[] {
+    if (!this.orderForm.breakdownEnabled || !this.orderForm.breakdownDate)
+      return [];
+    const endDate =
+      this.orderForm.breakdownEndDate || this.orderForm.breakdownDate;
+    if (this.orderForm.breakdownDate > endDate) return [];
+    return this.utils
+      .datesInclusive(this.orderForm.breakdownDate, endDate)
+      .filter((date) => date >= order.startDate && date <= order.endDate);
+  }
+
+  private breakdownDatesFromOrder(order: Order): string[] {
+    if (!order.breakdownEnabled || !order.breakdownDate) return [];
+    const endDate = order.breakdownEndDate || order.breakdownDate;
+    if (order.breakdownDate > endDate) return [];
+    return this.utils
+      .datesInclusive(order.breakdownDate, endDate)
+      .filter((date) => date >= order.startDate && date <= order.endDate);
+  }
+
   private emptyOperationForm(order?: Order) {
     return {
       date: this.utils.todayStr(),
@@ -552,7 +743,10 @@ export class ProjectsComponent {
     desiredPlan: number,
     basePatch: Record<string, any>,
   ): Record<string, any> {
-    if (!desiredPlan || Math.abs(desiredPlan - this.state.orderPlan(order)) < 1) {
+    if (
+      !desiredPlan ||
+      Math.abs(desiredPlan - this.state.orderPlan(order)) < 1
+    ) {
       return {};
     }
     const draft = { ...order, ...basePatch } as Order;
@@ -566,7 +760,10 @@ export class ProjectsComponent {
           ? desiredPlan + discountValue
           : desiredPlan / Math.max(0.01, 1 - discountValue / 100);
     }
-    const targetEquipmentCharge = Math.max(0, subtotalTarget - logistics - assembly);
+    const targetEquipmentCharge = Math.max(
+      0,
+      subtotalTarget - logistics - assembly,
+    );
     const targetEquipmentBase = draft.vatEnabled
       ? targetEquipmentCharge / 1.2
       : targetEquipmentCharge;
