@@ -1279,10 +1279,7 @@
 
         @if (operationEditorOpen()) {
           <div class="modal-backdrop" (click)="closeOperationEditor()">
-            <div
-              class="operation-modal card"
-              (click)="$event.stopPropagation()"
-            >
+            <div class="operation-modal card" (click)="stopModalClick($event)">
               <div class="inner-card-head">
                 <h4>Добавить операцию</h4>
                 <button

@@ -318,6 +318,10 @@ export class ProjectsComponent {
     this.operationEditorOpen.set(false);
   }
 
+  stopModalClick(event: MouseEvent): void {
+    event.stopPropagation();
+  }
+
   async saveOrder(): Promise<void> {
     const order = this.selectedOrder();
     if (!order) return;
