@@ -1253,29 +1253,64 @@
                 + Добавить операцию
               </button>
             </div>
-            <div class="operation-type">
-              <button
-                type="button"
-                class="filter-chip finance-income"
-                [class.active]="
-                  operationEditorOpen() && operationForm.type === 'income'
-                "
-                (click)="openOperationEditor('income')"
-              >
-                + Приход
-              </button>
-              <button
-                type="button"
-                class="filter-chip finance-expense"
-                [class.active]="
-                  operationEditorOpen() && operationForm.type === 'expense'
-                "
-                (click)="openOperationEditor('expense')"
-              >
-                + Расход
-              </button>
+          </div>
+
+          <div class="card inner-card operations-wide-card">
+            <h4>Операции по заявке</h4>
+            <div class="operation-list">
+              @for (op of selectedOrderOps(); track op.id) {
+                <div class="operation-line" [ngClass]="op.type">
+                  <div>
+                    <strong>{{ utils.money(op.amount) }}</strong>
+                    <span>{{ opTypeLabel(op.type) }} • {{ op.category }}</span>
+                  </div>
+                  <small>{{ utils.fmtDate(op.date) }}</small>
+                  @if (op.comment) {
+                    <p>{{ op.comment }}</p>
+                  }
+                </div>
+              }
+              @if (!selectedOrderOps().length) {
+                <div class="empty">Операций по заявке пока нет.</div>
+              }
             </div>
-            @if (operationEditorOpen()) {
+          </div>
+        </div>
+
+        @if (operationEditorOpen()) {
+          <div class="modal-backdrop" (click)="closeOperationEditor()">
+            <div
+              class="operation-modal card"
+              (click)="$event.stopPropagation()"
+            >
+              <div class="inner-card-head">
+                <h4>Добавить операцию</h4>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  (click)="closeOperationEditor()"
+                >
+                  Закрыть
+                </button>
+              </div>
+              <div class="operation-type modal-operation-type">
+                <button
+                  type="button"
+                  class="filter-chip finance-income"
+                  [class.active]="operationForm.type === 'income'"
+                  (click)="setOperationType('income')"
+                >
+                  Приход
+                </button>
+                <button
+                  type="button"
+                  class="filter-chip finance-expense"
+                  [class.active]="operationForm.type === 'expense'"
+                  (click)="setOperationType('expense')"
+                >
+                  Расход
+                </button>
+              </div>
               <div class="operation-form">
                 <div class="field">
                   <label>Дата</label>
@@ -1296,7 +1331,7 @@
                     }
                   </select>
                 </div>
-                <div class="field">
+                <div class="field wide">
                   <label>Сумма, ₴</label>
                   <input
                     type="number"
@@ -1306,7 +1341,7 @@
                   />
                 </div>
                 @if (operationForm.type === "expense") {
-                  <label class="bill-client">
+                  <label class="bill-client wide">
                     <input
                       type="checkbox"
                       [(ngModel)]="operationForm.billClient"
@@ -1337,30 +1372,9 @@
                   Отмена
                 </button>
               </div>
-            }
-          </div>
-
-          <div class="card inner-card">
-            <h4>Операции по заявке</h4>
-            <div class="operation-list">
-              @for (op of selectedOrderOps(); track op.id) {
-                <div class="operation-line" [ngClass]="op.type">
-                  <div>
-                    <strong>{{ utils.money(op.amount) }}</strong>
-                    <span>{{ opTypeLabel(op.type) }} • {{ op.category }}</span>
-                  </div>
-                  <small>{{ utils.fmtDate(op.date) }}</small>
-                  @if (op.comment) {
-                    <p>{{ op.comment }}</p>
-                  }
-                </div>
-              }
-              @if (!selectedOrderOps().length) {
-                <div class="empty">Операций по заявке пока нет.</div>
-              }
             </div>
           </div>
-        </div>
+        }
       </div>
     }
   </section>
