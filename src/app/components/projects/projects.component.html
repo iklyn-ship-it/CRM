@@ -1723,6 +1723,7 @@
           <button
             type="button"
             class="client-head"
+            [class.has-new-orders]="client.newOrders"
             (click)="toggleClient(client.clientId)"
           >
             <span class="chevron">
@@ -1734,6 +1735,11 @@
             <span>План {{ utils.money(client.plan) }}</span>
             <span>Прибыль {{ utils.money(client.profit) }}</span>
             <span class="indicator-pack">
+              @if (client.newOrders) {
+                <span class="ending-chip fresh">
+                  Новые: {{ client.newOrders }}
+                </span>
+              }
               @if (client.overdue) {
                 <span class="ending-chip overdue">
                   Просрочено: {{ client.overdue }}
@@ -1763,12 +1769,18 @@
                 <button
                   type="button"
                   class="location-row"
+                  [class.has-new-orders]="location.newOrders"
                   (click)="openLocation(location)"
                 >
                   <div>
                     <strong>{{ location.location }}</strong>
                     <span>{{ location.orders.length }} заявк.</span>
                     <span class="indicator-pack">
+                      @if (location.newOrders) {
+                        <span class="ending-chip fresh">
+                          Новые: {{ location.newOrders }}
+                        </span>
+                      }
                       @if (location.overdue) {
                         <span class="ending-chip overdue">
                           Просрочено: {{ location.overdue }}

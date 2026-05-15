@@ -27,6 +27,7 @@ interface LocationGroup {
   endingToday: number;
   overdue: number;
   unpaidCompleted: number;
+  newOrders: number;
   latestDate: string;
 }
 
@@ -44,6 +45,7 @@ interface ClientGroup {
   endingToday: number;
   overdue: number;
   unpaidCompleted: number;
+  newOrders: number;
   latestDate: string;
 }
 
@@ -184,6 +186,7 @@ export class ProjectsComponent {
           unpaidCompleted: orders.filter((order) =>
             this.orderPaymentKind(order),
           ).length,
+          newOrders: orders.filter((order) => order.status === "new").length,
           latestDate: orders.reduce(
             (latest, order) =>
               order.startDate > latest ? order.startDate : latest,
@@ -1342,6 +1345,7 @@ export class ProjectsComponent {
       ).length,
       unpaidCompleted: sorted.filter((order) => this.orderPaymentKind(order))
         .length,
+      newOrders: sorted.filter((order) => order.status === "new").length,
       latestDate: sorted[0]?.startDate || "",
     };
   }
