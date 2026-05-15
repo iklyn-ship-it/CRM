@@ -103,7 +103,7 @@ export class CommercialProposalService {
       <w:headerReference w:type="default" r:id="rId3"/>
       <w:footerReference w:type="default" r:id="rId4"/>
       <w:pgSz w:w="11906" w:h="16838"/>
-      <w:pgMar w:top="2550" w:right="1134" w:bottom="1450" w:left="1134" w:header="360" w:footer="360" w:gutter="0"/>
+      <w:pgMar w:top="3000" w:right="1134" w:bottom="1700" w:left="1134" w:header="0" w:footer="0" w:gutter="0"/>
     </w:sectPr>
   </w:body>
 </w:document>`;
@@ -391,17 +391,22 @@ export class CommercialProposalService {
 
   private letterheadPartXml(kind: "header" | "footer"): string {
     const tag = kind === "header" ? "hdr" : "ftr";
-    const crop =
-      kind === "header" ? '<a:srcRect b="74000"/>' : '<a:srcRect t="89000"/>';
-    const cy = kind === "header" ? "1400000" : "420000";
+    if (kind === "footer") return this.emptyHeaderFooterXml(tag);
+
+    const pageWidth = "7562850";
+    const pageHeight = "10692000";
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:${tag} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
   <w:p>
-    <w:pPr><w:jc w:val="center"/></w:pPr>
     <w:r>
       <w:drawing>
-        <wp:inline distT="0" distB="0" distL="0" distR="0">
-          <wp:extent cx="6100000" cy="${cy}"/>
+        <wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="0" behindDoc="1" locked="0" layoutInCell="1" allowOverlap="1">
+          <wp:simplePos x="0" y="0"/>
+          <wp:positionH relativeFrom="page"><wp:posOffset>0</wp:posOffset></wp:positionH>
+          <wp:positionV relativeFrom="page"><wp:posOffset>0</wp:posOffset></wp:positionV>
+          <wp:extent cx="${pageWidth}" cy="${pageHeight}"/>
+          <wp:effectExtent l="0" t="0" r="0" b="0"/>
+          <wp:wrapNone/>
           <wp:docPr id="1" name="RBT letterhead"/>
           <a:graphic>
             <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
@@ -409,17 +414,16 @@ export class CommercialProposalService {
                 <pic:nvPicPr><pic:cNvPr id="1" name="rbt-letterhead.png"/><pic:cNvPicPr/></pic:nvPicPr>
                 <pic:blipFill>
                   <a:blip r:embed="rId1"/>
-                  ${crop}
                   <a:stretch><a:fillRect/></a:stretch>
                 </pic:blipFill>
                 <pic:spPr>
-                  <a:xfrm><a:off x="0" y="0"/><a:ext cx="6100000" cy="${cy}"/></a:xfrm>
+                  <a:xfrm><a:off x="0" y="0"/><a:ext cx="${pageWidth}" cy="${pageHeight}"/></a:xfrm>
                   <a:prstGeom prst="rect"><a:avLst/></a:prstGeom>
                 </pic:spPr>
               </pic:pic>
             </a:graphicData>
           </a:graphic>
-        </wp:inline>
+        </wp:anchor>
       </w:drawing>
     </w:r>
   </w:p>
