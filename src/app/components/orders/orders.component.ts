@@ -1,7 +1,11 @@
 import { Component, computed, signal, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { NgClass, SlicePipe } from "@angular/common";
-import { CommercialProposalService } from "../../services/commercial-proposal.service";
+import {
+  CommercialProposalDraft,
+  CommercialProposalService,
+  ProposalRow,
+} from "../../services/commercial-proposal.service";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
@@ -31,8 +35,10 @@ export class OrdersComponent {
   filterStatus = signal("");
   formOpen = signal(false);
   selectedOrder = signal<Order | null>(null);
+  proposalEditorOpen = signal(false);
   expandedClientIds = signal<string[]>([]);
   editingId = "";
+  proposalDraft: CommercialProposalDraft | null = null;
 
   form = {
     clientId: "",
@@ -766,7 +772,45 @@ export class OrdersComponent {
   }
 
   async generateCommercialProposal(order: Order): Promise<void> {
-    await this.proposal.generateForOrder(order);
+    this.proposalDraft = this.proposal.createDraft(order);
+    this.proposalEditorOpen.set(true);
+  }
+
+  closeProposalEditor(): void {
+    this.proposalEditorOpen.set(false);
+    this.proposalDraft = null;
+  }
+
+  addProposalRow(): void {
+    this.proposalDraft?.rows.push({
+      title: "Додаткова позиція",
+      details: "",
+      amount: 0,
+    });
+  }
+
+  removeProposalRow(index: number): void {
+    this.proposalDraft?.rows.splice(index, 1);
+  }
+
+  addProposalTerm(): void {
+    this.proposalDraft?.terms.push("");
+  }
+
+  removeProposalTerm(index: number): void {
+    this.proposalDraft?.terms.splice(index, 1);
+  }
+
+  proposalTotal(draft: CommercialProposalDraft): number {
+    return this.proposal.total(draft);
+  }
+
+  async downloadProposalDraft(draft: CommercialProposalDraft): Promise<void> {
+    await this.proposal.downloadDraft(draft);
+  }
+
+  trackProposalRow(index: number, row: ProposalRow): string {
+    return `${index}-${row.title}`;
   }
 
   orderDates(): string[] {

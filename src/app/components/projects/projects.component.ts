@@ -1,7 +1,11 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { NgClass, SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { CommercialProposalService } from "../../services/commercial-proposal.service";
+import {
+  CommercialProposalDraft,
+  CommercialProposalService,
+  ProposalRow,
+} from "../../services/commercial-proposal.service";
 import { DbService } from "../../services/db.service";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
@@ -72,11 +76,13 @@ export class ProjectsComponent {
   costEditorOpen = signal(false);
   createCostEditorOpen = signal(false);
   operationEditorOpen = signal(false);
+  proposalEditorOpen = signal(false);
   operationEditingId = "";
 
   orderForm = this.emptyOrderForm();
   operationForm = this.emptyOperationForm();
   createForm = this.emptyCreateForm();
+  proposalDraft: CommercialProposalDraft | null = null;
 
   readonly statuses: { value: OrderStatus; label: string }[] = [
     { value: "new", label: "Новая" },
@@ -569,7 +575,45 @@ export class ProjectsComponent {
   }
 
   async generateCommercialProposal(order: Order): Promise<void> {
-    await this.proposal.generateForOrder(order);
+    this.proposalDraft = this.proposal.createDraft(order);
+    this.proposalEditorOpen.set(true);
+  }
+
+  closeProposalEditor(): void {
+    this.proposalEditorOpen.set(false);
+    this.proposalDraft = null;
+  }
+
+  addProposalRow(): void {
+    this.proposalDraft?.rows.push({
+      title: "Додаткова позиція",
+      details: "",
+      amount: 0,
+    });
+  }
+
+  removeProposalRow(index: number): void {
+    this.proposalDraft?.rows.splice(index, 1);
+  }
+
+  addProposalTerm(): void {
+    this.proposalDraft?.terms.push("");
+  }
+
+  removeProposalTerm(index: number): void {
+    this.proposalDraft?.terms.splice(index, 1);
+  }
+
+  proposalTotal(draft: CommercialProposalDraft): number {
+    return this.proposal.total(draft);
+  }
+
+  async downloadProposalDraft(draft: CommercialProposalDraft): Promise<void> {
+    await this.proposal.downloadDraft(draft);
+  }
+
+  trackProposalRow(index: number, row: ProposalRow): string {
+    return `${index}-${row.title}`;
   }
 
   async addOperation(): Promise<void> {

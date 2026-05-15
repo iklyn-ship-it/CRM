@@ -1601,6 +1601,179 @@
             </div>
           </div>
         }
+        @if (proposalEditorOpen()) {
+          @if (proposalDraft; as draft) {
+            <div class="proposal-backdrop" (click)="closeProposalEditor()">
+              <div
+                class="proposal-editor card"
+                (click)="stopModalClick($event)"
+              >
+                <div class="proposal-head">
+                  <div>
+                    <div class="eyebrow">Редактор КП</div>
+                    <h3>{{ draft.title }}</h3>
+                    <p>Проверь данные, отредактируй строки и скачай DOCX.</p>
+                  </div>
+                  <div class="actions">
+                    <button
+                      type="button"
+                      class="btn primary"
+                      (click)="downloadProposalDraft(draft)"
+                    >
+                      Скачать DOCX
+                    </button>
+                    <button
+                      type="button"
+                      class="btn ghost"
+                      (click)="closeProposalEditor()"
+                    >
+                      Закрыть
+                    </button>
+                  </div>
+                </div>
+
+                <div class="proposal-grid">
+                  <div class="field">
+                    <label>Заголовок</label>
+                    <input [(ngModel)]="draft.title" name="proposalTitle" />
+                  </div>
+                  <div class="field">
+                    <label>Подзаголовок</label>
+                    <input
+                      [(ngModel)]="draft.subtitle"
+                      name="proposalSubtitle"
+                    />
+                  </div>
+                  <div class="field">
+                    <label>Клиент</label>
+                    <input [(ngModel)]="draft.client" name="proposalClient" />
+                  </div>
+                  <div class="field">
+                    <label>Локация</label>
+                    <input
+                      [(ngModel)]="draft.location"
+                      name="proposalLocation"
+                    />
+                  </div>
+                  <div class="field">
+                    <label>Период</label>
+                    <input [(ngModel)]="draft.period" name="proposalPeriod" />
+                  </div>
+                  <div class="field">
+                    <label>Техника</label>
+                    <input
+                      [(ngModel)]="draft.equipment"
+                      name="proposalEquipment"
+                    />
+                  </div>
+                  <div class="field">
+                    <label>Оператор</label>
+                    <input
+                      [(ngModel)]="draft.operator"
+                      name="proposalOperator"
+                    />
+                  </div>
+                  <div class="field">
+                    <label>Статус</label>
+                    <input [(ngModel)]="draft.status" name="proposalStatus" />
+                  </div>
+                </div>
+
+                <div class="proposal-section-head">
+                  <h4>Позиции расчета</h4>
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    (click)="addProposalRow()"
+                  >
+                    + Строка
+                  </button>
+                </div>
+                <div class="proposal-rows">
+                  @for (
+                    row of draft.rows;
+                    track trackProposalRow($index, row);
+                    let i = $index
+                  ) {
+                    <div class="proposal-row">
+                      <input
+                        [(ngModel)]="row.title"
+                        [name]="'proposalRowTitle' + i"
+                        placeholder="Послуга"
+                      />
+                      <input
+                        [(ngModel)]="row.details"
+                        [name]="'proposalRowDetails' + i"
+                        placeholder="Деталі"
+                      />
+                      <input
+                        type="number"
+                        [(ngModel)]="row.amount"
+                        [name]="'proposalRowAmount' + i"
+                      />
+                      <label class="inline-check">
+                        <input
+                          type="checkbox"
+                          [(ngModel)]="row.negative"
+                          [name]="'proposalRowNegative' + i"
+                        />
+                        минус
+                      </label>
+                      <button
+                        type="button"
+                        class="btn ghost danger"
+                        (click)="removeProposalRow(i)"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                <div class="proposal-total">
+                  <span>Итого в КП</span>
+                  <strong>{{ utils.money(proposalTotal(draft)) }}</strong>
+                </div>
+
+                <div class="field">
+                  <label>Комментарий</label>
+                  <textarea
+                    [(ngModel)]="draft.notes"
+                    name="proposalNotes"
+                  ></textarea>
+                </div>
+
+                <div class="proposal-section-head">
+                  <h4>Условия</h4>
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    (click)="addProposalTerm()"
+                  >
+                    + Условие
+                  </button>
+                </div>
+                <div class="proposal-terms">
+                  @for (term of draft.terms; track $index; let i = $index) {
+                    <div class="proposal-term">
+                      <input
+                        [(ngModel)]="draft.terms[i]"
+                        [name]="'proposalTerm' + i"
+                      />
+                      <button
+                        type="button"
+                        class="btn ghost danger"
+                        (click)="removeProposalTerm(i)"
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        }
       </div>
     }
   </section>

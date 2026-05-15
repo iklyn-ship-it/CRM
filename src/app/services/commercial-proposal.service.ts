@@ -3,11 +3,26 @@ import { FinanceOperation, Order } from "../models/crm.models";
 import { StateService } from "./state.service";
 import { UtilsService } from "./utils.service";
 
-interface ProposalRow {
+export interface ProposalRow {
   title: string;
   details: string;
   amount: number;
   negative?: boolean;
+}
+
+export interface CommercialProposalDraft {
+  orderId: string;
+  title: string;
+  subtitle: string;
+  client: string;
+  location: string;
+  period: string;
+  equipment: string;
+  operator: string;
+  status: string;
+  rows: ProposalRow[];
+  notes: string;
+  terms: string[];
 }
 
 interface ZipEntry {
@@ -22,8 +37,33 @@ export class CommercialProposalService {
   private encoder = new TextEncoder();
 
   async generateForOrder(order: Order): Promise<void> {
+    await this.downloadDraft(this.createDraft(order));
+  }
+
+  createDraft(order: Order): CommercialProposalDraft {
+    return {
+      orderId: order.id,
+      title: "Комерційна пропозиція",
+      subtitle: `до заявки ${this.shortId(order.id)} від ${this.todayUk()}`,
+      client: this.clientName(order.clientId),
+      location: order.location || "Не вказано",
+      period: `${this.date(order.startDate)} - ${this.date(order.endDate)}`,
+      equipment: this.equipmentName(order.equipmentId),
+      operator: this.operatorName(order.operatorId) || "Без оператора",
+      status: this.statusLabel(order.status),
+      rows: this.proposalRows(order),
+      notes: order.notes || "",
+      terms: [
+        "Вартість сформована на підставі даних заявки в CRM.",
+        "Фінальна сума може бути уточнена після погодження обсягу робіт, логістики та додаткових витрат.",
+        "Оплата, строки та інші умови узгоджуються сторонами окремо.",
+      ],
+    };
+  }
+
+  async downloadDraft(draft: CommercialProposalDraft): Promise<void> {
     const letterhead = await this.loadAsset("/assets/rbt-letterhead.png");
-    const entries = this.buildDocxEntries(order, letterhead);
+    const entries = this.buildDocxEntries(draft, letterhead);
     const zip = this.createZip(entries);
     const zipBuffer = zip.buffer.slice(
       zip.byteOffset,
@@ -32,15 +72,27 @@ export class CommercialProposalService {
     const blob = new Blob([zipBuffer], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
-    this.downloadBlob(blob, this.fileName(order));
+    this.downloadBlob(blob, this.fileName(draft));
   }
 
-  private buildDocxEntries(order: Order, letterhead: Uint8Array): ZipEntry[] {
+  total(draft: CommercialProposalDraft): number {
+    return draft.rows.reduce(
+      (sum, row) =>
+        sum +
+        (row.negative ? -Number(row.amount || 0) : Number(row.amount || 0)),
+      0,
+    );
+  }
+
+  private buildDocxEntries(
+    draft: CommercialProposalDraft,
+    letterhead: Uint8Array,
+  ): ZipEntry[] {
     const hasLetterhead = letterhead.length > 0;
     const entries: ZipEntry[] = [
       this.textEntry("[Content_Types].xml", this.contentTypes(hasLetterhead)),
       this.textEntry("_rels/.rels", this.packageRels()),
-      this.textEntry("word/document.xml", this.documentXml(order)),
+      this.textEntry("word/document.xml", this.documentXml(draft)),
       this.textEntry("word/_rels/document.xml.rels", this.documentRels()),
       this.textEntry("word/styles.xml", this.stylesXml()),
       this.textEntry("word/settings.xml", this.settingsXml()),
@@ -65,39 +117,28 @@ export class CommercialProposalService {
     return entries;
   }
 
-  private documentXml(order: Order): string {
-    const client = this.clientName(order.clientId);
-    const equipment = this.equipmentName(order.equipmentId);
-    const operator = this.operatorName(order.operatorId);
-    const rows = this.proposalRows(order);
-    const total = rows.reduce(
-      (sum, row) => sum + (row.negative ? -row.amount : row.amount),
-      0,
-    );
-
+  private documentXml(draft: CommercialProposalDraft): string {
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:body>
-    ${this.paragraph("Комерційна пропозиція", "Title")}
-    ${this.paragraph(`до заявки ${this.shortId(order.id)} від ${this.todayUk()}`, "Subtitle")}
+    ${this.paragraph(draft.title, "Title")}
+    ${this.paragraph(draft.subtitle, "Subtitle")}
     ${this.infoTable([
-      ["Клієнт", client],
-      ["Об'єкт / локація", order.location || "Не вказано"],
-      [
-        "Період робіт",
-        `${this.date(order.startDate)} - ${this.date(order.endDate)}`,
-      ],
-      ["Техніка", equipment],
-      ["Оператор", operator || "Без оператора"],
-      ["Статус заявки", this.statusLabel(order.status)],
+      ["Клієнт", draft.client],
+      ["Об'єкт / локація", draft.location],
+      ["Період робіт", draft.period],
+      ["Техніка", draft.equipment],
+      ["Оператор", draft.operator],
+      ["Статус заявки", draft.status],
     ])}
     ${this.paragraph("Розрахунок вартості", "Heading1")}
-    ${this.costTable(rows, total)}
-    ${this.notesBlock(order)}
+    ${this.costTable(draft.rows, this.total(draft))}
+    ${this.notesBlock(draft)}
     ${this.paragraph("Умови пропозиції", "Heading1")}
-    ${this.bullet("Вартість сформована на підставі даних заявки в CRM.")}
-    ${this.bullet("Фінальна сума може бути уточнена після погодження обсягу робіт, логістики та додаткових витрат.")}
-    ${this.bullet("Оплата, строки та інші умови узгоджуються сторонами окремо.")}
+    ${draft.terms
+      .filter(Boolean)
+      .map((term) => this.bullet(term))
+      .join("")}
     ${this.signatureBlock()}
     <w:sectPr>
       <w:headerReference w:type="default" r:id="rId3"/>
@@ -270,10 +311,10 @@ export class CommercialProposalService {
       );
   }
 
-  private notesBlock(order: Order): string {
-    if (!order.notes?.trim()) return "";
+  private notesBlock(draft: CommercialProposalDraft): string {
+    if (!draft.notes?.trim()) return "";
     return `${this.paragraph("Коментар до заявки", "Heading1")}
-    ${this.paragraph(order.notes, "Normal")}`;
+    ${this.paragraph(draft.notes, "Normal")}`;
   }
 
   private infoTable(rows: [string, string][]): string {
@@ -703,12 +744,12 @@ export class CommercialProposalService {
     return labels[status];
   }
 
-  private fileName(order: Order): string {
-    const client = this.clientName(order.clientId)
+  private fileName(draft: CommercialProposalDraft): string {
+    const client = draft.client
       .replace(/[\\/:*?"<>|]/g, "")
       .trim()
       .slice(0, 40);
-    return `Комерційна пропозиція ${this.shortId(order.id)} ${client}.docx`;
+    return `Комерційна пропозиція ${this.shortId(draft.orderId)} ${client}.docx`;
   }
 
   private shortId(id: string): string {
