@@ -1,6 +1,7 @@
 import { Component, computed, signal, inject } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { NgClass, SlicePipe } from "@angular/common";
+import { CommercialProposalService } from "../../services/commercial-proposal.service";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
@@ -24,6 +25,7 @@ export class OrdersComponent {
   state = inject(StateService);
   db = inject(DbService);
   utils = inject(UtilsService);
+  proposal = inject(CommercialProposalService);
 
   search = signal("");
   filterStatus = signal("");
@@ -761,6 +763,10 @@ export class OrdersComponent {
 
   editSelected(order: Order): void {
     this.edit(order);
+  }
+
+  async generateCommercialProposal(order: Order): Promise<void> {
+    await this.proposal.generateForOrder(order);
   }
 
   orderDates(): string[] {

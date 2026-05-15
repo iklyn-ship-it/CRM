@@ -419,6 +419,13 @@
       <div class="topbar-actions">
         <button
           type="button"
+          class="btn info"
+          (click)="generateCommercialProposal(order)"
+        >
+          Комерційна пропозиція
+        </button>
+        <button
+          type="button"
           class="btn ghost danger"
           (click)="removeOrder(order)"
         >

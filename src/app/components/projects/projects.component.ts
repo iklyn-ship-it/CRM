@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { NgClass, SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { CommercialProposalService } from "../../services/commercial-proposal.service";
 import { DbService } from "../../services/db.service";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
@@ -60,6 +61,7 @@ export class ProjectsComponent {
   state = inject(StateService);
   db = inject(DbService);
   utils = inject(UtilsService);
+  proposal = inject(CommercialProposalService);
 
   search = signal("");
   filterStatus = signal("");
@@ -564,6 +566,10 @@ export class ProjectsComponent {
     } catch (error) {
       alert(`Не удалось удалить заявку: ${this.errorMessage(error)}`);
     }
+  }
+
+  async generateCommercialProposal(order: Order): Promise<void> {
+    await this.proposal.generateForOrder(order);
   }
 
   async addOperation(): Promise<void> {

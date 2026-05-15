@@ -2,7 +2,10 @@
   <div class="orders-heading">
     <div>
       <h2>Заявки</h2>
-      <p>Создание заявки открывается отдельно, чтобы таблица всегда была в фокусе.</p>
+      <p>
+        Создание заявки открывается отдельно, чтобы таблица всегда была в
+        фокусе.
+      </p>
     </div>
     <button type="button" class="btn primary" (click)="openCreate()">
       + Новая заявка
@@ -23,761 +26,797 @@
             Закрыть
           </button>
         </div>
-      <form (ngSubmit)="save()">
-        <div class="field">
-          <label>Клиент</label>
-          <select [(ngModel)]="form.clientId" name="clientId">
-            <option value="">— выбрать —</option>
-            @for (c of state.clients(); track c.id) {
-              <option [value]="c.id">{{ c.name }}</option>
-            }
-          </select>
-        </div>
-        <div class="field">
-          <label>Техника</label>
-          <select
-            [(ngModel)]="form.equipmentId"
-            name="equipmentId"
-            (ngModelChange)="onEquipmentChange()"
-          >
-            <option value="">— выбрать —</option>
-            @for (e of state.equipment(); track e.id) {
-              <option [value]="e.id">{{ e.name }}</option>
-            }
-          </select>
-          @if (formTransportEquipmentConflict(); as conflict) {
-            <div class="operator-busy-warning">
-              Техника занята в перевозке:
-              {{ eqName(conflict.equipmentId) }} •
-              {{ utils.fmtDate(conflict.startDate) }} -
-              {{ utils.fmtDate(conflict.endDate) }}
-            </div>
-          }
-        </div>
-        <div class="field">
-          <label>Оператор</label>
-          <select [(ngModel)]="form.operatorId" name="operatorId">
-            <option value="">— без оператора —</option>
-            @for (o of state.operators(); track o.id) {
-              <option [value]="o.id">
-                {{ o.name }} • {{ utils.money(o.hourlyRate || o.rate) }}/{{
-                  o.hourlyRate ? "час" : "день"
-                }}
-              </option>
-            }
-          </select>
-          @if (formOperatorConflict(); as conflict) {
-            <div class="operator-busy-warning">
-              Оператор занят в другой заявке:
-              {{ eqName(conflict.equipmentId) }} •
-              {{ utils.fmtDate(conflict.startDate) }} -
-              {{ utils.fmtDate(conflict.endDate) }}
-            </div>
-          }
-          @if (formTransportOperatorConflict(); as conflict) {
-            <div class="operator-busy-warning">
-              Оператор занят в перевозке:
-              {{ utils.fmtDate(conflict.startDate) }} -
-              {{ utils.fmtDate(conflict.endDate) }}
-            </div>
-          }
-          <div class="small">
-            Для длинной заявки можно добавить сменщиков ниже. Если смен нет,
-            зарплата считается по этому оператору.
-          </div>
-          @if (form.operatorId && !form.operatorShifts.length) {
-            <div class="primary-operator-period">
-              <div class="field">
-                <label>Работает с</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.primaryOperatorStartDate"
-                  name="primaryOperatorStartDate"
-                  [placeholder]="form.startDate"
-                />
-              </div>
-              <div class="field">
-                <label>Работает до</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.primaryOperatorEndDate"
-                  name="primaryOperatorEndDate"
-                  [placeholder]="form.endDate"
-                />
-              </div>
-              <div class="primary-operator-summary">
-                {{ primaryOperatorWorkDays() }} дн. •
-                {{ utils.money(primaryOperatorPayroll()) }}
-              </div>
-            </div>
-          }
-        </div>
-        <div class="field">
-          <label>Дата начала</label
-          ><input
-            type="date"
-            [(ngModel)]="form.startDate"
-            name="startDate"
-            required
-            />
-        </div>
-        <div class="field">
-          <label>Дата окончания</label
-          ><input
-            type="date"
-            [(ngModel)]="form.endDate"
-            name="endDate"
-            required
-          />
-        </div>
-        <div class="field">
-          <label>Стоимость 1 часа техники, ₴/час</label>
-          <input
-            type="number"
-            [(ngModel)]="form.equipmentHourlyRate"
-            name="equipmentHourlyRate"
-            min="0"
-          />
-          <div class="small">
-            Подтягивается из карточки техники. Если не заполнено, заявка считается по тарифу за день.
-          </div>
-        </div>
-        <div class="field">
-          <label>Стандарт часов в день</label>
-          <input
-            type="number"
-            [(ngModel)]="form.standardWorkHours"
-            name="standardWorkHours"
-            min="0"
-          />
-        </div>
-        <details class="idle-date-picker detail-wide">
-          <summary>
-            Дополнительные часы работы: {{ form.additionalWorkHours || 0 }} ч
-            <span>к стандарту {{ form.standardWorkHours || 8 }} ч/день</span>
-          </summary>
+        <form (ngSubmit)="save()">
           <div class="field">
-            <label>Дополнительные часы, всего по заявке</label>
+            <label>Клиент</label>
+            <select [(ngModel)]="form.clientId" name="clientId">
+              <option value="">— выбрать —</option>
+              @for (c of state.clients(); track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label>Техника</label>
+            <select
+              [(ngModel)]="form.equipmentId"
+              name="equipmentId"
+              (ngModelChange)="onEquipmentChange()"
+            >
+              <option value="">— выбрать —</option>
+              @for (e of state.equipment(); track e.id) {
+                <option [value]="e.id">{{ e.name }}</option>
+              }
+            </select>
+            @if (formTransportEquipmentConflict(); as conflict) {
+              <div class="operator-busy-warning">
+                Техника занята в перевозке:
+                {{ eqName(conflict.equipmentId) }} •
+                {{ utils.fmtDate(conflict.startDate) }} -
+                {{ utils.fmtDate(conflict.endDate) }}
+              </div>
+            }
+          </div>
+          <div class="field">
+            <label>Оператор</label>
+            <select [(ngModel)]="form.operatorId" name="operatorId">
+              <option value="">— без оператора —</option>
+              @for (o of state.operators(); track o.id) {
+                <option [value]="o.id">
+                  {{ o.name }} • {{ utils.money(o.hourlyRate || o.rate) }}/{{
+                    o.hourlyRate ? "час" : "день"
+                  }}
+                </option>
+              }
+            </select>
+            @if (formOperatorConflict(); as conflict) {
+              <div class="operator-busy-warning">
+                Оператор занят в другой заявке:
+                {{ eqName(conflict.equipmentId) }} •
+                {{ utils.fmtDate(conflict.startDate) }} -
+                {{ utils.fmtDate(conflict.endDate) }}
+              </div>
+            }
+            @if (formTransportOperatorConflict(); as conflict) {
+              <div class="operator-busy-warning">
+                Оператор занят в перевозке:
+                {{ utils.fmtDate(conflict.startDate) }} -
+                {{ utils.fmtDate(conflict.endDate) }}
+              </div>
+            }
+            <div class="small">
+              Для длинной заявки можно добавить сменщиков ниже. Если смен нет,
+              зарплата считается по этому оператору.
+            </div>
+            @if (form.operatorId && !form.operatorShifts.length) {
+              <div class="primary-operator-period">
+                <div class="field">
+                  <label>Работает с</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.primaryOperatorStartDate"
+                    name="primaryOperatorStartDate"
+                    [placeholder]="form.startDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Работает до</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.primaryOperatorEndDate"
+                    name="primaryOperatorEndDate"
+                    [placeholder]="form.endDate"
+                  />
+                </div>
+                <div class="primary-operator-summary">
+                  {{ primaryOperatorWorkDays() }} дн. •
+                  {{ utils.money(primaryOperatorPayroll()) }}
+                </div>
+              </div>
+            }
+          </div>
+          <div class="field">
+            <label>Дата начала</label
+            ><input
+              type="date"
+              [(ngModel)]="form.startDate"
+              name="startDate"
+              required
+            />
+          </div>
+          <div class="field">
+            <label>Дата окончания</label
+            ><input
+              type="date"
+              [(ngModel)]="form.endDate"
+              name="endDate"
+              required
+            />
+          </div>
+          <div class="field">
+            <label>Стоимость 1 часа техники, ₴/час</label>
             <input
               type="number"
-              [(ngModel)]="form.additionalWorkHours"
-              name="additionalWorkHours"
+              [(ngModel)]="form.equipmentHourlyRate"
+              name="equipmentHourlyRate"
+              min="0"
+            />
+            <div class="small">
+              Подтягивается из карточки техники. Если не заполнено, заявка
+              считается по тарифу за день.
+            </div>
+          </div>
+          <div class="field">
+            <label>Стандарт часов в день</label>
+            <input
+              type="number"
+              [(ngModel)]="form.standardWorkHours"
+              name="standardWorkHours"
               min="0"
             />
           </div>
-          <div class="small">
-            Всего часов техники: {{ orderDraftWorkHours() }} ч. Эти часы добавляются к плану заявки.
-          </div>
-        </details>
-        <div class="logistics-box">
-          <label class="toggle-line">
-            <input
-              type="checkbox"
-              [(ngModel)]="form.vatEnabled"
-              name="vatEnabled"
-            />
-            <span>С НДС +20% к стоимости техники</span>
-          </label>
-          @if (form.vatEnabled) {
+          <details class="idle-date-picker detail-wide">
+            <summary>
+              Дополнительные часы работы: {{ form.additionalWorkHours || 0 }} ч
+              <span>к стандарту {{ form.standardWorkHours || 8 }} ч/день</span>
+            </summary>
+            <div class="field">
+              <label>Дополнительные часы, всего по заявке</label>
+              <input
+                type="number"
+                [(ngModel)]="form.additionalWorkHours"
+                name="additionalWorkHours"
+                min="0"
+              />
+            </div>
             <div class="small">
-              НДС применяется только к аренде техники, без логистики и сборки/разборки.
+              Всего часов техники: {{ orderDraftWorkHours() }} ч. Эти часы
+              добавляются к плану заявки.
             </div>
-          }
-        </div>
-        <div class="assembly-box">
-          <label class="toggle-line">
-            <input
-              type="checkbox"
-              [(ngModel)]="form.discountEnabled"
-              name="discountEnabled"
-            />
-            <span>Скидка на всю заявку</span>
-          </label>
-          @if (form.discountEnabled) {
-            <div class="assembly-grid">
-              <div class="field">
-                <label>Тип скидки</label>
-                <select [(ngModel)]="form.discountType" name="discountType">
-                  <option value="percent">Процент, %</option>
-                  <option value="amount">Сумма, ₴</option>
-                </select>
-              </div>
-              <div class="field">
-                <label>
-                  {{
-                    form.discountType === "amount"
-                      ? "Сумма скидки, ₴"
-                      : "Скидка, %"
-                  }}
-                </label>
-                <input
-                  type="number"
-                  [(ngModel)]="form.discountValue"
-                  name="discountValue"
-                  min="0"
-                />
-              </div>
-            </div>
-            <div class="assembly-summary">
-              Скидка: {{ utils.money(orderDraftDiscountAmount()) }}
-              <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
-            </div>
-          }
-        </div>
-        @if (orderDates().length) {
-          <div class="field">
-            <label>Дни, когда техника не работала</label>
-            <details class="idle-date-picker">
-              <summary>
-                Выбрано: {{ idleDatesCount("equipment") }}
-                <span>из {{ orderDates().length }} дней</span>
-              </summary>
-              <div class="idle-date-actions">
-                <button
-                  type="button"
-                  class="btn ghost"
-                  (click)="excludeWeekendDates('equipment')"
-                >
-                  Исключить выходные дни
-                </button>
-                <button
-                  type="button"
-                  class="btn ghost"
-                  (click)="clearIdleDates('equipment')"
-                >
-                  Очистить
-                </button>
-              </div>
-              <div class="idle-date-grid">
-                @for (date of orderDates(); track date) {
-                  <button
-                    type="button"
-                    class="idle-date-chip"
-                    [class.active]="isIdleDate('equipment', date)"
-                    (click)="toggleIdleDate('equipment', date)"
-                  >
-                    {{ utils.fmtDate(date) }}
-                  </button>
-                }
-              </div>
+          </details>
+          <div class="logistics-box">
+            <label class="toggle-line">
+              <input
+                type="checkbox"
+                [(ngModel)]="form.vatEnabled"
+                name="vatEnabled"
+              />
+              <span>С НДС +20% к стоимости техники</span>
+            </label>
+            @if (form.vatEnabled) {
               <div class="small">
-                Эти дни не считаются в план заявки и не занимают технику.
+                НДС применяется только к аренде техники, без логистики и
+                сборки/разборки.
               </div>
-            </details>
+            }
           </div>
-          <div class="field">
-            <label>Дни, когда оператор не работал</label>
-            <details class="idle-date-picker">
-              <summary>
-                Выбрано: {{ idleDatesCount("operator") }}
-                <span>из {{ orderDates().length }} дней</span>
-              </summary>
-              <div class="idle-date-actions">
-                <button
-                  type="button"
-                  class="btn ghost"
-                  (click)="excludeWeekendDates('operator')"
-                >
-                  Исключить выходные дни
-                </button>
-                <button
-                  type="button"
-                  class="btn ghost"
-                  (click)="clearIdleDates('operator')"
-                >
-                  Очистить
-                </button>
-              </div>
-              <div class="idle-date-grid">
-                @for (date of orderDates(); track date) {
-                  <button
-                    type="button"
-                    class="idle-date-chip"
-                    [class.active]="isIdleDate('operator', date)"
-                    (click)="toggleIdleDate('operator', date)"
-                  >
-                    {{ utils.fmtDate(date) }}
-                  </button>
-                }
-              </div>
-              <div class="small">
-                Эти дни не считаются в зарплату оператора и не занимают оператора.
-              </div>
-            </details>
-          </div>
-          <div class="field detail-wide">
-            <div class="operator-shifts-box">
-              <div class="operator-shifts-head">
-                <div>
-                  <strong>Смены операторов</strong>
-                  <span>
-                    Несколько периодов для одной длинной заявки без закрытия заявки.
-                  </span>
+          <div class="assembly-box">
+            <label class="toggle-line">
+              <input
+                type="checkbox"
+                [(ngModel)]="form.discountEnabled"
+                name="discountEnabled"
+              />
+              <span>Скидка на всю заявку</span>
+            </label>
+            @if (form.discountEnabled) {
+              <div class="assembly-grid">
+                <div class="field">
+                  <label>Тип скидки</label>
+                  <select [(ngModel)]="form.discountType" name="discountType">
+                    <option value="percent">Процент, %</option>
+                    <option value="amount">Сумма, ₴</option>
+                  </select>
                 </div>
-                <button type="button" class="btn ghost" (click)="addOperatorShift()">
-                  + Смена
-                </button>
+                <div class="field">
+                  <label>
+                    {{
+                      form.discountType === "amount"
+                        ? "Сумма скидки, ₴"
+                        : "Скидка, %"
+                    }}
+                  </label>
+                  <input
+                    type="number"
+                    [(ngModel)]="form.discountValue"
+                    name="discountValue"
+                    min="0"
+                  />
+                </div>
               </div>
-              @if (form.operatorShifts.length) {
-                <div class="operator-shifts-list">
-                  @for (shift of form.operatorShifts; track shift.id; let i = $index) {
-                    <div class="operator-shift-card">
-                      <div class="operator-shift-grid">
-                        <div class="field">
-                          <label>Оператор смены</label>
-                          <select
-                            [(ngModel)]="shift.operatorId"
-                            [name]="'shiftOperator' + i"
-                          >
-                            <option value="">— выбрать —</option>
-                            @for (o of state.operators(); track o.id) {
-                              <option [value]="o.id">
-                                {{ o.name }} • {{ utils.money(o.hourlyRate || o.rate) }}/{{
-                                  o.hourlyRate ? "час" : "день"
-                                }}
-                              </option>
-                            }
-                          </select>
-                        </div>
-                        <div class="field">
-                          <label>Начало смены</label>
-                          <input
-                            type="date"
-                            [(ngModel)]="shift.startDate"
-                            [name]="'shiftStart' + i"
-                          />
-                        </div>
-                        <div class="field">
-                          <label>Окончание смены</label>
-                          <input
-                            type="date"
-                            [(ngModel)]="shift.endDate"
-                            [name]="'shiftEnd' + i"
-                          />
-                        </div>
-                        <div class="field">
-                          <label>Начисление</label>
-                          <div class="shift-payroll">
-                            {{ shiftWorkDays(shift) }} дн. •
-                            {{ utils.money(shiftPayroll(shift)) }}
-                          </div>
-                        </div>
-                      </div>
-                      <details class="idle-date-picker shift-idle-picker">
-                        <summary>
-                          Дни без работы в смене: {{ shift.idleDates.length }}
-                          <span>из {{ shiftDates(shift).length }} дней</span>
-                        </summary>
-                        <div class="idle-date-actions">
-                          <button
-                            type="button"
-                            class="btn ghost"
-                            (click)="excludeShiftWeekends(shift)"
-                          >
-                            Исключить выходные дни
-                          </button>
-                          <button
-                            type="button"
-                            class="btn ghost"
-                            (click)="clearShiftIdleDates(shift)"
-                          >
-                            Очистить
-                          </button>
-                        </div>
-                        <div class="idle-date-grid">
-                          @for (date of shiftDates(shift); track date) {
-                            <button
-                              type="button"
-                              class="idle-date-chip"
-                              [class.active]="isShiftIdleDate(shift, date)"
-                              (click)="toggleShiftIdleDate(shift, date)"
-                            >
-                              {{ utils.fmtDate(date) }}
-                            </button>
-                          }
-                        </div>
-                      </details>
-                      <button
-                        type="button"
-                        class="btn ghost remove-shift-btn"
-                        (click)="removeOperatorShift(i)"
-                      >
-                        Удалить смену
-                      </button>
-                    </div>
+              <div class="assembly-summary">
+                Скидка: {{ utils.money(orderDraftDiscountAmount()) }}
+                <strong
+                  >Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong
+                >
+              </div>
+            }
+          </div>
+          @if (orderDates().length) {
+            <div class="field">
+              <label>Дни, когда техника не работала</label>
+              <details class="idle-date-picker">
+                <summary>
+                  Выбрано: {{ idleDatesCount("equipment") }}
+                  <span>из {{ orderDates().length }} дней</span>
+                </summary>
+                <div class="idle-date-actions">
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    (click)="excludeWeekendDates('equipment')"
+                  >
+                    Исключить выходные дни
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    (click)="clearIdleDates('equipment')"
+                  >
+                    Очистить
+                  </button>
+                </div>
+                <div class="idle-date-grid">
+                  @for (date of orderDates(); track date) {
+                    <button
+                      type="button"
+                      class="idle-date-chip"
+                      [class.active]="isIdleDate('equipment', date)"
+                      (click)="toggleIdleDate('equipment', date)"
+                    >
+                      {{ utils.fmtDate(date) }}
+                    </button>
                   }
                 </div>
-                <div class="operator-shifts-summary">
-                  Итого зарплата операторов по заявке:
-                  {{ utils.money(formOperatorPayroll()) }}
-                </div>
-              } @else {
                 <div class="small">
-                  Смены не заданы: используется основной оператор заявки.
+                  Эти дни не считаются в план заявки и не занимают технику.
                 </div>
-              }
+              </details>
             </div>
-          </div>
-        }
-        <div class="logistics-box">
-          <label class="toggle-line">
-            <input
-              type="checkbox"
-              [(ngModel)]="form.logisticsEnabled"
-              name="logisticsEnabled"
-              />
-            <span>Логистика</span>
-          </label>
-          @if (form.logisticsEnabled) {
-            <div class="logistics-grid">
-              <div class="field">
-                <label>Перевозчик</label>
-                <select
-                  [(ngModel)]="form.logisticsProvider"
-                  name="logisticsProvider"
-                >
-                  <option value="own_trawl">Наш трал</option>
-                  <option value="third_party">Сторонний перевозчик</option>
-                  <option value="self_drive">Своим ходом</option>
-                </select>
-              </div>
-              @if (form.logisticsProvider === "own_trawl") {
-                <div class="field">
-                  <label>Выбрать трал</label>
-                  <select
-                    [(ngModel)]="form.logisticsTrailerId"
-                    name="logisticsTrailerId"
+            <div class="field">
+              <label>Дни, когда оператор не работал</label>
+              <details class="idle-date-picker">
+                <summary>
+                  Выбрано: {{ idleDatesCount("operator") }}
+                  <span>из {{ orderDates().length }} дней</span>
+                </summary>
+                <div class="idle-date-actions">
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    (click)="excludeWeekendDates('operator')"
                   >
-                    <option value="">— выбрать трал —</option>
-                    @for (trawl of trawlEquipment(); track trawl.id) {
-                      <option [value]="trawl.id">{{ trawl.name }}</option>
+                    Исключить выходные дни
+                  </button>
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    (click)="clearIdleDates('operator')"
+                  >
+                    Очистить
+                  </button>
+                </div>
+                <div class="idle-date-grid">
+                  @for (date of orderDates(); track date) {
+                    <button
+                      type="button"
+                      class="idle-date-chip"
+                      [class.active]="isIdleDate('operator', date)"
+                      (click)="toggleIdleDate('operator', date)"
+                    >
+                      {{ utils.fmtDate(date) }}
+                    </button>
+                  }
+                </div>
+                <div class="small">
+                  Эти дни не считаются в зарплату оператора и не занимают
+                  оператора.
+                </div>
+              </details>
+            </div>
+            <div class="field detail-wide">
+              <div class="operator-shifts-box">
+                <div class="operator-shifts-head">
+                  <div>
+                    <strong>Смены операторов</strong>
+                    <span>
+                      Несколько периодов для одной длинной заявки без закрытия
+                      заявки.
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    class="btn ghost"
+                    (click)="addOperatorShift()"
+                  >
+                    + Смена
+                  </button>
+                </div>
+                @if (form.operatorShifts.length) {
+                  <div class="operator-shifts-list">
+                    @for (
+                      shift of form.operatorShifts;
+                      track shift.id;
+                      let i = $index
+                    ) {
+                      <div class="operator-shift-card">
+                        <div class="operator-shift-grid">
+                          <div class="field">
+                            <label>Оператор смены</label>
+                            <select
+                              [(ngModel)]="shift.operatorId"
+                              [name]="'shiftOperator' + i"
+                            >
+                              <option value="">— выбрать —</option>
+                              @for (o of state.operators(); track o.id) {
+                                <option [value]="o.id">
+                                  {{ o.name }} •
+                                  {{ utils.money(o.hourlyRate || o.rate) }}/{{
+                                    o.hourlyRate ? "час" : "день"
+                                  }}
+                                </option>
+                              }
+                            </select>
+                          </div>
+                          <div class="field">
+                            <label>Начало смены</label>
+                            <input
+                              type="date"
+                              [(ngModel)]="shift.startDate"
+                              [name]="'shiftStart' + i"
+                            />
+                          </div>
+                          <div class="field">
+                            <label>Окончание смены</label>
+                            <input
+                              type="date"
+                              [(ngModel)]="shift.endDate"
+                              [name]="'shiftEnd' + i"
+                            />
+                          </div>
+                          <div class="field">
+                            <label>Начисление</label>
+                            <div class="shift-payroll">
+                              {{ shiftWorkDays(shift) }} дн. •
+                              {{ utils.money(shiftPayroll(shift)) }}
+                            </div>
+                          </div>
+                        </div>
+                        <details class="idle-date-picker shift-idle-picker">
+                          <summary>
+                            Дни без работы в смене: {{ shift.idleDates.length }}
+                            <span>из {{ shiftDates(shift).length }} дней</span>
+                          </summary>
+                          <div class="idle-date-actions">
+                            <button
+                              type="button"
+                              class="btn ghost"
+                              (click)="excludeShiftWeekends(shift)"
+                            >
+                              Исключить выходные дни
+                            </button>
+                            <button
+                              type="button"
+                              class="btn ghost"
+                              (click)="clearShiftIdleDates(shift)"
+                            >
+                              Очистить
+                            </button>
+                          </div>
+                          <div class="idle-date-grid">
+                            @for (date of shiftDates(shift); track date) {
+                              <button
+                                type="button"
+                                class="idle-date-chip"
+                                [class.active]="isShiftIdleDate(shift, date)"
+                                (click)="toggleShiftIdleDate(shift, date)"
+                              >
+                                {{ utils.fmtDate(date) }}
+                              </button>
+                            }
+                          </div>
+                        </details>
+                        <button
+                          type="button"
+                          class="btn ghost remove-shift-btn"
+                          (click)="removeOperatorShift(i)"
+                        >
+                          Удалить смену
+                        </button>
+                      </div>
+                    }
+                  </div>
+                  <div class="operator-shifts-summary">
+                    Итого зарплата операторов по заявке:
+                    {{ utils.money(formOperatorPayroll()) }}
+                  </div>
+                } @else {
+                  <div class="small">
+                    Смены не заданы: используется основной оператор заявки.
+                  </div>
+                }
+              </div>
+            </div>
+          }
+          <div class="logistics-box">
+            <label class="toggle-line">
+              <input
+                type="checkbox"
+                [(ngModel)]="form.logisticsEnabled"
+                name="logisticsEnabled"
+              />
+              <span>Логистика</span>
+            </label>
+            @if (form.logisticsEnabled) {
+              <div class="logistics-grid">
+                <div class="field">
+                  <label>Перевозчик</label>
+                  <select
+                    [(ngModel)]="form.logisticsProvider"
+                    name="logisticsProvider"
+                  >
+                    <option value="own_trawl">Наш трал</option>
+                    <option value="third_party">Сторонний перевозчик</option>
+                    <option value="self_drive">Своим ходом</option>
+                  </select>
+                </div>
+                @if (form.logisticsProvider === "own_trawl") {
+                  <div class="field">
+                    <label>Выбрать трал</label>
+                    <select
+                      [(ngModel)]="form.logisticsTrailerId"
+                      name="logisticsTrailerId"
+                    >
+                      <option value="">— выбрать трал —</option>
+                      @for (trawl of trawlEquipment(); track trawl.id) {
+                        <option [value]="trawl.id">{{ trawl.name }}</option>
+                      }
+                    </select>
+                  </div>
+                }
+                <div class="field">
+                  <label>Дата начала логистики</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.logisticsStartDate"
+                    name="logisticsStartDate"
+                    [placeholder]="form.startDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Дата окончания логистики</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.logisticsEndDate"
+                    name="logisticsEndDate"
+                    [placeholder]="form.endDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Цена за 1 км подачи, ₴ (50 грн)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsPickupPricePerKm"
+                    name="logisticsPickupPricePerKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Подача, км</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsPickupKm"
+                    name="logisticsPickupKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость подачи, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsPickupCost"
+                    name="logisticsPickupCost"
+                  />
+                </div>
+                <div class="field">
+                  <label>Цена за 1 км доставки, ₴ (250 грн)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryPricePerKm"
+                    name="logisticsDeliveryPricePerKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Доставка, км</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryKm"
+                    name="logisticsDeliveryKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость доставки, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.logisticsDeliveryCost"
+                    name="logisticsDeliveryCost"
+                  />
+                </div>
+              </div>
+              <div class="logistics-total">
+                Итого логистика: {{ utils.money(logisticsTotal()) }}
+                <strong
+                  >Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong
+                >
+                @if (form.logisticsProvider === "own_trawl") {
+                  <span
+                    >Резерв трала появится в календаре на даты логистики.</span
+                  >
+                }
+              </div>
+            }
+          </div>
+          <div class="assembly-box">
+            <label class="toggle-line">
+              <input
+                type="checkbox"
+                [(ngModel)]="form.assemblyEnabled"
+                name="assemblyEnabled"
+              />
+              <span>Сборка/разборка техники</span>
+            </label>
+            @if (form.assemblyEnabled) {
+              <div class="assembly-grid">
+                <div class="field">
+                  <label>Дата демонтажа</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.assemblyDisassemblyDate"
+                    name="assemblyDisassemblyDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость демонтажа, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.assemblyDisassemblyCost"
+                    name="assemblyDisassemblyCost"
+                  />
+                </div>
+                <div class="field">
+                  <label>Дата монтажа</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.assemblyAssemblyDate"
+                    name="assemblyAssemblyDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость монтажа, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.assemblyAssemblyCost"
+                    name="assemblyAssemblyCost"
+                  />
+                </div>
+              </div>
+              <div class="assembly-summary">
+                Итого сборка/разборка: {{ utils.money(assemblyTotal()) }}
+                <strong
+                  >Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong
+                >
+                <span
+                  >Даты демонтажа и монтажа появятся в календаре отдельным
+                  цветом.</span
+                >
+              </div>
+            }
+          </div>
+          <div class="breakdown-box">
+            <label class="toggle-line">
+              <input
+                type="checkbox"
+                [(ngModel)]="form.breakdownEnabled"
+                name="breakdownEnabled"
+              />
+              <span>Поломка во время аренды</span>
+            </label>
+            @if (form.breakdownEnabled) {
+              <div class="breakdown-grid">
+                <div class="field">
+                  <label>Дата поломки</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.breakdownDate"
+                    name="breakdownDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Дата устранения / до</label>
+                  <input
+                    type="date"
+                    [(ngModel)]="form.breakdownEndDate"
+                    name="breakdownEndDate"
+                    [placeholder]="form.breakdownDate"
+                  />
+                </div>
+                <div class="field">
+                  <label>Статус поломки</label>
+                  <select
+                    [(ngModel)]="form.breakdownStatus"
+                    name="breakdownStatus"
+                  >
+                    @for (status of breakdownStatuses; track status.value) {
+                      <option [value]="status.value">{{ status.label }}</option>
                     }
                   </select>
                 </div>
-              }
-              <div class="field">
-                <label>Дата начала логистики</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.logisticsStartDate"
-                  name="logisticsStartDate"
-                  [placeholder]="form.startDate"
-                />
+                <div class="field">
+                  <label>Ответственность</label>
+                  <select
+                    [(ngModel)]="form.breakdownFaultParty"
+                    name="breakdownFaultParty"
+                  >
+                    @for (party of breakdownFaultParties; track party.value) {
+                      <option [value]="party.value">{{ party.label }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Кто сообщил</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="form.breakdownReporter"
+                    name="breakdownReporter"
+                    placeholder="Клиент / оператор / менеджер"
+                  />
+                </div>
+                <div class="field">
+                  <label>Ответственный за ремонт</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="form.breakdownResponsible"
+                    name="breakdownResponsible"
+                    placeholder="Кто ведет вопрос"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость работ, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.breakdownLaborCost"
+                    name="breakdownLaborCost"
+                  />
+                </div>
+                <div class="field">
+                  <label>Стоимость запчастей, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="form.breakdownPartsCost"
+                    name="breakdownPartsCost"
+                  />
+                </div>
+                <div class="field detail-wide">
+                  <label>Описание поломки</label>
+                  <textarea
+                    [(ngModel)]="form.breakdownDescription"
+                    name="breakdownDescription"
+                    placeholder="Что произошло, симптомы, договоренности с клиентом"
+                  ></textarea>
+                </div>
               </div>
-              <div class="field">
-                <label>Дата окончания логистики</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.logisticsEndDate"
-                  name="logisticsEndDate"
-                  [placeholder]="form.endDate"
-                />
+              <div class="breakdown-options">
+                <label>
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="form.breakdownAffectsPayment"
+                    name="breakdownAffectsPayment"
+                  />
+                  <span
+                    >Влияет на оплату: дни поломки добавить в простой
+                    техники</span
+                  >
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="form.breakdownOperatorIdle"
+                    name="breakdownOperatorIdle"
+                  />
+                  <span>Оператор тоже простаивал</span>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="form.breakdownCreateRepair"
+                    name="breakdownCreateRepair"
+                  />
+                  <span>Создать/обновить ремонт в разделе ремонтов</span>
+                </label>
               </div>
-              <div class="field">
-                <label>Цена за 1 км подачи, ₴ (50 грн)</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.logisticsPickupPricePerKm"
-                  name="logisticsPickupPricePerKm"
-                  (ngModelChange)="recalcLogisticsCost()"
-                />
+              <div class="breakdown-summary">
+                Поломка:
+                {{ breakdownDates().length || 0 }} дн.
+                @if (form.breakdownAffectsPayment) {
+                  <span>Эти дни будут вычтены из плана аренды.</span>
+                } @else {
+                  <span>План аренды не изменится.</span>
+                }
+                @if (form.breakdownRepairId) {
+                  <strong
+                    >Связанный ремонт:
+                    {{ form.breakdownRepairId | slice: -5 }}</strong
+                  >
+                }
               </div>
-              <div class="field">
-                <label>Подача, км</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.logisticsPickupKm"
-                  name="logisticsPickupKm"
-                  (ngModelChange)="recalcLogisticsCost()"
-                />
-              </div>
-              <div class="field">
-                <label>Стоимость подачи, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.logisticsPickupCost"
-                  name="logisticsPickupCost"
-                />
-              </div>
-              <div class="field">
-                <label>Цена за 1 км доставки, ₴ (250 грн)</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.logisticsDeliveryPricePerKm"
-                  name="logisticsDeliveryPricePerKm"
-                  (ngModelChange)="recalcLogisticsCost()"
-                />
-              </div>
-              <div class="field">
-                <label>Доставка, км</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.logisticsDeliveryKm"
-                  name="logisticsDeliveryKm"
-                  (ngModelChange)="recalcLogisticsCost()"
-                />
-              </div>
-              <div class="field">
-                <label>Стоимость доставки, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.logisticsDeliveryCost"
-                  name="logisticsDeliveryCost"
-                />
-              </div>
-            </div>
-            <div class="logistics-total">
-              Итого логистика: {{ utils.money(logisticsTotal()) }}
-              <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
-              @if (form.logisticsProvider === "own_trawl") {
-                <span>Резерв трала появится в календаре на даты логистики.</span>
-              }
-            </div>
-          }
-        </div>
-        <div class="assembly-box">
-          <label class="toggle-line">
-            <input
-              type="checkbox"
-              [(ngModel)]="form.assemblyEnabled"
-              name="assemblyEnabled"
-            />
-            <span>Сборка/разборка техники</span>
-          </label>
-          @if (form.assemblyEnabled) {
-            <div class="assembly-grid">
-              <div class="field">
-                <label>Дата демонтажа</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.assemblyDisassemblyDate"
-                  name="assemblyDisassemblyDate"
-                />
-              </div>
-              <div class="field">
-                <label>Стоимость демонтажа, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.assemblyDisassemblyCost"
-                  name="assemblyDisassemblyCost"
-                />
-              </div>
-              <div class="field">
-                <label>Дата монтажа</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.assemblyAssemblyDate"
-                  name="assemblyAssemblyDate"
-                />
-              </div>
-              <div class="field">
-                <label>Стоимость монтажа, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.assemblyAssemblyCost"
-                  name="assemblyAssemblyCost"
-                />
-              </div>
-            </div>
-            <div class="assembly-summary">
-              Итого сборка/разборка: {{ utils.money(assemblyTotal()) }}
-              <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
-              <span>Даты демонтажа и монтажа появятся в календаре отдельным цветом.</span>
-            </div>
-          }
-        </div>
-        <div class="breakdown-box">
-          <label class="toggle-line">
-            <input
-              type="checkbox"
-              [(ngModel)]="form.breakdownEnabled"
-              name="breakdownEnabled"
-            />
-            <span>Поломка во время аренды</span>
-          </label>
-          @if (form.breakdownEnabled) {
-            <div class="breakdown-grid">
-              <div class="field">
-                <label>Дата поломки</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.breakdownDate"
-                  name="breakdownDate"
-                />
-              </div>
-              <div class="field">
-                <label>Дата устранения / до</label>
-                <input
-                  type="date"
-                  [(ngModel)]="form.breakdownEndDate"
-                  name="breakdownEndDate"
-                  [placeholder]="form.breakdownDate"
-                />
-              </div>
-              <div class="field">
-                <label>Статус поломки</label>
-                <select [(ngModel)]="form.breakdownStatus" name="breakdownStatus">
-                  @for (status of breakdownStatuses; track status.value) {
-                    <option [value]="status.value">{{ status.label }}</option>
-                  }
-                </select>
-              </div>
-              <div class="field">
-                <label>Ответственность</label>
-                <select
-                  [(ngModel)]="form.breakdownFaultParty"
-                  name="breakdownFaultParty"
-                >
-                  @for (party of breakdownFaultParties; track party.value) {
-                    <option [value]="party.value">{{ party.label }}</option>
-                  }
-                </select>
-              </div>
-              <div class="field">
-                <label>Кто сообщил</label>
-                <input
-                  type="text"
-                  [(ngModel)]="form.breakdownReporter"
-                  name="breakdownReporter"
-                  placeholder="Клиент / оператор / менеджер"
-                />
-              </div>
-              <div class="field">
-                <label>Ответственный за ремонт</label>
-                <input
-                  type="text"
-                  [(ngModel)]="form.breakdownResponsible"
-                  name="breakdownResponsible"
-                  placeholder="Кто ведет вопрос"
-                />
-              </div>
-              <div class="field">
-                <label>Стоимость работ, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.breakdownLaborCost"
-                  name="breakdownLaborCost"
-                />
-              </div>
-              <div class="field">
-                <label>Стоимость запчастей, ₴</label>
-                <input
-                  type="number"
-                  min="0"
-                  [(ngModel)]="form.breakdownPartsCost"
-                  name="breakdownPartsCost"
-                />
-              </div>
-              <div class="field detail-wide">
-                <label>Описание поломки</label>
-                <textarea
-                  [(ngModel)]="form.breakdownDescription"
-                  name="breakdownDescription"
-                  placeholder="Что произошло, симптомы, договоренности с клиентом"
-                ></textarea>
-              </div>
-            </div>
-            <div class="breakdown-options">
-              <label>
-                <input
-                  type="checkbox"
-                  [(ngModel)]="form.breakdownAffectsPayment"
-                  name="breakdownAffectsPayment"
-                />
-                <span>Влияет на оплату: дни поломки добавить в простой техники</span>
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  [(ngModel)]="form.breakdownOperatorIdle"
-                  name="breakdownOperatorIdle"
-                />
-                <span>Оператор тоже простаивал</span>
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  [(ngModel)]="form.breakdownCreateRepair"
-                  name="breakdownCreateRepair"
-                />
-                <span>Создать/обновить ремонт в разделе ремонтов</span>
-              </label>
-            </div>
-            <div class="breakdown-summary">
-              Поломка:
-              {{ breakdownDates().length || 0 }} дн.
-              @if (form.breakdownAffectsPayment) {
-                <span>Эти дни будут вычтены из плана аренды.</span>
-              } @else {
-                <span>План аренды не изменится.</span>
-              }
-              @if (form.breakdownRepairId) {
-                <strong>Связанный ремонт: {{ form.breakdownRepairId | slice: -5 }}</strong>
-              }
-            </div>
-          }
-        </div>
-        <div class="field">
-          <label>Локация</label
-          ><input
-            type="text"
-            [(ngModel)]="form.location"
-            name="location"
-            placeholder="Объект / город"
-          />
-        </div>
-        <div class="field">
-          <label>Тариф, ₴/день</label
-          ><input type="number" [(ngModel)]="form.rate" name="rate" min="0" />
-        </div>
-        <div class="field">
-          <label>Статус</label>
-          <div class="segmented-filter order-status-picker">
-            @for (s of statuses; track s.value) {
-              <button
-                type="button"
-                class="filter-chip"
-                [class.active]="form.status === s.value"
-                [ngClass]="'status-' + s.value"
-                (click)="form.status = s.value"
-              >
-                {{ s.label }}
-              </button>
             }
           </div>
-        </div>
-        <div class="field">
-          <label>Комментарий</label
-          ><textarea [(ngModel)]="form.notes" name="notes"></textarea>
-        </div>
-        <div class="order-save-total">
-          <span>Сумма заявки к сохранению</span>
-          <strong>{{ utils.money(orderDraftTotal()) }}</strong>
-          @if (form.discountEnabled) {
-            <small>Скидка: {{ utils.money(orderDraftDiscountAmount()) }}</small>
-          }
-          @if (form.vatEnabled) {
-            <small>НДС включен в стоимость техники</small>
-          }
-        </div>
-        <div class="actions">
-          <button type="submit" class="btn primary">
-            {{ editingId ? "Сохранить изменения" : "Сохранить заявку" }}
-          </button>
-          <button type="button" class="btn ghost" (click)="closeForm()">
-            Отмена
-          </button>
-        </div>
-      </form>
+          <div class="field">
+            <label>Локация</label
+            ><input
+              type="text"
+              [(ngModel)]="form.location"
+              name="location"
+              placeholder="Объект / город"
+            />
+          </div>
+          <div class="field">
+            <label>Тариф, ₴/день</label
+            ><input type="number" [(ngModel)]="form.rate" name="rate" min="0" />
+          </div>
+          <div class="field">
+            <label>Статус</label>
+            <div class="segmented-filter order-status-picker">
+              @for (s of statuses; track s.value) {
+                <button
+                  type="button"
+                  class="filter-chip"
+                  [class.active]="form.status === s.value"
+                  [ngClass]="'status-' + s.value"
+                  (click)="form.status = s.value"
+                >
+                  {{ s.label }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="field">
+            <label>Комментарий</label
+            ><textarea [(ngModel)]="form.notes" name="notes"></textarea>
+          </div>
+          <div class="order-save-total">
+            <span>Сумма заявки к сохранению</span>
+            <strong>{{ utils.money(orderDraftTotal()) }}</strong>
+            @if (form.discountEnabled) {
+              <small
+                >Скидка: {{ utils.money(orderDraftDiscountAmount()) }}</small
+              >
+            }
+            @if (form.vatEnabled) {
+              <small>НДС включен в стоимость техники</small>
+            }
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn primary">
+              {{ editingId ? "Сохранить изменения" : "Сохранить заявку" }}
+            </button>
+            <button type="button" class="btn ghost" (click)="closeForm()">
+              Отмена
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   }
@@ -825,18 +864,22 @@
           <div>
             <span>Ставка техники</span>
             <strong>
-              {{ utils.money(selected.equipmentHourlyRate || selected.rate) }}/{{
-                selected.equipmentHourlyRate ? "час" : "день"
-              }}
+              {{
+                utils.money(selected.equipmentHourlyRate || selected.rate)
+              }}/{{ selected.equipmentHourlyRate ? "час" : "день" }}
             </strong>
           </div>
           <div>
             <span>НДС по технике</span>
-            <strong>{{ utils.money(state.orderEquipmentVat(selected)) }}</strong>
+            <strong>{{
+              utils.money(state.orderEquipmentVat(selected))
+            }}</strong>
           </div>
           <div>
             <span>Скидка</span>
-            <strong>{{ utils.money(state.orderDiscountAmount(selected)) }}</strong>
+            <strong>{{
+              utils.money(state.orderDiscountAmount(selected))
+            }}</strong>
           </div>
           <div>
             <span>Рабочие дни оператора</span>
@@ -844,7 +887,9 @@
           </div>
           <div>
             <span>Зарплата операторов</span>
-            <strong>{{ utils.money(state.orderOperatorCost(selected)) }}</strong>
+            <strong>{{
+              utils.money(state.orderOperatorCost(selected))
+            }}</strong>
           </div>
           <div>
             <span>План</span>
@@ -870,11 +915,15 @@
           </div>
           <div class="detail-wide">
             <span>Простой техники</span>
-            <strong>{{ idleDatesLabel(selected.equipmentIdleDates || []) }}</strong>
+            <strong>{{
+              idleDatesLabel(selected.equipmentIdleDates || [])
+            }}</strong>
           </div>
           <div class="detail-wide">
             <span>Простой оператора</span>
-            <strong>{{ idleDatesLabel(selected.operatorIdleDates || []) }}</strong>
+            <strong>{{
+              idleDatesLabel(selected.operatorIdleDates || [])
+            }}</strong>
           </div>
           @if (selected.operatorShifts.length) {
             <div class="detail-wide">
@@ -904,16 +953,30 @@
                 @if (selected.logisticsTrailerId) {
                   • {{ eqName(selected.logisticsTrailerId) }}
                 }
-                • {{ utils.fmtDate(selected.logisticsStartDate || selected.startDate) }}
+                •
+                {{
+                  utils.fmtDate(
+                    selected.logisticsStartDate || selected.startDate
+                  )
+                }}
                 -
-                {{ utils.fmtDate(selected.logisticsEndDate || selected.endDate) }}
+                {{
+                  utils.fmtDate(selected.logisticsEndDate || selected.endDate)
+                }}
                 • подача {{ selected.logisticsPickupKm || 0 }} км /
                 {{ utils.money(selected.logisticsPickupCost || 0) }}
                 ({{ utils.money(selected.logisticsPickupPricePerKm || 50) }}/км)
-                • доставка {{ selected.logisticsDeliveryKm || selected.logisticsDistanceKm || 0 }} км /
+                • доставка
+                {{
+                  selected.logisticsDeliveryKm ||
+                    selected.logisticsDistanceKm ||
+                    0
+                }}
+                км /
                 {{ utils.money(selected.logisticsDeliveryCost || 0) }}
-                ({{ utils.money(selected.logisticsDeliveryPricePerKm || 250) }}/км)
-                • {{ utils.money(state.orderLogisticsCost(selected)) }}
+                ({{
+                  utils.money(selected.logisticsDeliveryPricePerKm || 250)
+                }}/км) • {{ utils.money(state.orderLogisticsCost(selected)) }}
               </strong>
             </div>
           }
@@ -938,7 +1001,11 @@
                 {{ breakdownStatusLabel(selected.breakdownStatus) }}
                 • {{ utils.fmtDate(selected.breakdownDate) }}
                 -
-                {{ utils.fmtDate(selected.breakdownEndDate || selected.breakdownDate) }}
+                {{
+                  utils.fmtDate(
+                    selected.breakdownEndDate || selected.breakdownDate
+                  )
+                }}
                 • ответственность:
                 {{ breakdownFaultPartyLabel(selected.breakdownFaultParty) }}
               </strong>
@@ -950,9 +1017,9 @@
                 ответственный: {{ selected.breakdownResponsible || "—" }}
               </p>
               <p>
-                Ремонт:
-                работы {{ utils.money(selected.breakdownLaborCost || 0) }},
-                запчасти {{ utils.money(selected.breakdownPartsCost || 0) }}
+                Ремонт: работы
+                {{ utils.money(selected.breakdownLaborCost || 0) }}, запчасти
+                {{ utils.money(selected.breakdownPartsCost || 0) }}
                 @if (selected.breakdownRepairId) {
                   • запись {{ selected.breakdownRepairId | slice: -5 }}
                 }
@@ -968,7 +1035,18 @@
           }
         </div>
         <div class="actions">
-          <button type="button" class="btn primary" (click)="editSelected(selected)">
+          <button
+            type="button"
+            class="btn info"
+            (click)="generateCommercialProposal(selected)"
+          >
+            Комерційна пропозиція
+          </button>
+          <button
+            type="button"
+            class="btn primary"
+            (click)="editSelected(selected)"
+          >
             Редактировать
           </button>
           <button type="button" class="btn ghost" (click)="closeDetails()">
@@ -981,170 +1059,184 @@
 
   <div class="row">
     <div class="col-12">
-    <div class="card panel internal-scroll-panel">
-      <div class="toolbar">
-        <input
-          type="text"
-          [value]="search()"
-          (input)="search.set($any($event.target).value)"
-          placeholder="Поиск: клиент, техника, объект..."
-        />
-        <div class="segmented-filter">
-          @for (f of filterStatuses; track f.value) {
-            <button
-              type="button"
-              class="filter-chip"
-              [class.active]="filterStatus() === f.value"
-              [ngClass]="f.value ? 'status-' + f.value : ''"
-              (click)="filterStatus.set(f.value)"
-            >
-              {{ f.label }}
-            </button>
-          }
+      <div class="card panel internal-scroll-panel">
+        <div class="toolbar">
+          <input
+            type="text"
+            [value]="search()"
+            (input)="search.set($any($event.target).value)"
+            placeholder="Поиск: клиент, техника, объект..."
+          />
+          <div class="segmented-filter">
+            @for (f of filterStatuses; track f.value) {
+              <button
+                type="button"
+                class="filter-chip"
+                [class.active]="filterStatus() === f.value"
+                [ngClass]="f.value ? 'status-' + f.value : ''"
+                (click)="filterStatus.set(f.value)"
+              >
+                {{ f.label }}
+              </button>
+            }
+          </div>
         </div>
-      </div>
-      @if (state.orderConflicts().length) {
-        <div class="alert">Найдены пересечения по аренде.</div>
-      } @else {
-        <div class="ok">Пересечений по аренде не найдено.</div>
-      }
-      <div class="table-wrap internal-scroll-body">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Создана</th>
-              <th>Период</th>
-              <th>Клиент</th>
-              <th>Техника</th>
-              <th>План</th>
-              <th>Доход</th>
-              <th>Расход</th>
-              <th>Прибыль</th>
-              <th>Статус</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (group of groupedOrders(); track group.clientId) {
-              <tr class="client-group-row" (click)="toggleClientGroup(group.clientId)">
-                <td colspan="3">
-                  <div class="client-group-title">
-                    <span class="group-chevron">
-                      {{ isClientExpanded(group.clientId) ? "▾" : "▸" }}
-                    </span>
-                    <strong>{{ group.clientName }}</strong>
-                    <span>{{ group.orders.length }} заявк.</span>
-                    @if (group.overdue) {
-                      <span class="ending-chip overdue">
-                        Просрочено: {{ group.overdue }}
-                      </span>
-                    }
-                    @if (group.endingToday) {
-                      <span class="ending-chip today">
-                        Сегодня: {{ group.endingToday }}
-                      </span>
-                    }
-                    @if (group.endingSoon) {
-                      <span class="ending-chip soon">
-                        До 1 дня: {{ group.endingSoon }}
-                      </span>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <span class="client-group-muted">Клиент</span>
-                </td>
-                <td>
-                  <span class="client-group-muted">
-                    Последняя: {{ utils.fmtDate(group.latestDate) }}
-                  </span>
-                </td>
-                <td>{{ utils.money(group.plan) }}</td>
-                <td>{{ utils.money(group.income) }}</td>
-                <td>{{ utils.money(group.expense) }}</td>
-                <td>{{ utils.money(group.profit) }}</td>
-                <td>
-                  @if (group.remaining) {
-                    <span class="client-group-muted">
-                      Остаток {{ utils.money(group.remaining) }}
-                    </span>
-                  } @else {
-                    <span class="client-group-muted">Оплачено</span>
-                  }
-                </td>
-                <td></td>
+        @if (state.orderConflicts().length) {
+          <div class="alert">Найдены пересечения по аренде.</div>
+        } @else {
+          <div class="ok">Пересечений по аренде не найдено.</div>
+        }
+        <div class="table-wrap internal-scroll-body">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Создана</th>
+                <th>Период</th>
+                <th>Клиент</th>
+                <th>Техника</th>
+                <th>План</th>
+                <th>Доход</th>
+                <th>Расход</th>
+                <th>Прибыль</th>
+                <th>Статус</th>
+                <th></th>
               </tr>
-              @if (isClientExpanded(group.clientId)) {
-                @for (o of group.orders; track o.id) {
-                  <tr class="clickable-row order-child-row" (click)="viewOrder(o)">
-                    <td>{{ o.id | slice: -5 }}</td>
-                    <td>{{ o.createdAt ? utils.fmtDate(o.createdAt.slice(0, 10)) : "—" }}</td>
-                    <td>
-                      {{ utils.fmtDate(o.startDate) }}
-                      <div class="small">
-                        {{ utils.fmtDate(o.endDate) }} •
-                        {{ utils.daysInclusive(o.startDate, o.endDate) }} дн.
-                      </div>
-                      @if (orderEndingKind(o); as endingKind) {
-                        <div class="ending-notice" [ngClass]="endingKind">
-                          {{ orderEndingLabel(o) }}
-                        </div>
+            </thead>
+            <tbody>
+              @for (group of groupedOrders(); track group.clientId) {
+                <tr
+                  class="client-group-row"
+                  (click)="toggleClientGroup(group.clientId)"
+                >
+                  <td colspan="3">
+                    <div class="client-group-title">
+                      <span class="group-chevron">
+                        {{ isClientExpanded(group.clientId) ? "▾" : "▸" }}
+                      </span>
+                      <strong>{{ group.clientName }}</strong>
+                      <span>{{ group.orders.length }} заявк.</span>
+                      @if (group.overdue) {
+                        <span class="ending-chip overdue">
+                          Просрочено: {{ group.overdue }}
+                        </span>
                       }
-                      @if (conflictSet().has(o.id)) {
-                        <div class="small" style="color: #fca5a5">
-                          Конфликт по технике
-                        </div>
+                      @if (group.endingToday) {
+                        <span class="ending-chip today">
+                          Сегодня: {{ group.endingToday }}
+                        </span>
                       }
-                      @if (operatorConflictSet().has(o.id)) {
-                        <div class="small" style="color: #fdba74">
-                          Оператор занят в другой заявке
-                        </div>
+                      @if (group.endingSoon) {
+                        <span class="ending-chip soon">
+                          До 1 дня: {{ group.endingSoon }}
+                        </span>
                       }
-                      @if (orderRepairNotice(o); as repairNotice) {
-                        <div class="small repair-order-note">
-                          {{ repairNotice }}
+                    </div>
+                  </td>
+                  <td>
+                    <span class="client-group-muted">Клиент</span>
+                  </td>
+                  <td>
+                    <span class="client-group-muted">
+                      Последняя: {{ utils.fmtDate(group.latestDate) }}
+                    </span>
+                  </td>
+                  <td>{{ utils.money(group.plan) }}</td>
+                  <td>{{ utils.money(group.income) }}</td>
+                  <td>{{ utils.money(group.expense) }}</td>
+                  <td>{{ utils.money(group.profit) }}</td>
+                  <td>
+                    @if (group.remaining) {
+                      <span class="client-group-muted">
+                        Остаток {{ utils.money(group.remaining) }}
+                      </span>
+                    } @else {
+                      <span class="client-group-muted">Оплачено</span>
+                    }
+                  </td>
+                  <td></td>
+                </tr>
+                @if (isClientExpanded(group.clientId)) {
+                  @for (o of group.orders; track o.id) {
+                    <tr
+                      class="clickable-row order-child-row"
+                      (click)="viewOrder(o)"
+                    >
+                      <td>{{ o.id | slice: -5 }}</td>
+                      <td>
+                        {{
+                          o.createdAt
+                            ? utils.fmtDate(o.createdAt.slice(0, 10))
+                            : "—"
+                        }}
+                      </td>
+                      <td>
+                        {{ utils.fmtDate(o.startDate) }}
+                        <div class="small">
+                          {{ utils.fmtDate(o.endDate) }} •
+                          {{ utils.daysInclusive(o.startDate, o.endDate) }} дн.
                         </div>
-                      }
-                      @if (completedUnpaidSet().has(o.id)) {
-                        <div class="small unpaid-order-note">
-                          Завершена, но не оплачена:
-                          {{ utils.money(state.orderRemaining(o)) }}
-                        </div>
-                      }
-                    </td>
-                    <td>{{ clientName(o.clientId) }}</td>
-                    <td>{{ eqName(o.equipmentId) }}</td>
-                    <td>{{ utils.money(state.orderPlan(o)) }}</td>
-                    <td>{{ utils.money(state.orderIncome(o.id)) }}</td>
-                    <td>{{ utils.money(state.orderExpense(o.id)) }}</td>
-                    <td>{{ utils.money(state.orderProfit(o.id)) }}</td>
-                    <td>
-                      <span class="badge" [ngClass]="o.status">{{
-                        statusLabel(o.status)
-                      }}</span>
-                    </td>
-                    <td (click)="$event.stopPropagation()">
-                      <button class="btn ghost" (click)="edit(o)">Ред.</button>
-                      <button class="btn ghost" (click)="remove(o.id)">
-                        Удалить
-                      </button>
-                    </td>
-                  </tr>
+                        @if (orderEndingKind(o); as endingKind) {
+                          <div class="ending-notice" [ngClass]="endingKind">
+                            {{ orderEndingLabel(o) }}
+                          </div>
+                        }
+                        @if (conflictSet().has(o.id)) {
+                          <div class="small" style="color: #fca5a5">
+                            Конфликт по технике
+                          </div>
+                        }
+                        @if (operatorConflictSet().has(o.id)) {
+                          <div class="small" style="color: #fdba74">
+                            Оператор занят в другой заявке
+                          </div>
+                        }
+                        @if (orderRepairNotice(o); as repairNotice) {
+                          <div class="small repair-order-note">
+                            {{ repairNotice }}
+                          </div>
+                        }
+                        @if (completedUnpaidSet().has(o.id)) {
+                          <div class="small unpaid-order-note">
+                            Завершена, но не оплачена:
+                            {{ utils.money(state.orderRemaining(o)) }}
+                          </div>
+                        }
+                      </td>
+                      <td>{{ clientName(o.clientId) }}</td>
+                      <td>{{ eqName(o.equipmentId) }}</td>
+                      <td>{{ utils.money(state.orderPlan(o)) }}</td>
+                      <td>{{ utils.money(state.orderIncome(o.id)) }}</td>
+                      <td>{{ utils.money(state.orderExpense(o.id)) }}</td>
+                      <td>{{ utils.money(state.orderProfit(o.id)) }}</td>
+                      <td>
+                        <span class="badge" [ngClass]="o.status">{{
+                          statusLabel(o.status)
+                        }}</span>
+                      </td>
+                      <td (click)="$event.stopPropagation()">
+                        <button class="btn ghost" (click)="edit(o)">
+                          Ред.
+                        </button>
+                        <button class="btn ghost" (click)="remove(o.id)">
+                          Удалить
+                        </button>
+                      </td>
+                    </tr>
+                  }
                 }
               }
-            }
-            @if (!groupedOrders().length) {
-              <tr>
-                <td colspan="11">
-                  <div class="empty">Ничего не найдено.</div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+              @if (!groupedOrders().length) {
+                <tr>
+                  <td colspan="11">
+                    <div class="empty">Ничего не найдено.</div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-</div>
 </div>
