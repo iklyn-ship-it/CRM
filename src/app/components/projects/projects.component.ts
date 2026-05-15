@@ -21,6 +21,11 @@ interface LocationGroup {
   income: number;
   expense: number;
   profit: number;
+  remaining: number;
+  endingSoon: number;
+  endingToday: number;
+  overdue: number;
+  unpaidCompleted: number;
   latestDate: string;
 }
 
@@ -33,6 +38,11 @@ interface ClientGroup {
   income: number;
   expense: number;
   profit: number;
+  remaining: number;
+  endingSoon: number;
+  endingToday: number;
+  overdue: number;
+  unpaidCompleted: number;
   latestDate: string;
 }
 
@@ -156,6 +166,22 @@ export class ProjectsComponent {
             (sum, order) => sum + this.state.orderProfit(order.id),
             0,
           ),
+          remaining: orders.reduce(
+            (sum, order) => sum + this.state.orderRemaining(order),
+            0,
+          ),
+          endingSoon: orders.filter(
+            (order) => this.orderEndingKind(order) === "soon",
+          ).length,
+          endingToday: orders.filter(
+            (order) => this.orderEndingKind(order) === "today",
+          ).length,
+          overdue: orders.filter(
+            (order) => this.orderEndingKind(order) === "overdue",
+          ).length,
+          unpaidCompleted: orders.filter((order) =>
+            this.orderPaymentKind(order),
+          ).length,
           latestDate: orders.reduce(
             (latest, order) =>
               order.startDate > latest ? order.startDate : latest,
@@ -883,6 +909,40 @@ export class ProjectsComponent {
     );
   }
 
+  orderEndingDaysLeft(order: Order): number {
+    if (!order.endDate) return 9999;
+    const today = new Date(`${this.utils.todayStr()}T00:00:00`).getTime();
+    const end = new Date(`${order.endDate}T00:00:00`).getTime();
+    return Math.ceil((end - today) / 86400000);
+  }
+
+  orderEndingKind(order: Order): "soon" | "today" | "overdue" | "" {
+    if (order.status === "completed" || order.status === "cancelled") return "";
+    const daysLeft = this.orderEndingDaysLeft(order);
+    if (daysLeft < 0) return "overdue";
+    if (daysLeft === 0) return "today";
+    if (daysLeft <= 1) return "soon";
+    return "";
+  }
+
+  orderEndingLabel(order: Order): string {
+    const daysLeft = this.orderEndingDaysLeft(order);
+    if (daysLeft < 0) return `Резерв просрочен на ${Math.abs(daysLeft)} дн.`;
+    if (daysLeft === 0) return "Резерв заканчивается сегодня";
+    return `До окончания резерва ${daysLeft} дн.`;
+  }
+
+  orderPaymentKind(order: Order): "unpaid" | "" {
+    if (order.status !== "completed") return "";
+    return this.state.orderRemaining(order) > 0 ? "unpaid" : "";
+  }
+
+  orderPaymentLabel(order: Order): string {
+    return `Завершена, не оплачено ${this.utils.money(
+      this.state.orderRemaining(order),
+    )}`;
+  }
+
   opTypeLabel(type: string): string {
     return type === "income" ? "Приход" : "Расход";
   }
@@ -915,6 +975,21 @@ export class ProjectsComponent {
         (sum, order) => sum + this.state.orderProfit(order.id),
         0,
       ),
+      remaining: sorted.reduce(
+        (sum, order) => sum + this.state.orderRemaining(order),
+        0,
+      ),
+      endingSoon: sorted.filter(
+        (order) => this.orderEndingKind(order) === "soon",
+      ).length,
+      endingToday: sorted.filter(
+        (order) => this.orderEndingKind(order) === "today",
+      ).length,
+      overdue: sorted.filter(
+        (order) => this.orderEndingKind(order) === "overdue",
+      ).length,
+      unpaidCompleted: sorted.filter((order) => this.orderPaymentKind(order))
+        .length,
       latestDate: sorted[0]?.startDate || "",
     };
   }

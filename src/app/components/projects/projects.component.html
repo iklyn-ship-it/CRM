@@ -1585,6 +1585,16 @@
                     {{ utils.daysInclusive(order.startDate, order.endDate) }}
                     дн.
                   </div>
+                  @if (orderEndingKind(order); as endingKind) {
+                    <div class="ending-notice" [ngClass]="endingKind">
+                      {{ orderEndingLabel(order) }}
+                    </div>
+                  }
+                  @if (orderPaymentKind(order); as paymentKind) {
+                    <div class="ending-notice" [ngClass]="paymentKind">
+                      {{ orderPaymentLabel(order) }}
+                    </div>
+                  }
                 </td>
                 <td>{{ utils.money(state.orderPlan(order)) }}</td>
                 <td>{{ utils.money(state.orderIncome(order.id)) }}</td>
@@ -1641,6 +1651,28 @@
             <span>{{ client.locations.length }} локац.</span>
             <span>План {{ utils.money(client.plan) }}</span>
             <span>Прибыль {{ utils.money(client.profit) }}</span>
+            <span class="indicator-pack">
+              @if (client.overdue) {
+                <span class="ending-chip overdue">
+                  Просрочено: {{ client.overdue }}
+                </span>
+              }
+              @if (client.endingToday) {
+                <span class="ending-chip today">
+                  Сегодня: {{ client.endingToday }}
+                </span>
+              }
+              @if (client.endingSoon) {
+                <span class="ending-chip soon">
+                  До 1 дня: {{ client.endingSoon }}
+                </span>
+              }
+              @if (client.unpaidCompleted) {
+                <span class="ending-chip unpaid">
+                  Не оплачено: {{ client.unpaidCompleted }}
+                </span>
+              }
+            </span>
           </button>
 
           @if (isClientExpanded(client.clientId)) {
@@ -1654,6 +1686,28 @@
                   <div>
                     <strong>{{ location.location }}</strong>
                     <span>{{ location.orders.length }} заявк.</span>
+                    <span class="indicator-pack">
+                      @if (location.overdue) {
+                        <span class="ending-chip overdue">
+                          Просрочено: {{ location.overdue }}
+                        </span>
+                      }
+                      @if (location.endingToday) {
+                        <span class="ending-chip today">
+                          Сегодня: {{ location.endingToday }}
+                        </span>
+                      }
+                      @if (location.endingSoon) {
+                        <span class="ending-chip soon">
+                          До 1 дня: {{ location.endingSoon }}
+                        </span>
+                      }
+                      @if (location.unpaidCompleted) {
+                        <span class="ending-chip unpaid">
+                          Не оплачено: {{ location.unpaidCompleted }}
+                        </span>
+                      }
+                    </span>
                   </div>
                   <div>{{ utils.money(location.plan) }}</div>
                   <div>{{ utils.money(location.income) }}</div>

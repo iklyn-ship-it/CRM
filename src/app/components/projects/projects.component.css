@@ -27,7 +27,10 @@
 
 .client-head {
   display: grid;
-  grid-template-columns: 22px minmax(180px, 1fr) repeat(4, auto);
+  grid-template-columns: 22px minmax(180px, 1fr) repeat(4, auto) minmax(
+      180px,
+      auto
+    );
   gap: 12px;
   align-items: center;
   padding: 15px;
@@ -73,6 +76,25 @@
   margin-top: 4px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.indicator-pack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.client-head .indicator-pack,
+.location-row .indicator-pack {
+  margin-top: 6px;
+}
+
+.client-head .ending-chip,
+.location-row .ending-chip {
+  display: inline-flex;
+  margin-top: 0;
+  font-size: 11px;
 }
 
 .workspace-topbar {
@@ -165,6 +187,55 @@
 
 .clickable-row {
   cursor: pointer;
+}
+
+.ending-chip,
+.ending-notice {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ending-chip {
+  padding: 6px 9px;
+}
+
+.ending-notice {
+  margin-top: 6px;
+  padding: 6px 8px;
+}
+
+.ending-chip.soon,
+.ending-notice.soon {
+  border: 1px solid rgba(250, 204, 21, 0.34);
+  background: rgba(250, 204, 21, 0.13);
+  color: #fde68a;
+}
+
+.ending-chip.today,
+.ending-notice.today {
+  border: 1px solid rgba(251, 146, 60, 0.38);
+  background: rgba(251, 146, 60, 0.16);
+  color: #fed7aa;
+}
+
+.ending-chip.overdue,
+.ending-notice.overdue {
+  border: 1px solid rgba(248, 113, 113, 0.38);
+  background: rgba(248, 113, 113, 0.16);
+  color: #fecaca;
+}
+
+.ending-chip.unpaid,
+.ending-notice.unpaid {
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  background: rgba(56, 189, 248, 0.13);
+  color: #bae6fd;
 }
 
 .order-full-card {
