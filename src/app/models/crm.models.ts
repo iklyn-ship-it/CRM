@@ -14,7 +14,7 @@ export interface Equipment {
   code: string;
   defaultRate: number;
   hourlyRate: number;
-  status: 'free' | 'busy' | 'repair';
+  status: "free" | "busy" | "repair";
 }
 
 export interface Operator {
@@ -27,7 +27,7 @@ export interface Operator {
   workStatus: OperatorWorkStatus;
 }
 
-export type OperatorWorkStatus = 'active' | 'sick_leave' | 'dismissed';
+export type OperatorWorkStatus = "active" | "sick_leave" | "dismissed";
 
 export interface OperatorShift {
   id: string;
@@ -51,7 +51,7 @@ export interface Order {
   additionalWorkHours: number;
   vatEnabled: boolean;
   discountEnabled: boolean;
-  discountType: 'percent' | 'amount';
+  discountType: "percent" | "amount";
   discountValue: number;
   status: OrderStatus;
   notes: string;
@@ -60,7 +60,7 @@ export interface Order {
   operatorIdleDates: string[];
   operatorShifts: OperatorShift[];
   logisticsEnabled: boolean;
-  logisticsProvider: 'own_trawl' | 'third_party' | 'self_drive';
+  logisticsProvider: "own_trawl" | "third_party" | "self_drive";
   logisticsTrailerId: string;
   logisticsStartDate: string;
   logisticsEndDate: string;
@@ -73,6 +73,12 @@ export interface Order {
   logisticsDeliveryKm: number;
   logisticsPickupCost: number;
   logisticsDeliveryCost: number;
+  logisticsReturnPickupPricePerKm: number;
+  logisticsReturnDeliveryPricePerKm: number;
+  logisticsReturnPickupKm: number;
+  logisticsReturnDeliveryKm: number;
+  logisticsReturnPickupCost: number;
+  logisticsReturnDeliveryCost: number;
   assemblyEnabled: boolean;
   assemblyDisassemblyDate: string;
   assemblyAssemblyDate: string;
@@ -94,9 +100,18 @@ export interface Order {
   breakdownRepairId: string;
 }
 
-export type OrderStatus = 'new' | 'confirmed' | 'active' | 'completed' | 'cancelled';
-export type BreakdownStatus = 'reported' | 'diagnostics' | 'repair' | 'resolved';
-export type BreakdownFaultParty = 'unknown' | 'ours' | 'client' | 'operator';
+export type OrderStatus =
+  | "new"
+  | "confirmed"
+  | "active"
+  | "completed"
+  | "cancelled";
+export type BreakdownStatus =
+  | "reported"
+  | "diagnostics"
+  | "repair"
+  | "resolved";
+export type BreakdownFaultParty = "unknown" | "ours" | "client" | "operator";
 
 export interface Repair {
   id: string;
@@ -111,7 +126,7 @@ export interface Repair {
   notes: string;
 }
 
-export type RepairStatus = 'planned' | 'active' | 'completed' | 'cancelled';
+export type RepairStatus = "planned" | "active" | "completed" | "cancelled";
 
 export interface Transport {
   id: string;
@@ -137,7 +152,7 @@ export interface Transport {
   createdAt: string;
 }
 
-export type TransportStatus = 'new' | 'active' | 'completed' | 'cancelled';
+export type TransportStatus = "new" | "active" | "completed" | "cancelled";
 
 export interface Project {
   id: string;
@@ -152,12 +167,17 @@ export interface Project {
   createdAt: string;
 }
 
-export type ProjectStatus = 'new' | 'active' | 'paused' | 'completed' | 'cancelled';
+export type ProjectStatus =
+  | "new"
+  | "active"
+  | "paused"
+  | "completed"
+  | "cancelled";
 
 export interface FinanceOperation {
   id: string;
   date: string;
-  type: 'income' | 'expense';
+  type: "income" | "expense";
   category: string;
   amount: number;
   orderId: string;
@@ -181,7 +201,7 @@ export interface AuditLog {
   entityType: string;
   entityId: string;
   entityLabel: string;
-  action: 'create' | 'update' | 'delete';
+  action: "create" | "update" | "delete";
   summary: string;
   changes: AuditLogChange[];
   createdAt: string;
@@ -237,7 +257,7 @@ export interface EquipmentAnalytics {
 
 export interface CalendarEvent {
   id: string;
-  type: 'rent' | 'repair';
+  type: "rent" | "repair";
   status?: string;
   title: string;
   equipmentId: string;

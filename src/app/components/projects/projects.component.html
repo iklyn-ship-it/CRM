@@ -862,8 +862,9 @@
                     name="logisticsEndDate"
                   />
                 </div>
+                <div class="cost-total wide">На объект</div>
                 <div class="field">
-                  <label>Цена 1 км подачи, ₴</label>
+                  <label>На объект: цена 1 км подачи, ₴</label>
                   <input
                     type="number"
                     min="0"
@@ -873,7 +874,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Подача, км</label>
+                  <label>На объект: подача, км</label>
                   <input
                     type="number"
                     min="0"
@@ -883,7 +884,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Стоимость подачи, ₴</label>
+                  <label>На объект: стоимость подачи, ₴</label>
                   <input
                     type="number"
                     min="0"
@@ -893,7 +894,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Цена 1 км доставки, ₴</label>
+                  <label>На объект: цена 1 км доставки, ₴</label>
                   <input
                     type="number"
                     min="0"
@@ -903,7 +904,7 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Доставка, км</label>
+                  <label>На объект: доставка, км</label>
                   <input
                     type="number"
                     min="0"
@@ -913,12 +914,73 @@
                   />
                 </div>
                 <div class="field">
-                  <label>Стоимость доставки, ₴</label>
+                  <label>На объект: стоимость доставки, ₴</label>
                   <input
                     type="number"
                     min="0"
                     [(ngModel)]="orderForm.logisticsDeliveryCost"
                     name="logisticsDeliveryCost"
+                    (ngModelChange)="syncLogisticsTotalField()"
+                  />
+                </div>
+                <div class="cost-total wide">Возврат на базу</div>
+                <div class="field">
+                  <label>Возврат: цена 1 км подачи, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsReturnPickupPricePerKm"
+                    name="logisticsReturnPickupPricePerKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Возврат: подача, км</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsReturnPickupKm"
+                    name="logisticsReturnPickupKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Возврат: стоимость подачи, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsReturnPickupCost"
+                    name="logisticsReturnPickupCost"
+                    (ngModelChange)="syncLogisticsTotalField()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Возврат: цена 1 км доставки, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsReturnDeliveryPricePerKm"
+                    name="logisticsReturnDeliveryPricePerKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Возврат: доставка, км</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsReturnDeliveryKm"
+                    name="logisticsReturnDeliveryKm"
+                    (ngModelChange)="recalcLogisticsCost()"
+                  />
+                </div>
+                <div class="field">
+                  <label>Возврат: стоимость доставки, ₴</label>
+                  <input
+                    type="number"
+                    min="0"
+                    [(ngModel)]="orderForm.logisticsReturnDeliveryCost"
+                    name="logisticsReturnDeliveryCost"
                     (ngModelChange)="syncLogisticsTotalField()"
                   />
                 </div>

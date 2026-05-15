@@ -70,7 +70,10 @@ export class CalendarComponent {
     operatorIdleDates: [] as string[],
     operatorShifts: [] as OperatorShift[],
     logisticsEnabled: false,
-    logisticsProvider: "own_trawl" as "own_trawl" | "third_party" | "self_drive",
+    logisticsProvider: "own_trawl" as
+      | "own_trawl"
+      | "third_party"
+      | "self_drive",
     logisticsTrailerId: "",
     logisticsStartDate: "",
     logisticsEndDate: "",
@@ -83,6 +86,12 @@ export class CalendarComponent {
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
     logisticsDeliveryCost: 0,
+    logisticsReturnPickupPricePerKm: 50,
+    logisticsReturnDeliveryPricePerKm: 250,
+    logisticsReturnPickupKm: 0,
+    logisticsReturnDeliveryKm: 0,
+    logisticsReturnPickupCost: 0,
+    logisticsReturnDeliveryCost: 0,
     assemblyEnabled: false,
     assemblyDisassemblyDate: "",
     assemblyAssemblyDate: "",
@@ -182,9 +191,13 @@ export class CalendarComponent {
     const rangeStart = this.rangeStart();
     const rangeEnd = this.rangeEnd();
     const firstGridDay = new Date(rangeStart);
-    firstGridDay.setDate(firstGridDay.getDate() - ((firstGridDay.getDay() + 6) % 7));
+    firstGridDay.setDate(
+      firstGridDay.getDate() - ((firstGridDay.getDay() + 6) % 7),
+    );
     const lastGridDay = new Date(rangeEnd);
-    lastGridDay.setDate(lastGridDay.getDate() + (6 - ((lastGridDay.getDay() + 6) % 7)));
+    lastGridDay.setDate(
+      lastGridDay.getDate() + (6 - ((lastGridDay.getDay() + 6) % 7)),
+    );
     const cells: CalCell[] = [];
 
     for (
@@ -192,131 +205,130 @@ export class CalendarComponent {
       cur <= lastGridDay;
       cur.setDate(cur.getDate() + 1)
     ) {
-        const day = new Date(cur);
-        const inMonth = day >= rangeStart && day <= rangeEnd;
-        const ds = this.utils.dateKey(day);
-        const weekend = [0, 6].includes(day.getDay());
+      const day = new Date(cur);
+      const inMonth = day >= rangeStart && day <= rangeEnd;
+      const ds = this.utils.dateKey(day);
+      const weekend = [0, 6].includes(day.getDay());
 
-        const rentEntries = this.state
-          .orders()
-          .filter(
-            (o) =>
-              this.orderVisibleOnDate(o, "equipment", ds) &&
-              this.isEquipmentTypeVisible(o.equipmentId) &&
-              o.status !== "cancelled",
-          )
-          .map((o) => ({
-            id: o.id,
-            eq:
-              this.state.byId(this.state.equipment(), o.equipmentId)?.name ||
-              "Техника",
-            cl:
-              this.state.byId(this.state.clients(), o.clientId)?.name ||
-              "Клиент",
-            type: "rent",
-            statusClass: "status-" + o.status,
-            equipmentId: o.equipmentId,
-            blocksSchedule: this.state.orderBlocksSchedule(o),
-            conflict: false,
-          }));
+      const rentEntries = this.state
+        .orders()
+        .filter(
+          (o) =>
+            this.orderVisibleOnDate(o, "equipment", ds) &&
+            this.isEquipmentTypeVisible(o.equipmentId) &&
+            o.status !== "cancelled",
+        )
+        .map((o) => ({
+          id: o.id,
+          eq:
+            this.state.byId(this.state.equipment(), o.equipmentId)?.name ||
+            "Техника",
+          cl:
+            this.state.byId(this.state.clients(), o.clientId)?.name || "Клиент",
+          type: "rent",
+          statusClass: "status-" + o.status,
+          equipmentId: o.equipmentId,
+          blocksSchedule: this.state.orderBlocksSchedule(o),
+          conflict: false,
+        }));
 
-        const logisticsEntries = this.state
-          .orders()
-          .filter(
-            (o) =>
-              o.logisticsEnabled &&
-              o.logisticsProvider === "own_trawl" &&
-              o.logisticsTrailerId &&
-              this.isEquipmentTypeVisible(o.logisticsTrailerId) &&
-              this.state.orderLogisticsStart(o) <= ds &&
-              this.state.orderLogisticsEnd(o) >= ds,
-          )
-          .map((o) => ({
-            id: o.id,
-            eq:
-              this.state.byId(this.state.equipment(), o.logisticsTrailerId)
-                ?.name || "Трал",
-            cl:
-              this.state.byId(this.state.clients(), o.clientId)?.name ||
-              "Логистика",
-            type: "logistics",
-            statusClass: "logistics",
-            equipmentId: o.logisticsTrailerId,
-            blocksSchedule: this.state.orderBlocksSchedule(o),
-            conflict: false,
-          }));
+      const logisticsEntries = this.state
+        .orders()
+        .filter(
+          (o) =>
+            o.logisticsEnabled &&
+            o.logisticsProvider === "own_trawl" &&
+            o.logisticsTrailerId &&
+            this.isEquipmentTypeVisible(o.logisticsTrailerId) &&
+            this.state.orderLogisticsStart(o) <= ds &&
+            this.state.orderLogisticsEnd(o) >= ds,
+        )
+        .map((o) => ({
+          id: o.id,
+          eq:
+            this.state.byId(this.state.equipment(), o.logisticsTrailerId)
+              ?.name || "Трал",
+          cl:
+            this.state.byId(this.state.clients(), o.clientId)?.name ||
+            "Логистика",
+          type: "logistics",
+          statusClass: "logistics",
+          equipmentId: o.logisticsTrailerId,
+          blocksSchedule: this.state.orderBlocksSchedule(o),
+          conflict: false,
+        }));
 
-        const repairEntries = this.state
-          .repairs()
-          .filter(
-            (r) =>
-              r.status !== "cancelled" &&
-              this.isEquipmentTypeVisible(r.equipmentId) &&
-              r.startDate <= ds &&
-              r.endDate >= ds,
-          )
-          .map((r) => ({
-            id: r.id,
-            eq:
-              this.state.byId(this.state.equipment(), r.equipmentId)?.name ||
-              "Техника",
-            cl: r.tasks || "Ремонт",
-            type: "repair",
-            statusClass: "repair",
-            equipmentId: r.equipmentId,
-            conflict: false,
-          }));
+      const repairEntries = this.state
+        .repairs()
+        .filter(
+          (r) =>
+            r.status !== "cancelled" &&
+            this.isEquipmentTypeVisible(r.equipmentId) &&
+            r.startDate <= ds &&
+            r.endDate >= ds,
+        )
+        .map((r) => ({
+          id: r.id,
+          eq:
+            this.state.byId(this.state.equipment(), r.equipmentId)?.name ||
+            "Техника",
+          cl: r.tasks || "Ремонт",
+          type: "repair",
+          statusClass: "repair",
+          equipmentId: r.equipmentId,
+          conflict: false,
+        }));
 
-        const assemblyEntries = this.state
-          .orders()
-          .flatMap((order) => this.orderAssemblyCalendarEntries(order, ds))
-          .filter((entry) => this.isEquipmentTypeVisible(entry.equipmentId));
+      const assemblyEntries = this.state
+        .orders()
+        .flatMap((order) => this.orderAssemblyCalendarEntries(order, ds))
+        .filter((entry) => this.isEquipmentTypeVisible(entry.equipmentId));
 
-        const transportEntries = this.state
-          .transports()
-          .filter(
-            (transport) =>
-              transport.status !== "cancelled" &&
-              this.isEquipmentTypeVisible(transport.equipmentId) &&
-              transport.startDate <= ds &&
-              transport.endDate >= ds,
-          )
-          .map((transport) => ({
-            id: transport.id,
-            eq:
-              this.state.byId(this.state.equipment(), transport.equipmentId)
-                ?.name || "Трал",
-            cl: this.transportTitle(transport),
-            type: "transport",
-            statusClass: "transport",
-            equipmentId: transport.equipmentId,
-            blocksSchedule: true,
-            conflict: false,
-          }));
+      const transportEntries = this.state
+        .transports()
+        .filter(
+          (transport) =>
+            transport.status !== "cancelled" &&
+            this.isEquipmentTypeVisible(transport.equipmentId) &&
+            transport.startDate <= ds &&
+            transport.endDate >= ds,
+        )
+        .map((transport) => ({
+          id: transport.id,
+          eq:
+            this.state.byId(this.state.equipment(), transport.equipmentId)
+              ?.name || "Трал",
+          cl: this.transportTitle(transport),
+          type: "transport",
+          statusClass: "transport",
+          equipmentId: transport.equipmentId,
+          blocksSchedule: true,
+          conflict: false,
+        }));
 
-        const entries = [
-          ...rentEntries,
-          ...logisticsEntries,
-          ...assemblyEntries,
-          ...transportEntries,
-          ...repairEntries,
-        ];
-        const cnt: Record<string, number> = {};
-        entries.forEach((e) => {
-          const shouldCount =
-            e.type === "repair" || ("blocksSchedule" in e && e.blocksSchedule);
-          if (shouldCount) {
-            cnt[e.equipmentId] = (cnt[e.equipmentId] || 0) + 1;
-          }
-        });
-        entries.forEach((e) => (e.conflict = cnt[e.equipmentId] > 1));
-        cells.push({
-          date: day,
-          inMonth,
-          ds,
-          weekend,
-          entries: entries.slice(0, 5),
-        });
+      const entries = [
+        ...rentEntries,
+        ...logisticsEntries,
+        ...assemblyEntries,
+        ...transportEntries,
+        ...repairEntries,
+      ];
+      const cnt: Record<string, number> = {};
+      entries.forEach((e) => {
+        const shouldCount =
+          e.type === "repair" || ("blocksSchedule" in e && e.blocksSchedule);
+        if (shouldCount) {
+          cnt[e.equipmentId] = (cnt[e.equipmentId] || 0) + 1;
+        }
+      });
+      entries.forEach((e) => (e.conflict = cnt[e.equipmentId] > 1));
+      cells.push({
+        date: day,
+        inMonth,
+        ds,
+        weekend,
+        entries: entries.slice(0, 5),
+      });
     }
     return cells;
   });
@@ -391,7 +403,12 @@ export class CalendarComponent {
           .repairs()
           .filter((r) => r.equipmentId === eq.id && r.status !== "cancelled")
           .flatMap((r) => {
-            const segment = this.rangeSegment(r.startDate, r.endDate, rangeStart, rangeEnd);
+            const segment = this.rangeSegment(
+              r.startDate,
+              r.endDate,
+              rangeStart,
+              rangeEnd,
+            );
             return segment
               ? [
                   {
@@ -410,7 +427,8 @@ export class CalendarComponent {
           .transports()
           .filter(
             (transport) =>
-              transport.equipmentId === eq.id && transport.status !== "cancelled",
+              transport.equipmentId === eq.id &&
+              transport.status !== "cancelled",
           )
           .flatMap((transport) => {
             const segment = this.rangeSegment(
@@ -559,6 +577,18 @@ export class CalendarComponent {
       ),
       logisticsPickupCost: pickupCost,
       logisticsDeliveryCost: deliveryCost,
+      logisticsReturnPickupPricePerKm: Number(
+        order.logisticsReturnPickupPricePerKm || 50,
+      ),
+      logisticsReturnDeliveryPricePerKm: Number(
+        order.logisticsReturnDeliveryPricePerKm || 250,
+      ),
+      logisticsReturnPickupKm: Number(order.logisticsReturnPickupKm || 0),
+      logisticsReturnDeliveryKm: Number(order.logisticsReturnDeliveryKm || 0),
+      logisticsReturnPickupCost: Number(order.logisticsReturnPickupCost || 0),
+      logisticsReturnDeliveryCost: Number(
+        order.logisticsReturnDeliveryCost || 0,
+      ),
       assemblyEnabled: Boolean(order.assemblyEnabled),
       assemblyDisassemblyDate: order.assemblyDisassemblyDate || "",
       assemblyAssemblyDate: order.assemblyAssemblyDate || "",
@@ -596,9 +626,9 @@ export class CalendarComponent {
   }
 
   trawlEquipment() {
-    return this.state.equipment().filter((eq) =>
-      (eq.type || "").trim().toLowerCase().includes("трал"),
-    );
+    return this.state
+      .equipment()
+      .filter((eq) => (eq.type || "").trim().toLowerCase().includes("трал"));
   }
 
   recalcLogisticsCost(): void {
@@ -608,6 +638,12 @@ export class CalendarComponent {
     this.form.logisticsDeliveryCost =
       Number(this.form.logisticsDeliveryKm || 0) *
       Number(this.form.logisticsDeliveryPricePerKm || 0);
+    this.form.logisticsReturnPickupCost =
+      Number(this.form.logisticsReturnPickupKm || 0) *
+      Number(this.form.logisticsReturnPickupPricePerKm || 0);
+    this.form.logisticsReturnDeliveryCost =
+      Number(this.form.logisticsReturnDeliveryKm || 0) *
+      Number(this.form.logisticsReturnDeliveryPricePerKm || 0);
     this.syncLogisticsTotals();
   }
 
@@ -710,7 +746,10 @@ export class CalendarComponent {
     }
     return (
       this.state.orders().find((order) => {
-        if (order.id === this.editingId || !this.state.orderBlocksSchedule(order)) {
+        if (
+          order.id === this.editingId ||
+          !this.state.orderBlocksSchedule(order)
+        ) {
           return false;
         }
         return operatorIds.some(
@@ -729,16 +768,18 @@ export class CalendarComponent {
       return null;
     }
     return (
-      this.state.transports().find(
-        (transport) =>
-          this.state.transportBlocksSchedule(transport) &&
-          operatorIds.includes(transport.driverId) &&
-          this.state.orderTransportOverlapByOperator(
-            draft,
-            transport,
-            transport.driverId,
-          ),
-      ) || null
+      this.state
+        .transports()
+        .find(
+          (transport) =>
+            this.state.transportBlocksSchedule(transport) &&
+            operatorIds.includes(transport.driverId) &&
+            this.state.orderTransportOverlapByOperator(
+              draft,
+              transport,
+              transport.driverId,
+            ),
+        ) || null
     );
   }
 
@@ -748,15 +789,17 @@ export class CalendarComponent {
     return (
       this.state.transports().find((transport) => {
         if (!this.state.transportBlocksSchedule(transport)) return false;
-        return this.state.orderEquipmentReservationIds(draft).some(
-          (equipmentId) =>
-            equipmentId === transport.equipmentId &&
-            this.state.orderTransportOverlapByEquipment(
-              draft,
-              transport,
-              equipmentId,
-            ),
-        );
+        return this.state
+          .orderEquipmentReservationIds(draft)
+          .some(
+            (equipmentId) =>
+              equipmentId === transport.equipmentId &&
+              this.state.orderTransportOverlapByEquipment(
+                draft,
+                transport,
+                equipmentId,
+              ),
+          );
       }) || null
     );
   }
@@ -774,7 +817,8 @@ export class CalendarComponent {
   }
 
   toggleIdleDate(kind: "equipment" | "operator", date: string): void {
-    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
     const dates = new Set(this.form[key]);
     if (dates.has(date)) dates.delete(date);
     else dates.add(date);
@@ -782,7 +826,8 @@ export class CalendarComponent {
   }
 
   excludeWeekendDates(kind: "equipment" | "operator"): void {
-    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
     const dates = new Set(this.form[key]);
     this.orderDates()
       .filter((date) => {
@@ -794,7 +839,8 @@ export class CalendarComponent {
   }
 
   clearIdleDates(kind: "equipment" | "operator"): void {
-    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
     this.form[key] = [];
   }
 
@@ -856,6 +902,12 @@ export class CalendarComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      logisticsReturnPickupPricePerKm: 50,
+      logisticsReturnDeliveryPricePerKm: 250,
+      logisticsReturnPickupKm: 0,
+      logisticsReturnDeliveryKm: 0,
+      logisticsReturnPickupCost: 0,
+      logisticsReturnDeliveryCost: 0,
       assemblyEnabled: false,
       assemblyDisassemblyDate: "",
       assemblyAssemblyDate: "",
@@ -889,7 +941,8 @@ export class CalendarComponent {
       additionalWorkHours: Number(this.form.additionalWorkHours || 0),
       discountValue: Number(this.form.discountValue || 0),
       logisticsTrailerId:
-        this.form.logisticsEnabled && this.form.logisticsProvider === "own_trawl"
+        this.form.logisticsEnabled &&
+        this.form.logisticsProvider === "own_trawl"
           ? this.form.logisticsTrailerId
           : "",
       logisticsStartDate: this.form.logisticsEnabled
@@ -900,7 +953,9 @@ export class CalendarComponent {
         : "",
       logisticsDistanceKm: this.form.logisticsEnabled
         ? Number(this.form.logisticsPickupKm || 0) +
-          Number(this.form.logisticsDeliveryKm || 0)
+          Number(this.form.logisticsDeliveryKm || 0) +
+          Number(this.form.logisticsReturnPickupKm || 0) +
+          Number(this.form.logisticsReturnDeliveryKm || 0)
         : 0,
       logisticsCost: this.form.logisticsEnabled ? this.logisticsSubtotal() : 0,
       logisticsPricePerKm: this.form.logisticsEnabled
@@ -923,6 +978,24 @@ export class CalendarComponent {
         : 0,
       logisticsDeliveryCost: this.form.logisticsEnabled
         ? Number(this.form.logisticsDeliveryCost || 0)
+        : 0,
+      logisticsReturnPickupPricePerKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnPickupPricePerKm || 0)
+        : 50,
+      logisticsReturnDeliveryPricePerKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnDeliveryPricePerKm || 0)
+        : 250,
+      logisticsReturnPickupKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnPickupKm || 0)
+        : 0,
+      logisticsReturnDeliveryKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnDeliveryKm || 0)
+        : 0,
+      logisticsReturnPickupCost: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnPickupCost || 0)
+        : 0,
+      logisticsReturnDeliveryCost: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnDeliveryCost || 0)
         : 0,
       assemblyDisassemblyDate: this.form.assemblyEnabled
         ? this.form.assemblyDisassemblyDate
@@ -984,7 +1057,9 @@ export class CalendarComponent {
     ) {
       return "База Supabase еще не готова для НДС и скидок. Выполни SQL-файл supabase-order-vat-discount.sql в Supabase SQL Editor и попробуй снова.";
     }
-    return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
+    return message
+      ? `Не удалось сохранить заявку: ${message}`
+      : "Не удалось сохранить заявку.";
   }
 
   private formDraftOrder(): Order {
@@ -1008,14 +1083,18 @@ export class CalendarComponent {
   private logisticsSubtotal(): number {
     return (
       Number(this.form.logisticsPickupCost || 0) +
-      Number(this.form.logisticsDeliveryCost || 0)
+      Number(this.form.logisticsDeliveryCost || 0) +
+      Number(this.form.logisticsReturnPickupCost || 0) +
+      Number(this.form.logisticsReturnDeliveryCost || 0)
     );
   }
 
   private syncLogisticsTotals(): void {
     this.form.logisticsDistanceKm =
       Number(this.form.logisticsPickupKm || 0) +
-      Number(this.form.logisticsDeliveryKm || 0);
+      Number(this.form.logisticsDeliveryKm || 0) +
+      Number(this.form.logisticsReturnPickupKm || 0) +
+      Number(this.form.logisticsReturnDeliveryKm || 0);
     this.form.logisticsCost = this.logisticsSubtotal();
   }
 
@@ -1023,7 +1102,9 @@ export class CalendarComponent {
     return this.form.operatorShifts
       .filter((shift) => shift.operatorId && shift.startDate && shift.endDate)
       .map((shift) => {
-        const dates = new Set(this.utils.datesInclusive(shift.startDate, shift.endDate));
+        const dates = new Set(
+          this.utils.datesInclusive(shift.startDate, shift.endDate),
+        );
         return {
           id: shift.id || this.utils.uid("shift"),
           operatorId: shift.operatorId,
@@ -1058,7 +1139,8 @@ export class CalendarComponent {
       transport.shipper ||
       "Отправитель";
     const consignee =
-      this.state.byId(this.state.clients(), transport.consigneeClientId)?.name ||
+      this.state.byId(this.state.clients(), transport.consigneeClientId)
+        ?.name ||
       transport.consignee ||
       "Получатель";
     return `${shipper} → ${consignee}${transport.cargoName ? ` • ${transport.cargoName}` : ""}`;
@@ -1066,12 +1148,18 @@ export class CalendarComponent {
 
   private transportHasConflict(transportId: string): boolean {
     return (
-      this.state.orderTransportConflicts().some(([, id]) => id === transportId) ||
-      this.state.transportConflicts().some(([a, b]) => a === transportId || b === transportId) ||
-      this.state.orderTransportOperatorConflicts().some(([, id]) => id === transportId) ||
-      this.state.transportOperatorConflicts().some(
-        ([a, b]) => a === transportId || b === transportId,
-      )
+      this.state
+        .orderTransportConflicts()
+        .some(([, id]) => id === transportId) ||
+      this.state
+        .transportConflicts()
+        .some(([a, b]) => a === transportId || b === transportId) ||
+      this.state
+        .orderTransportOperatorConflicts()
+        .some(([, id]) => id === transportId) ||
+      this.state
+        .transportOperatorConflicts()
+        .some(([a, b]) => a === transportId || b === transportId)
     );
   }
 
@@ -1091,7 +1179,9 @@ export class CalendarComponent {
       }));
   }
 
-  private orderAssemblyTimelineEvents(order: Order): { title: string; date: string }[] {
+  private orderAssemblyTimelineEvents(
+    order: Order,
+  ): { title: string; date: string }[] {
     if (!order.assemblyEnabled) return [];
     return [
       order.assemblyDisassemblyDate
@@ -1100,7 +1190,9 @@ export class CalendarComponent {
       order.assemblyAssemblyDate
         ? { title: "Монтаж", date: order.assemblyAssemblyDate }
         : null,
-    ].filter((event): event is { title: string; date: string } => Boolean(event));
+    ].filter((event): event is { title: string; date: string } =>
+      Boolean(event),
+    );
   }
 
   private orderSegments(
@@ -1108,14 +1200,18 @@ export class CalendarComponent {
     rangeStart: Date,
     rangeEnd: Date,
   ): { startDate: string; endDate: string }[] {
-    const from = new Date(Math.max(
-      new Date(order.startDate + "T00:00:00").getTime(),
-      rangeStart.getTime(),
-    ));
-    const to = new Date(Math.min(
-      new Date(order.endDate + "T00:00:00").getTime(),
-      rangeEnd.getTime(),
-    ));
+    const from = new Date(
+      Math.max(
+        new Date(order.startDate + "T00:00:00").getTime(),
+        rangeStart.getTime(),
+      ),
+    );
+    const to = new Date(
+      Math.min(
+        new Date(order.endDate + "T00:00:00").getTime(),
+        rangeEnd.getTime(),
+      ),
+    );
     if (from > to) return [];
     const dates = this.utils
       .datesInclusive(this.utils.dateKey(from), this.utils.dateKey(to))
@@ -1150,14 +1246,15 @@ export class CalendarComponent {
     rangeStart: Date,
     rangeEnd: Date,
   ): { startDate: string; endDate: string } | null {
-    const from = new Date(Math.max(
-      new Date(startDate + "T00:00:00").getTime(),
-      rangeStart.getTime(),
-    ));
-    const to = new Date(Math.min(
-      new Date(endDate + "T00:00:00").getTime(),
-      rangeEnd.getTime(),
-    ));
+    const from = new Date(
+      Math.max(
+        new Date(startDate + "T00:00:00").getTime(),
+        rangeStart.getTime(),
+      ),
+    );
+    const to = new Date(
+      Math.min(new Date(endDate + "T00:00:00").getTime(), rangeEnd.getTime()),
+    );
     if (from > to) return null;
     return {
       startDate: this.utils.dateKey(from),
@@ -1170,14 +1267,18 @@ export class CalendarComponent {
     rangeStart: Date,
     rangeEnd: Date,
   ): { startDate: string; endDate: string }[] {
-    const from = new Date(Math.max(
-      new Date(this.state.orderLogisticsStart(order) + "T00:00:00").getTime(),
-      rangeStart.getTime(),
-    ));
-    const to = new Date(Math.min(
-      new Date(this.state.orderLogisticsEnd(order) + "T00:00:00").getTime(),
-      rangeEnd.getTime(),
-    ));
+    const from = new Date(
+      Math.max(
+        new Date(this.state.orderLogisticsStart(order) + "T00:00:00").getTime(),
+        rangeStart.getTime(),
+      ),
+    );
+    const to = new Date(
+      Math.min(
+        new Date(this.state.orderLogisticsEnd(order) + "T00:00:00").getTime(),
+        rangeEnd.getTime(),
+      ),
+    );
     if (from > to) return [];
     return [
       {

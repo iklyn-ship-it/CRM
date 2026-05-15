@@ -111,7 +111,9 @@ export class DbService {
     const fallbackDistance = Number(order.logisticsDeliveryKm || 0);
     const fallbackCost =
       Number(order.logisticsPickupCost || 0) +
-      Number(order.logisticsDeliveryCost || 0);
+      Number(order.logisticsDeliveryCost || 0) +
+      Number(order.logisticsReturnPickupCost || 0) +
+      Number(order.logisticsReturnDeliveryCost || 0);
     const logisticsDistanceKm = Number(
       order.logisticsDistanceKm || fallbackDistance,
     );
@@ -174,6 +176,18 @@ export class DbService {
       ),
       logisticsPickupCost: pickupCost,
       logisticsDeliveryCost: deliveryCost,
+      logisticsReturnPickupPricePerKm: Number(
+        order.logisticsReturnPickupPricePerKm || 50,
+      ),
+      logisticsReturnDeliveryPricePerKm: Number(
+        order.logisticsReturnDeliveryPricePerKm || 250,
+      ),
+      logisticsReturnPickupKm: Number(order.logisticsReturnPickupKm || 0),
+      logisticsReturnDeliveryKm: Number(order.logisticsReturnDeliveryKm || 0),
+      logisticsReturnPickupCost: Number(order.logisticsReturnPickupCost || 0),
+      logisticsReturnDeliveryCost: Number(
+        order.logisticsReturnDeliveryCost || 0,
+      ),
       assemblyEnabled: Boolean(order.assemblyEnabled),
       assemblyDisassemblyDate: order.assemblyDisassemblyDate || "",
       assemblyAssemblyDate: order.assemblyAssemblyDate || "",
@@ -295,15 +309,23 @@ export class DbService {
     ]);
 
     this.clients.set((clients.data || []).map((r) => toCamel(r) as any));
-    this.equipment.set((equipment.data || []).map((r) => this.normalizeEquipment(r)));
-    this.operators.set((operators.data || []).map((r) => this.normalizeOperator(r)));
+    this.equipment.set(
+      (equipment.data || []).map((r) => this.normalizeEquipment(r)),
+    );
+    this.operators.set(
+      (operators.data || []).map((r) => this.normalizeOperator(r)),
+    );
     this.orders.set((orders.data || []).map((r) => this.normalizeOrder(r)));
     this.repairs.set((repairs.data || []).map((r) => this.normalizeRepair(r)));
     this.transports.set(
       (transports.data || []).map((r) => this.normalizeTransport(r)),
     );
-    this.projects.set((projects.data || []).map((r) => this.normalizeProject(r)));
-    this.operations.set((operations.data || []).map((r) => this.normalizeOperation(r)));
+    this.projects.set(
+      (projects.data || []).map((r) => this.normalizeProject(r)),
+    );
+    this.operations.set(
+      (operations.data || []).map((r) => this.normalizeOperation(r)),
+    );
     this.auditLogs.set((auditLogs.data || []).map((r) => toCamel(r) as any));
 
     if (integ.data) {
@@ -578,12 +600,15 @@ export class DbService {
     return (this.auditableTables as readonly string[]).includes(table);
   }
 
-  private canRetryOrderWithoutFlexibleLogistics(table: string, error: any): boolean {
+  private canRetryOrderWithoutFlexibleLogistics(
+    table: string,
+    error: any,
+  ): boolean {
     const message = `${error?.message || ""} ${error?.details || ""}`;
     return (
       table === "orders" &&
       ["42703", "PGRST204"].includes(error?.code) &&
-      /logistics_(distance_km|price_per_km|cost|pickup_price_per_km|delivery_price_per_km)/.test(
+      /logistics_(distance_km|price_per_km|cost|pickup_price_per_km|delivery_price_per_km|return_pickup_price_per_km|return_delivery_price_per_km|return_pickup_km|return_delivery_km|return_pickup_cost|return_delivery_cost)/.test(
         message,
       )
     );
@@ -598,6 +623,12 @@ export class DbService {
     delete fallbackRow["logistics_cost"];
     delete fallbackRow["logistics_pickup_price_per_km"];
     delete fallbackRow["logistics_delivery_price_per_km"];
+    delete fallbackRow["logistics_return_pickup_price_per_km"];
+    delete fallbackRow["logistics_return_delivery_price_per_km"];
+    delete fallbackRow["logistics_return_pickup_km"];
+    delete fallbackRow["logistics_return_delivery_km"];
+    delete fallbackRow["logistics_return_pickup_cost"];
+    delete fallbackRow["logistics_return_delivery_cost"];
     return fallbackRow;
   }
 
@@ -610,7 +641,9 @@ export class DbService {
     );
   }
 
-  private withoutRepairCostColumns(row: Record<string, any>): Record<string, any> {
+  private withoutRepairCostColumns(
+    row: Record<string, any>,
+  ): Record<string, any> {
     const fallbackRow = { ...row };
     delete fallbackRow["labor_cost"];
     delete fallbackRow["parts_cost"];
@@ -628,7 +661,9 @@ export class DbService {
 
     try {
       const changes =
-        action === "update" ? this.buildChanges(previous || {}, next || {}) : [];
+        action === "update"
+          ? this.buildChanges(previous || {}, next || {})
+          : [];
       const payload = {
         id: this.supa.userId
           ? `audit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -639,7 +674,12 @@ export class DbService {
         entity_id: String(next?.["id"] || previous?.["id"] || ""),
         entity_label: this.entityLabel(table, next || previous || {}),
         action,
-        summary: this.buildSummary(table, action, next || previous || {}, changes),
+        summary: this.buildSummary(
+          table,
+          action,
+          next || previous || {},
+          changes,
+        ),
         changes,
       };
 
@@ -668,7 +708,9 @@ export class DbService {
     return [...keys]
       .filter((key) => !ignored.has(key))
       .filter(
-        (key) => JSON.stringify(previous[key] ?? "") !== JSON.stringify(next[key] ?? ""),
+        (key) =>
+          JSON.stringify(previous[key] ?? "") !==
+          JSON.stringify(next[key] ?? ""),
       )
       .map((key) => ({
         field: key,
@@ -725,7 +767,9 @@ export class DbService {
       return record["tasks"] || record["id"] || "без описания";
     }
     if (table === "transports") {
-      return record["cargoName"] || record["shipper"] || record["id"] || "перевозка";
+      return (
+        record["cargoName"] || record["shipper"] || record["id"] || "перевозка"
+      );
     }
     if (table === "projects") {
       return record["name"] || record["id"] || "проект";
@@ -785,6 +829,12 @@ export class DbService {
       logisticsDeliveryKm: "Км доставки",
       logisticsPickupCost: "Стоимость подачи",
       logisticsDeliveryCost: "Стоимость доставки",
+      logisticsReturnPickupPricePerKm: "Возврат: цена км подачи",
+      logisticsReturnDeliveryPricePerKm: "Возврат: цена км доставки",
+      logisticsReturnPickupKm: "Возврат: км подачи",
+      logisticsReturnDeliveryKm: "Возврат: км доставки",
+      logisticsReturnPickupCost: "Возврат: стоимость подачи",
+      logisticsReturnDeliveryCost: "Возврат: стоимость доставки",
       assemblyEnabled: "Сборка/разборка",
       assemblyDisassemblyDate: "Дата демонтажа",
       assemblyAssemblyDate: "Дата монтажа",

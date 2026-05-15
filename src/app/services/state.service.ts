@@ -57,8 +57,11 @@ export class StateService {
       .reduce((s, o) => s + Number(o.amount || 0), 0),
   );
 
-  readonly totalExpense = computed(() =>
-    this.manualExpense() + this.operatorPayroll() + this.transportDriverPayroll(),
+  readonly totalExpense = computed(
+    () =>
+      this.manualExpense() +
+      this.operatorPayroll() +
+      this.transportDriverPayroll(),
   );
 
   readonly totalProfit = computed(
@@ -72,7 +75,10 @@ export class StateService {
   );
 
   readonly operatorPayroll = computed(() =>
-    this.orders().reduce((sum, order) => sum + this.orderOperatorCost(order), 0),
+    this.orders().reduce(
+      (sum, order) => sum + this.orderOperatorCost(order),
+      0,
+    ),
   );
 
   readonly transportDriverPayroll = computed(() =>
@@ -151,32 +157,44 @@ export class StateService {
                   o.startDate > r.startDate ? o.startDate : r.startDate,
                   o.endDate < r.endDate ? o.endDate : r.endDate,
                 )
-                .some((date) => this.orderUsesEquipmentOnDate(o, r.equipmentId, date)),
+                .some((date) =>
+                  this.orderUsesEquipmentOnDate(o, r.equipmentId, date),
+                ),
           )
           .forEach((o) => list.push([r.id, o.id, r.equipmentId]));
       });
     return list;
   });
 
-  readonly orderTransportConflicts = computed((): [string, string, string][] => {
-    const list: [string, string, string][] = [];
-    const transports = this.transports().filter((t) => this.transportBlocksSchedule(t));
-    this.orders()
-      .filter((order) => this.orderBlocksSchedule(order))
-      .forEach((order) => {
-        transports.forEach((transport) => {
-          for (const equipmentId of this.orderEquipmentReservationIds(order)) {
-            if (
-              transport.equipmentId === equipmentId &&
-              this.orderTransportOverlapByEquipment(order, transport, equipmentId)
-            ) {
-              list.push([order.id, transport.id, equipmentId]);
+  readonly orderTransportConflicts = computed(
+    (): [string, string, string][] => {
+      const list: [string, string, string][] = [];
+      const transports = this.transports().filter((t) =>
+        this.transportBlocksSchedule(t),
+      );
+      this.orders()
+        .filter((order) => this.orderBlocksSchedule(order))
+        .forEach((order) => {
+          transports.forEach((transport) => {
+            for (const equipmentId of this.orderEquipmentReservationIds(
+              order,
+            )) {
+              if (
+                transport.equipmentId === equipmentId &&
+                this.orderTransportOverlapByEquipment(
+                  order,
+                  transport,
+                  equipmentId,
+                )
+              ) {
+                list.push([order.id, transport.id, equipmentId]);
+              }
             }
-          }
+          });
         });
-      });
-    return list;
-  });
+      return list;
+    },
+  );
 
   readonly transportConflicts = computed((): [string, string, string][] => {
     const list: [string, string, string][] = [];
@@ -187,10 +205,7 @@ export class StateService {
       for (let j = i + 1; j < transports.length; j++) {
         const a = transports[i],
           b = transports[j];
-        if (
-          a.equipmentId === b.equipmentId &&
-          this.transportsOverlap(a, b)
-        ) {
+        if (a.equipmentId === b.equipmentId && this.transportsOverlap(a, b)) {
           list.push([a.id, b.id, a.equipmentId]);
         }
       }
@@ -224,22 +239,24 @@ export class StateService {
     },
   );
 
-  readonly transportOperatorConflicts = computed((): [string, string, string][] => {
-    const list: [string, string, string][] = [];
-    const transports = this.transports().filter(
-      (t) => this.transportBlocksSchedule(t) && t.driverId,
-    );
-    for (let i = 0; i < transports.length; i++) {
-      for (let j = i + 1; j < transports.length; j++) {
-        const a = transports[i],
-          b = transports[j];
-        if (a.driverId === b.driverId && this.transportsOverlap(a, b)) {
-          list.push([a.id, b.id, a.driverId]);
+  readonly transportOperatorConflicts = computed(
+    (): [string, string, string][] => {
+      const list: [string, string, string][] = [];
+      const transports = this.transports().filter(
+        (t) => this.transportBlocksSchedule(t) && t.driverId,
+      );
+      for (let i = 0; i < transports.length; i++) {
+        for (let j = i + 1; j < transports.length; j++) {
+          const a = transports[i],
+            b = transports[j];
+          if (a.driverId === b.driverId && this.transportsOverlap(a, b)) {
+            list.push([a.id, b.id, a.driverId]);
+          }
         }
       }
-    }
-    return list;
-  });
+      return list;
+    },
+  );
 
   readonly equipmentAnalytics = computed((): EquipmentAnalytics[] => {
     return this.equipment()
@@ -248,7 +265,9 @@ export class StateService {
         const repairRelated = this.repairs().filter(
           (r) => r.equipmentId === eq.id,
         );
-        const directOps = this.operations().filter((op) => op.equipmentId === eq.id);
+        const directOps = this.operations().filter(
+          (op) => op.equipmentId === eq.id,
+        );
         const income = related.reduce((s, o) => s + this.orderIncome(o.id), 0);
         const orderExp = related.reduce(
           (s, o) => s + this.orderExpense(o.id),
@@ -351,7 +370,8 @@ export class StateService {
     if (order.status === "cancelled") return 0;
     const totalOperatorDays = this.orderOperatorAssignments(order).reduce(
       (sum, assignment) =>
-        sum + this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
+        sum +
+        this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
       0,
     );
     return this.orderOperatorAssignments(order).reduce((sum, assignment) => {
@@ -367,17 +387,15 @@ export class StateService {
       if (hourlyRate > 0) {
         const extraHours =
           totalOperatorDays > 0
-            ? Number(order.additionalWorkHours || 0) * (days / totalOperatorDays)
+            ? Number(order.additionalWorkHours || 0) *
+              (days / totalOperatorDays)
             : 0;
         return (
           sum +
           (days * this.orderStandardWorkHours(order) + extraHours) * hourlyRate
         );
       }
-      return (
-        sum +
-        days * Number(operator.rate || 0)
-      );
+      return sum + days * Number(operator.rate || 0);
     }, 0);
   }
 
@@ -386,7 +404,9 @@ export class StateService {
     return Number(
       order.logisticsCost ||
         Number(order.logisticsPickupCost || 0) +
-          Number(order.logisticsDeliveryCost || 0),
+          Number(order.logisticsDeliveryCost || 0) +
+          Number(order.logisticsReturnPickupCost || 0) +
+          Number(order.logisticsReturnDeliveryCost || 0),
     );
   }
 
@@ -399,11 +419,15 @@ export class StateService {
   }
 
   transportTotal(transport: Transport): number {
-    return Number(transport.pickupCost || 0) + Number(transport.deliveryCost || 0);
+    return (
+      Number(transport.pickupCost || 0) + Number(transport.deliveryCost || 0)
+    );
   }
 
   transportOps(transportId: string): FinanceOperation[] {
-    return this.operations().filter((operation) => operation.transportId === transportId);
+    return this.operations().filter(
+      (operation) => operation.transportId === transportId,
+    );
   }
 
   transportIncome(transportId: string): number {
@@ -422,24 +446,39 @@ export class StateService {
     if (transport.status === "cancelled" || !transport.driverId) return 0;
     const driver = this.byId(this.operators(), transport.driverId);
     if (!driver?.rate && !driver?.hourlyRate) return 0;
-    const days = this.utils.daysInclusive(transport.startDate, transport.endDate);
+    const days = this.utils.daysInclusive(
+      transport.startDate,
+      transport.endDate,
+    );
     if (driver.hourlyRate) return days * 8 * Number(driver.hourlyRate || 0);
     return days * Number(driver.rate || 0);
   }
 
   transportExpense(transport: Transport): number {
-    return this.transportManualExpense(transport.id) + this.transportDriverCost(transport);
+    return (
+      this.transportManualExpense(transport.id) +
+      this.transportDriverCost(transport)
+    );
   }
 
   transportProfit(transport: Transport): number {
-    return this.transportIncome(transport.id) - this.transportExpense(transport);
+    return (
+      this.transportIncome(transport.id) - this.transportExpense(transport)
+    );
   }
 
   transportRemaining(transport: Transport): number {
-    return Math.max(0, this.transportTotal(transport) - this.transportIncome(transport.id));
+    return Math.max(
+      0,
+      this.transportTotal(transport) - this.transportIncome(transport.id),
+    );
   }
 
-  orderUsesEquipmentOnDate(order: Order, equipmentId: string, date: string): boolean {
+  orderUsesEquipmentOnDate(
+    order: Order,
+    equipmentId: string,
+    date: string,
+  ): boolean {
     if (order.equipmentId === equipmentId) {
       return this.orderWorksOnDate(order, "equipment", date);
     }
@@ -499,9 +538,12 @@ export class StateService {
     }
     const days = new Set<string>();
     this.orderOperatorAssignments(order).forEach((assignment) => {
-      this.operatorAssignmentWorkDates(order, assignment, fromDate, toDate).forEach(
-        (date) => days.add(`${assignment.operatorId}:${date}`),
-      );
+      this.operatorAssignmentWorkDates(
+        order,
+        assignment,
+        fromDate,
+        toDate,
+      ).forEach((date) => days.add(`${assignment.operatorId}:${date}`));
     });
     return days.size;
   }
@@ -516,7 +558,8 @@ export class StateService {
       .filter((assignment) => assignment.operatorId === operatorId)
       .reduce(
         (sum, assignment) =>
-          sum + this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
+          sum +
+          this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
         0,
       );
   }
@@ -542,10 +585,15 @@ export class StateService {
     );
   }
 
-  orderWorksOnDate(order: Order, kind: "equipment" | "operator", date: string): boolean {
+  orderWorksOnDate(
+    order: Order,
+    kind: "equipment" | "operator",
+    date: string,
+  ): boolean {
     if (!this.orderBlocksSchedule(order)) return false;
     if (date < order.startDate || date > order.endDate) return false;
-    const idle = kind === "equipment" ? order.equipmentIdleDates : order.operatorIdleDates;
+    const idle =
+      kind === "equipment" ? order.equipmentIdleDates : order.operatorIdleDates;
     return !new Set(idle || []).has(date);
   }
 
@@ -562,7 +610,11 @@ export class StateService {
     if (from > to) return false;
     return this.utils
       .datesInclusive(from, to)
-      .some((date) => this.orderWorksOnDate(a, kind, date) && this.orderWorksOnDate(b, kind, date));
+      .some(
+        (date) =>
+          this.orderWorksOnDate(a, kind, date) &&
+          this.orderWorksOnDate(b, kind, date),
+      );
   }
 
   ordersOverlapByEquipment(a: Order, b: Order, equipmentId: string): boolean {
@@ -608,7 +660,10 @@ export class StateService {
     transport: Transport,
     equipmentId: string,
   ): boolean {
-    if (!this.orderBlocksSchedule(order) || !this.transportBlocksSchedule(transport)) {
+    if (
+      !this.orderBlocksSchedule(order) ||
+      !this.transportBlocksSchedule(transport)
+    ) {
       return false;
     }
     const from = this.maxDate(
@@ -630,7 +685,10 @@ export class StateService {
     transport: Transport,
     operatorId = transport.driverId,
   ): boolean {
-    if (!this.orderBlocksSchedule(order) || !this.transportBlocksSchedule(transport)) {
+    if (
+      !this.orderBlocksSchedule(order) ||
+      !this.transportBlocksSchedule(transport)
+    ) {
       return false;
     }
     const from = this.maxDate(
@@ -668,7 +726,9 @@ export class StateService {
   orderOperatorIds(order: Order): string[] {
     return [
       ...new Set(
-        this.orderOperatorAssignments(order).map((assignment) => assignment.operatorId),
+        this.orderOperatorAssignments(order).map(
+          (assignment) => assignment.operatorId,
+        ),
       ),
     ].filter((id): id is string => Boolean(id));
   }
@@ -709,7 +769,11 @@ export class StateService {
     ];
   }
 
-  orderOperatorWorksOnDate(order: Order, operatorId: string, date: string): boolean {
+  orderOperatorWorksOnDate(
+    order: Order,
+    operatorId: string,
+    date: string,
+  ): boolean {
     if (!this.orderBlocksSchedule(order)) return false;
     return this.orderOperatorAssignments(order)
       .filter((assignment) => assignment.operatorId === operatorId)
@@ -733,7 +797,9 @@ export class StateService {
         ? order.equipmentIdleDates
         : order.operatorIdleDates) || [],
     );
-    return this.utils.datesInclusive(startDate, endDate).filter((date) => !idle.has(date));
+    return this.utils
+      .datesInclusive(startDate, endDate)
+      .filter((date) => !idle.has(date));
   }
 
   repairExpense(repairId: string): number {
@@ -768,8 +834,8 @@ export class StateService {
   runtimeOperatorStatus(operatorId: string): "free" | "busy" {
     const now = this.utils.todayStr();
     const busy =
-      this.orders().some(
-        (o) => this.orderOperatorWorksOnDate(o, operatorId, now),
+      this.orders().some((o) =>
+        this.orderOperatorWorksOnDate(o, operatorId, now),
       ) ||
       this.transports().some(
         (t) =>
@@ -856,7 +922,9 @@ export class StateService {
   }
 
   private hasOperatorShifts(order: Order): boolean {
-    return Array.isArray(order.operatorShifts) && order.operatorShifts.length > 0;
+    return (
+      Array.isArray(order.operatorShifts) && order.operatorShifts.length > 0
+    );
   }
 
   private operatorAssignmentWorkDays(
@@ -865,12 +933,8 @@ export class StateService {
     fromDate = "",
     toDate = "",
   ): number {
-    return this.operatorAssignmentWorkDates(
-      order,
-      assignment,
-      fromDate,
-      toDate,
-    ).length;
+    return this.operatorAssignmentWorkDates(order, assignment, fromDate, toDate)
+      .length;
   }
 
   private operatorAssignmentWorkDates(
@@ -889,14 +953,18 @@ export class StateService {
     );
     if (!startDate || !endDate || startDate > endDate) return [];
     const idle = new Set(assignment.idleDates || []);
-    return this.utils.datesInclusive(startDate, endDate).filter((date) => !idle.has(date));
+    return this.utils
+      .datesInclusive(startDate, endDate)
+      .filter((date) => !idle.has(date));
   }
 
   private minDateForOrderOperator(order: Order, operatorId: string): string {
-    return this.orderOperatorAssignments(order)
-      .filter((assignment) => assignment.operatorId === operatorId)
-      .map((assignment) => assignment.startDate)
-      .sort()[0] || order.startDate;
+    return (
+      this.orderOperatorAssignments(order)
+        .filter((assignment) => assignment.operatorId === operatorId)
+        .map((assignment) => assignment.startDate)
+        .sort()[0] || order.startDate
+    );
   }
 
   private maxDateForOrderOperator(order: Order, operatorId: string): string {

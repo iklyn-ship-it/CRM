@@ -55,7 +55,10 @@ export class OrdersComponent {
     operatorIdleDates: [] as string[],
     operatorShifts: [] as OperatorShift[],
     logisticsEnabled: false,
-    logisticsProvider: "own_trawl" as "own_trawl" | "third_party" | "self_drive",
+    logisticsProvider: "own_trawl" as
+      | "own_trawl"
+      | "third_party"
+      | "self_drive",
     logisticsTrailerId: "",
     logisticsStartDate: "",
     logisticsEndDate: "",
@@ -68,6 +71,12 @@ export class OrdersComponent {
     logisticsDeliveryKm: 0,
     logisticsPickupCost: 0,
     logisticsDeliveryCost: 0,
+    logisticsReturnPickupPricePerKm: 50,
+    logisticsReturnDeliveryPricePerKm: 250,
+    logisticsReturnPickupKm: 0,
+    logisticsReturnDeliveryKm: 0,
+    logisticsReturnPickupCost: 0,
+    logisticsReturnDeliveryCost: 0,
     assemblyEnabled: false,
     assemblyDisassemblyDate: "",
     assemblyAssemblyDate: "",
@@ -104,7 +113,10 @@ export class OrdersComponent {
     { value: "repair", label: "Ремонт" },
     { value: "resolved", label: "Устранена" },
   ];
-  readonly breakdownFaultParties: { value: BreakdownFaultParty; label: string }[] = [
+  readonly breakdownFaultParties: {
+    value: BreakdownFaultParty;
+    label: string;
+  }[] = [
     { value: "unknown", label: "Не установлено" },
     { value: "ours", label: "Наша сторона" },
     { value: "client", label: "Клиент" },
@@ -112,10 +124,9 @@ export class OrdersComponent {
   ];
 
   readonly conflictSet = computed(() => {
-    const orderConflicts = this.state.orderConflicts().flatMap((x) => [
-      x[0],
-      x[1],
-    ]);
+    const orderConflicts = this.state
+      .orderConflicts()
+      .flatMap((x) => [x[0], x[1]]);
     const transportConflicts = this.state
       .orderTransportConflicts()
       .map(([orderId]) => orderId);
@@ -123,10 +134,9 @@ export class OrdersComponent {
   });
 
   readonly operatorConflictSet = computed(() => {
-    const orderConflicts = this.state.operatorConflicts().flatMap((x) => [
-      x[0],
-      x[1],
-    ]);
+    const orderConflicts = this.state
+      .operatorConflicts()
+      .flatMap((x) => [x[0], x[1]]);
     const transportConflicts = this.state
       .orderTransportOperatorConflicts()
       .map(([orderId]) => orderId);
@@ -134,9 +144,7 @@ export class OrdersComponent {
   });
 
   readonly repairConflictSet = computed(() => {
-    return new Set(
-      this.state.repairConflicts().map(([, orderId]) => orderId),
-    );
+    return new Set(this.state.repairConflicts().map(([, orderId]) => orderId));
   });
 
   readonly completedUnpaidSet = computed(() => {
@@ -160,7 +168,10 @@ export class OrdersComponent {
     }
     return (
       this.state.orders().find((order) => {
-        if (order.id === this.editingId || !this.state.orderBlocksSchedule(order)) {
+        if (
+          order.id === this.editingId ||
+          !this.state.orderBlocksSchedule(order)
+        ) {
           return false;
         }
         return operatorIds.some(
@@ -179,16 +190,18 @@ export class OrdersComponent {
       return null;
     }
     return (
-      this.state.transports().find(
-        (transport) =>
-          this.state.transportBlocksSchedule(transport) &&
-          operatorIds.includes(transport.driverId) &&
-          this.state.orderTransportOverlapByOperator(
-            draft,
-            transport,
-            transport.driverId,
-          ),
-      ) || null
+      this.state
+        .transports()
+        .find(
+          (transport) =>
+            this.state.transportBlocksSchedule(transport) &&
+            operatorIds.includes(transport.driverId) &&
+            this.state.orderTransportOverlapByOperator(
+              draft,
+              transport,
+              transport.driverId,
+            ),
+        ) || null
     );
   }
 
@@ -198,15 +211,17 @@ export class OrdersComponent {
     return (
       this.state.transports().find((transport) => {
         if (!this.state.transportBlocksSchedule(transport)) return false;
-        return this.state.orderEquipmentReservationIds(draft).some(
-          (equipmentId) =>
-            equipmentId === transport.equipmentId &&
-            this.state.orderTransportOverlapByEquipment(
-              draft,
-              transport,
-              equipmentId,
-            ),
-        );
+        return this.state
+          .orderEquipmentReservationIds(draft)
+          .some(
+            (equipmentId) =>
+              equipmentId === transport.equipmentId &&
+              this.state.orderTransportOverlapByEquipment(
+                draft,
+                transport,
+                equipmentId,
+              ),
+          );
       }) || null
     );
   }
@@ -247,16 +262,38 @@ export class OrdersComponent {
         clientId,
         clientName: this.clientName(clientId),
         orders,
-        plan: orders.reduce((sum, order) => sum + this.state.orderPlan(order), 0),
-        income: orders.reduce((sum, order) => sum + this.state.orderIncome(order.id), 0),
-        expense: orders.reduce((sum, order) => sum + this.state.orderExpense(order.id), 0),
-        profit: orders.reduce((sum, order) => sum + this.state.orderProfit(order.id), 0),
-        remaining: orders.reduce((sum, order) => sum + this.state.orderRemaining(order), 0),
-        endingSoon: orders.filter((order) => this.orderEndingKind(order) === "soon").length,
-        endingToday: orders.filter((order) => this.orderEndingKind(order) === "today").length,
-        overdue: orders.filter((order) => this.orderEndingKind(order) === "overdue").length,
+        plan: orders.reduce(
+          (sum, order) => sum + this.state.orderPlan(order),
+          0,
+        ),
+        income: orders.reduce(
+          (sum, order) => sum + this.state.orderIncome(order.id),
+          0,
+        ),
+        expense: orders.reduce(
+          (sum, order) => sum + this.state.orderExpense(order.id),
+          0,
+        ),
+        profit: orders.reduce(
+          (sum, order) => sum + this.state.orderProfit(order.id),
+          0,
+        ),
+        remaining: orders.reduce(
+          (sum, order) => sum + this.state.orderRemaining(order),
+          0,
+        ),
+        endingSoon: orders.filter(
+          (order) => this.orderEndingKind(order) === "soon",
+        ).length,
+        endingToday: orders.filter(
+          (order) => this.orderEndingKind(order) === "today",
+        ).length,
+        overdue: orders.filter(
+          (order) => this.orderEndingKind(order) === "overdue",
+        ).length,
         latestDate: orders.reduce(
-          (latest, order) => (order.startDate > latest ? order.startDate : latest),
+          (latest, order) =>
+            order.startDate > latest ? order.startDate : latest,
           "",
         ),
       }))
@@ -284,9 +321,9 @@ export class OrdersComponent {
     return this.state.byId(this.state.operators(), id)?.name || "—";
   }
   trawlEquipment() {
-    return this.state.equipment().filter((eq) =>
-      (eq.type || "").trim().toLowerCase().includes("трал"),
-    );
+    return this.state
+      .equipment()
+      .filter((eq) => (eq.type || "").trim().toLowerCase().includes("трал"));
   }
   statusLabel(s: string): string {
     const labels: Record<string, string> = {
@@ -356,6 +393,12 @@ export class OrdersComponent {
     this.form.logisticsDeliveryCost =
       Number(this.form.logisticsDeliveryKm || 0) *
       Number(this.form.logisticsDeliveryPricePerKm || 0);
+    this.form.logisticsReturnPickupCost =
+      Number(this.form.logisticsReturnPickupKm || 0) *
+      Number(this.form.logisticsReturnPickupPricePerKm || 0);
+    this.form.logisticsReturnDeliveryCost =
+      Number(this.form.logisticsReturnDeliveryKm || 0) *
+      Number(this.form.logisticsReturnDeliveryPricePerKm || 0);
     this.syncLogisticsTotals();
   }
 
@@ -369,7 +412,9 @@ export class OrdersComponent {
       ...this.form.equipmentIdleDates,
       ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
     ]);
-    const workDays = this.orderDates().filter((date) => !idleDates.has(date)).length;
+    const workDays = this.orderDates().filter(
+      (date) => !idleDates.has(date),
+    ).length;
     const equipmentBase = Number(this.form.equipmentHourlyRate || 0)
       ? (workDays * Number(this.form.standardWorkHours || 8) +
           Number(this.form.additionalWorkHours || 0)) *
@@ -377,7 +422,8 @@ export class OrdersComponent {
       : workDays * Number(this.form.rate || 0);
     const equipmentTotal =
       equipmentBase + (this.form.vatEnabled ? equipmentBase * 0.2 : 0);
-    const subtotal = equipmentTotal + this.logisticsTotal() + this.assemblyTotal();
+    const subtotal =
+      equipmentTotal + this.logisticsTotal() + this.assemblyTotal();
     return Math.max(0, subtotal - this.orderDraftDiscountAmount(subtotal));
   }
 
@@ -396,7 +442,9 @@ export class OrdersComponent {
       ...this.form.equipmentIdleDates,
       ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
     ]);
-    const workDays = this.orderDates().filter((date) => !idleDates.has(date)).length;
+    const workDays = this.orderDates().filter(
+      (date) => !idleDates.has(date),
+    ).length;
     const equipmentBase = Number(this.form.equipmentHourlyRate || 0)
       ? (workDays * Number(this.form.standardWorkHours || 8) +
           Number(this.form.additionalWorkHours || 0)) *
@@ -415,7 +463,9 @@ export class OrdersComponent {
       ...this.form.equipmentIdleDates,
       ...(this.form.breakdownAffectsPayment ? this.breakdownDates() : []),
     ]);
-    const workDays = this.orderDates().filter((date) => !idleDates.has(date)).length;
+    const workDays = this.orderDates().filter(
+      (date) => !idleDates.has(date),
+    ).length;
     return (
       workDays * Number(this.form.standardWorkHours || 8) +
       Number(this.form.additionalWorkHours || 0)
@@ -572,6 +622,18 @@ export class OrdersComponent {
       ),
       logisticsPickupCost: pickupCost,
       logisticsDeliveryCost: deliveryCost,
+      logisticsReturnPickupPricePerKm: Number(
+        order.logisticsReturnPickupPricePerKm || 50,
+      ),
+      logisticsReturnDeliveryPricePerKm: Number(
+        order.logisticsReturnDeliveryPricePerKm || 250,
+      ),
+      logisticsReturnPickupKm: Number(order.logisticsReturnPickupKm || 0),
+      logisticsReturnDeliveryKm: Number(order.logisticsReturnDeliveryKm || 0),
+      logisticsReturnPickupCost: Number(order.logisticsReturnPickupCost || 0),
+      logisticsReturnDeliveryCost: Number(
+        order.logisticsReturnDeliveryCost || 0,
+      ),
       assemblyEnabled: Boolean(order.assemblyEnabled),
       assemblyDisassemblyDate: order.assemblyDisassemblyDate || "",
       assemblyAssemblyDate: order.assemblyAssemblyDate || "",
@@ -644,6 +706,12 @@ export class OrdersComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      logisticsReturnPickupPricePerKm: 50,
+      logisticsReturnDeliveryPricePerKm: 250,
+      logisticsReturnPickupKm: 0,
+      logisticsReturnDeliveryKm: 0,
+      logisticsReturnPickupCost: 0,
+      logisticsReturnDeliveryCost: 0,
       assemblyEnabled: false,
       assemblyDisassemblyDate: "",
       assemblyAssemblyDate: "",
@@ -683,7 +751,8 @@ export class OrdersComponent {
   }
 
   toggleIdleDate(kind: "equipment" | "operator", date: string): void {
-    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
     const dates = new Set(this.form[key]);
     if (dates.has(date)) dates.delete(date);
     else dates.add(date);
@@ -691,7 +760,8 @@ export class OrdersComponent {
   }
 
   excludeWeekendDates(kind: "equipment" | "operator"): void {
-    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
     const dates = new Set(this.form[key]);
     this.orderDates()
       .filter((date) => {
@@ -703,7 +773,8 @@ export class OrdersComponent {
   }
 
   clearIdleDates(kind: "equipment" | "operator"): void {
-    const key = kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
+    const key =
+      kind === "equipment" ? "equipmentIdleDates" : "operatorIdleDates";
     this.form[key] = [];
   }
 
@@ -733,7 +804,9 @@ export class OrdersComponent {
   }
 
   removeOperatorShift(index: number): void {
-    this.form.operatorShifts = this.form.operatorShifts.filter((_, i) => i !== index);
+    this.form.operatorShifts = this.form.operatorShifts.filter(
+      (_, i) => i !== index,
+    );
   }
 
   shiftDates(shift: OperatorShift): string[] {
@@ -801,12 +874,18 @@ export class OrdersComponent {
     if (!this.form.operatorId) return 0;
     const idle = new Set(this.form.operatorIdleDates || []);
     return this.utils
-      .datesInclusive(this.primaryOperatorStartDate(), this.primaryOperatorEndDate())
+      .datesInclusive(
+        this.primaryOperatorStartDate(),
+        this.primaryOperatorEndDate(),
+      )
       .filter((date) => !idle.has(date)).length;
   }
 
   primaryOperatorPayroll(): number {
-    const operator = this.state.byId(this.state.operators(), this.form.operatorId);
+    const operator = this.state.byId(
+      this.state.operators(),
+      this.form.operatorId,
+    );
     if (operator?.hourlyRate) {
       return (
         this.primaryOperatorWorkDays() *
@@ -824,7 +903,9 @@ export class OrdersComponent {
     if (!order.breakdownEnabled) return "";
     const status = this.breakdownStatusLabel(order.breakdownStatus);
     const from = this.utils.fmtDate(order.breakdownDate);
-    const to = this.utils.fmtDate(order.breakdownEndDate || order.breakdownDate);
+    const to = this.utils.fmtDate(
+      order.breakdownEndDate || order.breakdownDate,
+    );
     return `Техника в ремонте: ${status}, ${from} - ${to}`;
   }
 
@@ -873,7 +954,8 @@ export class OrdersComponent {
       ...(this.form.breakdownOperatorIdle ? breakdownIdleDates : []),
     ]);
     const operatorShifts = this.normalizeOperatorShifts(inPeriod);
-    const { primaryOperatorStartDate, primaryOperatorEndDate, ...form } = this.form;
+    const { primaryOperatorStartDate, primaryOperatorEndDate, ...form } =
+      this.form;
     return {
       ...form,
       rate: Number(this.form.rate || 0),
@@ -882,7 +964,8 @@ export class OrdersComponent {
       additionalWorkHours: Number(this.form.additionalWorkHours || 0),
       discountValue: Number(this.form.discountValue || 0),
       logisticsTrailerId:
-        this.form.logisticsEnabled && this.form.logisticsProvider === "own_trawl"
+        this.form.logisticsEnabled &&
+        this.form.logisticsProvider === "own_trawl"
           ? this.form.logisticsTrailerId
           : "",
       logisticsStartDate: this.form.logisticsEnabled
@@ -893,7 +976,9 @@ export class OrdersComponent {
         : "",
       logisticsDistanceKm: this.form.logisticsEnabled
         ? Number(this.form.logisticsPickupKm || 0) +
-          Number(this.form.logisticsDeliveryKm || 0)
+          Number(this.form.logisticsDeliveryKm || 0) +
+          Number(this.form.logisticsReturnPickupKm || 0) +
+          Number(this.form.logisticsReturnDeliveryKm || 0)
         : 0,
       logisticsCost: this.form.logisticsEnabled ? this.logisticsSubtotal() : 0,
       logisticsPricePerKm: this.form.logisticsEnabled
@@ -916,6 +1001,24 @@ export class OrdersComponent {
         : 0,
       logisticsDeliveryCost: this.form.logisticsEnabled
         ? Number(this.form.logisticsDeliveryCost || 0)
+        : 0,
+      logisticsReturnPickupPricePerKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnPickupPricePerKm || 0)
+        : 50,
+      logisticsReturnDeliveryPricePerKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnDeliveryPricePerKm || 0)
+        : 250,
+      logisticsReturnPickupKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnPickupKm || 0)
+        : 0,
+      logisticsReturnDeliveryKm: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnDeliveryKm || 0)
+        : 0,
+      logisticsReturnPickupCost: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnPickupCost || 0)
+        : 0,
+      logisticsReturnDeliveryCost: this.form.logisticsEnabled
+        ? Number(this.form.logisticsReturnDeliveryCost || 0)
         : 0,
       assemblyDisassemblyDate: this.form.assemblyEnabled
         ? this.form.assemblyDisassemblyDate
@@ -995,7 +1098,10 @@ export class OrdersComponent {
         alert("Дата начала смены не может быть позже даты окончания.");
         return false;
       }
-      if (shift.startDate < this.form.startDate || shift.endDate > this.form.endDate) {
+      if (
+        shift.startDate < this.form.startDate ||
+        shift.endDate > this.form.endDate
+      ) {
         alert("Смены операторов должны быть внутри периода заявки.");
         return false;
       }
@@ -1009,7 +1115,9 @@ export class OrdersComponent {
           a.operatorId === b.operatorId &&
           this.utils.overlap(a.startDate, a.endDate, b.startDate, b.endDate)
         ) {
-          alert("У одного оператора не должно быть пересекающихся смен в одной заявке.");
+          alert(
+            "У одного оператора не должно быть пересекающихся смен в одной заявке.",
+          );
           return false;
         }
       }
@@ -1023,11 +1131,15 @@ export class OrdersComponent {
     const endDate = this.primaryOperatorEndDate();
     if (!startDate || !endDate) return true;
     if (startDate > endDate) {
-      alert("Дата начала работы основного оператора не может быть позже даты окончания.");
+      alert(
+        "Дата начала работы основного оператора не может быть позже даты окончания.",
+      );
       return false;
     }
     if (startDate < this.form.startDate || endDate > this.form.endDate) {
-      alert("Период работы основного оператора должен быть внутри периода заявки.");
+      alert(
+        "Период работы основного оператора должен быть внутри периода заявки.",
+      );
       return false;
     }
     return true;
@@ -1059,7 +1171,9 @@ export class OrdersComponent {
     return this.form.operatorShifts
       .filter((shift) => shift.operatorId && shift.startDate && shift.endDate)
       .map((shift) => {
-        const dates = new Set(this.utils.datesInclusive(shift.startDate, shift.endDate));
+        const dates = new Set(
+          this.utils.datesInclusive(shift.startDate, shift.endDate),
+        );
         return {
           id: shift.id || this.utils.uid("shift"),
           operatorId: shift.operatorId,
@@ -1082,7 +1196,10 @@ export class OrdersComponent {
     }));
   }
 
-  private primaryOperatorPeriod(order: Order): { startDate: string; endDate: string } {
+  private primaryOperatorPeriod(order: Order): {
+    startDate: string;
+    endDate: string;
+  } {
     const shift =
       (order.operatorShifts || []).length === 1 &&
       order.operatorShifts[0].operatorId === order.operatorId
@@ -1105,7 +1222,10 @@ export class OrdersComponent {
       alert("Дата устранения поломки не может быть раньше даты поломки.");
       return false;
     }
-    if (this.form.breakdownDate < this.form.startDate || endDate > this.form.endDate) {
+    if (
+      this.form.breakdownDate < this.form.startDate ||
+      endDate > this.form.endDate
+    ) {
       alert("Даты поломки должны быть внутри периода заявки.");
       return false;
     }
@@ -1135,12 +1255,17 @@ export class OrdersComponent {
       notes: [
         order.breakdownReporter ? `Сообщил: ${order.breakdownReporter}` : "",
         `Ответственность: ${this.breakdownFaultPartyLabel(order.breakdownFaultParty)}`,
-        order.breakdownAffectsPayment ? "Влияет на оплату аренды" : "Не влияет на оплату аренды",
+        order.breakdownAffectsPayment
+          ? "Влияет на оплату аренды"
+          : "Не влияет на оплату аренды",
       ]
         .filter(Boolean)
         .join("\n"),
     };
-    if (order.breakdownRepairId && this.state.byId(this.state.repairs(), repairId)) {
+    if (
+      order.breakdownRepairId &&
+      this.state.byId(this.state.repairs(), repairId)
+    ) {
       await this.db.update("repairs", repairId, repair);
     } else {
       await this.db.insert("repairs", { id: repairId, ...repair });
@@ -1152,14 +1277,18 @@ export class OrdersComponent {
   private logisticsSubtotal(): number {
     return (
       Number(this.form.logisticsPickupCost || 0) +
-      Number(this.form.logisticsDeliveryCost || 0)
+      Number(this.form.logisticsDeliveryCost || 0) +
+      Number(this.form.logisticsReturnPickupCost || 0) +
+      Number(this.form.logisticsReturnDeliveryCost || 0)
     );
   }
 
   private syncLogisticsTotals(): void {
     this.form.logisticsDistanceKm =
       Number(this.form.logisticsPickupKm || 0) +
-      Number(this.form.logisticsDeliveryKm || 0);
+      Number(this.form.logisticsDeliveryKm || 0) +
+      Number(this.form.logisticsReturnPickupKm || 0) +
+      Number(this.form.logisticsReturnDeliveryKm || 0);
     this.form.logisticsCost = this.logisticsSubtotal();
   }
 
@@ -1201,6 +1330,8 @@ export class OrdersComponent {
     ) {
       return "База Supabase еще не готова для НДС и скидок. Выполни SQL-файл supabase-order-vat-discount.sql в Supabase SQL Editor и попробуй снова.";
     }
-    return message ? `Не удалось сохранить заявку: ${message}` : "Не удалось сохранить заявку.";
+    return message
+      ? `Не удалось сохранить заявку: ${message}`
+      : "Не удалось сохранить заявку.";
   }
 }

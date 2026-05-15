@@ -365,7 +365,9 @@ export class ProjectsComponent {
         : "",
       logisticsDistanceKm: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsPickupKm || 0) +
-          Number(this.orderForm.logisticsDeliveryKm || 0)
+          Number(this.orderForm.logisticsDeliveryKm || 0) +
+          Number(this.orderForm.logisticsReturnPickupKm || 0) +
+          Number(this.orderForm.logisticsReturnDeliveryKm || 0)
         : 0,
       logisticsPricePerKm: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsDeliveryPricePerKm || 0)
@@ -390,6 +392,24 @@ export class ProjectsComponent {
         : 0,
       logisticsDeliveryCost: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsDeliveryCost || 0)
+        : 0,
+      logisticsReturnPickupPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnPickupPricePerKm || 0)
+        : 50,
+      logisticsReturnDeliveryPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnDeliveryPricePerKm || 0)
+        : 250,
+      logisticsReturnPickupKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnPickupKm || 0)
+        : 0,
+      logisticsReturnDeliveryKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnDeliveryKm || 0)
+        : 0,
+      logisticsReturnPickupCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnPickupCost || 0)
+        : 0,
+      logisticsReturnDeliveryCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnDeliveryCost || 0)
         : 0,
       assemblyEnabled: Boolean(this.orderForm.assemblyEnabled),
       assemblyDisassemblyDate: this.orderForm.assemblyEnabled
@@ -601,6 +621,12 @@ export class ProjectsComponent {
     this.orderForm.logisticsDeliveryCost =
       Number(this.orderForm.logisticsDeliveryKm || 0) *
       Number(this.orderForm.logisticsDeliveryPricePerKm || 0);
+    this.orderForm.logisticsReturnPickupCost =
+      Number(this.orderForm.logisticsReturnPickupKm || 0) *
+      Number(this.orderForm.logisticsReturnPickupPricePerKm || 0);
+    this.orderForm.logisticsReturnDeliveryCost =
+      Number(this.orderForm.logisticsReturnDeliveryKm || 0) *
+      Number(this.orderForm.logisticsReturnDeliveryPricePerKm || 0);
     this.syncLogisticsTotalField();
   }
 
@@ -608,7 +634,9 @@ export class ProjectsComponent {
     this.orderForm.logisticsCost = this.logisticsSubtotal();
     this.orderForm.logisticsDistanceKm =
       Number(this.orderForm.logisticsPickupKm || 0) +
-      Number(this.orderForm.logisticsDeliveryKm || 0);
+      Number(this.orderForm.logisticsDeliveryKm || 0) +
+      Number(this.orderForm.logisticsReturnPickupKm || 0) +
+      Number(this.orderForm.logisticsReturnDeliveryKm || 0);
     this.orderForm.logisticsPricePerKm = Number(
       this.orderForm.logisticsDeliveryPricePerKm || 0,
     );
@@ -618,7 +646,9 @@ export class ProjectsComponent {
     if (!this.orderForm.logisticsEnabled) return 0;
     return (
       Number(this.orderForm.logisticsPickupCost || 0) +
-      Number(this.orderForm.logisticsDeliveryCost || 0)
+      Number(this.orderForm.logisticsDeliveryCost || 0) +
+      Number(this.orderForm.logisticsReturnPickupCost || 0) +
+      Number(this.orderForm.logisticsReturnDeliveryCost || 0)
     );
   }
 
@@ -907,6 +937,12 @@ export class ProjectsComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      logisticsReturnPickupPricePerKm: 50,
+      logisticsReturnDeliveryPricePerKm: 250,
+      logisticsReturnPickupKm: 0,
+      logisticsReturnDeliveryKm: 0,
+      logisticsReturnPickupCost: 0,
+      logisticsReturnDeliveryCost: 0,
       assemblyEnabled: false,
       assemblyDisassemblyDate: "",
       assemblyAssemblyDate: "",
@@ -979,6 +1015,18 @@ export class ProjectsComponent {
         order.logisticsDeliveryCost ||
           (order.logisticsPickupCost ? 0 : order.logisticsCost || 0),
       ),
+      logisticsReturnPickupPricePerKm: Number(
+        order.logisticsReturnPickupPricePerKm || 50,
+      ),
+      logisticsReturnDeliveryPricePerKm: Number(
+        order.logisticsReturnDeliveryPricePerKm || 250,
+      ),
+      logisticsReturnPickupKm: Number(order.logisticsReturnPickupKm || 0),
+      logisticsReturnDeliveryKm: Number(order.logisticsReturnDeliveryKm || 0),
+      logisticsReturnPickupCost: Number(order.logisticsReturnPickupCost || 0),
+      logisticsReturnDeliveryCost: Number(
+        order.logisticsReturnDeliveryCost || 0,
+      ),
       assemblyEnabled: Boolean(order.assemblyEnabled),
       assemblyDisassemblyDate: order.assemblyDisassemblyDate || "",
       assemblyAssemblyDate: order.assemblyAssemblyDate || "",
@@ -1045,7 +1093,9 @@ export class ProjectsComponent {
         : "",
       logisticsDistanceKm: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsPickupKm || 0) +
-          Number(this.orderForm.logisticsDeliveryKm || 0)
+          Number(this.orderForm.logisticsDeliveryKm || 0) +
+          Number(this.orderForm.logisticsReturnPickupKm || 0) +
+          Number(this.orderForm.logisticsReturnDeliveryKm || 0)
         : 0,
       logisticsPricePerKm: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsDeliveryPricePerKm || 0)
@@ -1070,6 +1120,24 @@ export class ProjectsComponent {
         : 0,
       logisticsDeliveryCost: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsDeliveryCost || 0)
+        : 0,
+      logisticsReturnPickupPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnPickupPricePerKm || 0)
+        : 50,
+      logisticsReturnDeliveryPricePerKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnDeliveryPricePerKm || 0)
+        : 250,
+      logisticsReturnPickupKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnPickupKm || 0)
+        : 0,
+      logisticsReturnDeliveryKm: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnDeliveryKm || 0)
+        : 0,
+      logisticsReturnPickupCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnPickupCost || 0)
+        : 0,
+      logisticsReturnDeliveryCost: this.orderForm.logisticsEnabled
+        ? Number(this.orderForm.logisticsReturnDeliveryCost || 0)
         : 0,
       assemblyEnabled: Boolean(this.orderForm.assemblyEnabled),
       assemblyDisassemblyDate: this.orderForm.assemblyEnabled
@@ -1217,6 +1285,12 @@ export class ProjectsComponent {
       logisticsDeliveryKm: 0,
       logisticsPickupCost: 0,
       logisticsDeliveryCost: 0,
+      logisticsReturnPickupPricePerKm: 50,
+      logisticsReturnDeliveryPricePerKm: 250,
+      logisticsReturnPickupKm: 0,
+      logisticsReturnDeliveryKm: 0,
+      logisticsReturnPickupCost: 0,
+      logisticsReturnDeliveryCost: 0,
       assemblyEnabled: false,
       assemblyDisassemblyDate: "",
       assemblyAssemblyDate: "",
