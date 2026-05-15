@@ -77,6 +77,13 @@ export class CalendarComponent {
     logisticsTrailerId: "",
     logisticsStartDate: "",
     logisticsEndDate: "",
+    logisticsReturnProvider: "own_trawl" as
+      | "own_trawl"
+      | "third_party"
+      | "self_drive",
+    logisticsReturnTrailerId: "",
+    logisticsReturnStartDate: "",
+    logisticsReturnEndDate: "",
     logisticsDistanceKm: 0,
     logisticsPricePerKm: 0,
     logisticsCost: 0,
@@ -232,31 +239,58 @@ export class CalendarComponent {
           conflict: false,
         }));
 
-      const logisticsEntries = this.state
-        .orders()
-        .filter(
-          (o) =>
-            o.logisticsEnabled &&
-            o.logisticsProvider === "own_trawl" &&
-            o.logisticsTrailerId &&
-            this.isEquipmentTypeVisible(o.logisticsTrailerId) &&
-            this.state.orderLogisticsStart(o) <= ds &&
-            this.state.orderLogisticsEnd(o) >= ds,
-        )
-        .map((o) => ({
-          id: o.id,
-          eq:
-            this.state.byId(this.state.equipment(), o.logisticsTrailerId)
-              ?.name || "Трал",
-          cl:
-            this.state.byId(this.state.clients(), o.clientId)?.name ||
-            "Логистика",
-          type: "logistics",
-          statusClass: "logistics",
-          equipmentId: o.logisticsTrailerId,
-          blocksSchedule: this.state.orderBlocksSchedule(o),
-          conflict: false,
-        }));
+      const logisticsEntries = this.state.orders().flatMap((o) => {
+        const entries = [];
+        if (
+          o.logisticsEnabled &&
+          o.logisticsProvider === "own_trawl" &&
+          o.logisticsTrailerId &&
+          this.isEquipmentTypeVisible(o.logisticsTrailerId) &&
+          this.state.orderLogisticsStart(o) <= ds &&
+          this.state.orderLogisticsEnd(o) >= ds
+        ) {
+          entries.push({
+            id: o.id,
+            eq:
+              this.state.byId(this.state.equipment(), o.logisticsTrailerId)
+                ?.name || "Трал",
+            cl:
+              this.state.byId(this.state.clients(), o.clientId)?.name ||
+              "Логистика",
+            type: "logistics",
+            statusClass: "logistics",
+            equipmentId: o.logisticsTrailerId,
+            blocksSchedule: this.state.orderBlocksSchedule(o),
+            conflict: false,
+          });
+        }
+        if (
+          o.logisticsEnabled &&
+          o.logisticsReturnProvider === "own_trawl" &&
+          o.logisticsReturnTrailerId &&
+          this.isEquipmentTypeVisible(o.logisticsReturnTrailerId) &&
+          this.state.orderLogisticsReturnStart(o) <= ds &&
+          this.state.orderLogisticsReturnEnd(o) >= ds
+        ) {
+          entries.push({
+            id: o.id,
+            eq:
+              this.state.byId(
+                this.state.equipment(),
+                o.logisticsReturnTrailerId,
+              )?.name || "Трал",
+            cl:
+              this.state.byId(this.state.clients(), o.clientId)?.name ||
+              "Возврат",
+            type: "logistics",
+            statusClass: "logistics",
+            equipmentId: o.logisticsReturnTrailerId,
+            blocksSchedule: this.state.orderBlocksSchedule(o),
+            conflict: false,
+          });
+        }
+        return entries;
+      });
 
       const repairEntries = this.state
         .repairs()
@@ -374,6 +408,30 @@ export class CalendarComponent {
                 title:
                   this.state.byId(this.state.clients(), o.clientId)?.name ||
                   "Логистика",
+                startDate: segment.startDate,
+                endDate: segment.endDate,
+                conflict: false,
+              }),
+            ),
+          ),
+        ...this.state
+          .orders()
+          .filter(
+            (o) =>
+              o.logisticsEnabled &&
+              o.logisticsReturnProvider === "own_trawl" &&
+              o.logisticsReturnTrailerId === eq.id &&
+              o.status !== "cancelled",
+          )
+          .flatMap((o) =>
+            this.orderLogisticsReturnSegments(o, rangeStart, rangeEnd).map(
+              (segment) => ({
+                id: o.id,
+                type: "logistics" as const,
+                status: o.status,
+                title:
+                  this.state.byId(this.state.clients(), o.clientId)?.name ||
+                  "Возврат",
                 startDate: segment.startDate,
                 endDate: segment.endDate,
                 conflict: false,
@@ -553,6 +611,20 @@ export class CalendarComponent {
       logisticsTrailerId: order.logisticsTrailerId || "",
       logisticsStartDate: order.logisticsStartDate || order.startDate || "",
       logisticsEndDate: order.logisticsEndDate || order.endDate || "",
+      logisticsReturnProvider:
+        order.logisticsReturnProvider || order.logisticsProvider || "own_trawl",
+      logisticsReturnTrailerId:
+        order.logisticsReturnTrailerId || order.logisticsTrailerId || "",
+      logisticsReturnStartDate:
+        order.logisticsReturnStartDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
+      logisticsReturnEndDate:
+        order.logisticsReturnEndDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
       logisticsDistanceKm,
       logisticsPricePerKm: Number(
         order.logisticsPricePerKm ||
@@ -893,6 +965,10 @@ export class CalendarComponent {
       logisticsTrailerId: "",
       logisticsStartDate: "",
       logisticsEndDate: "",
+      logisticsReturnProvider: "own_trawl",
+      logisticsReturnTrailerId: "",
+      logisticsReturnStartDate: "",
+      logisticsReturnEndDate: "",
       logisticsDistanceKm: 0,
       logisticsPricePerKm: 0,
       logisticsCost: 0,
@@ -950,6 +1026,24 @@ export class CalendarComponent {
         : "",
       logisticsEndDate: this.form.logisticsEnabled
         ? this.form.logisticsEndDate || this.form.endDate
+        : "",
+      logisticsReturnProvider: this.form.logisticsEnabled
+        ? this.form.logisticsReturnProvider
+        : "own_trawl",
+      logisticsReturnTrailerId:
+        this.form.logisticsEnabled &&
+        this.form.logisticsReturnProvider === "own_trawl"
+          ? this.form.logisticsReturnTrailerId
+          : "",
+      logisticsReturnStartDate: this.form.logisticsEnabled
+        ? this.form.logisticsReturnStartDate ||
+          this.form.logisticsEndDate ||
+          this.form.endDate
+        : "",
+      logisticsReturnEndDate: this.form.logisticsEnabled
+        ? this.form.logisticsReturnEndDate ||
+          this.form.logisticsEndDate ||
+          this.form.endDate
         : "",
       logisticsDistanceKm: this.form.logisticsEnabled
         ? Number(this.form.logisticsPickupKm || 0) +
@@ -1276,6 +1370,36 @@ export class CalendarComponent {
     const to = new Date(
       Math.min(
         new Date(this.state.orderLogisticsEnd(order) + "T00:00:00").getTime(),
+        rangeEnd.getTime(),
+      ),
+    );
+    if (from > to) return [];
+    return [
+      {
+        startDate: this.utils.dateKey(from),
+        endDate: this.utils.dateKey(to),
+      },
+    ];
+  }
+
+  private orderLogisticsReturnSegments(
+    order: Order,
+    rangeStart: Date,
+    rangeEnd: Date,
+  ): { startDate: string; endDate: string }[] {
+    const from = new Date(
+      Math.max(
+        new Date(
+          this.state.orderLogisticsReturnStart(order) + "T00:00:00",
+        ).getTime(),
+        rangeStart.getTime(),
+      ),
+    );
+    const to = new Date(
+      Math.min(
+        new Date(
+          this.state.orderLogisticsReturnEnd(order) + "T00:00:00",
+        ).getTime(),
         rangeEnd.getTime(),
       ),
     );

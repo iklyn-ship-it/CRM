@@ -533,6 +533,27 @@ button.edit-chip:hover {
   font-weight: 900;
 }
 
+.logistics-two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.logistics-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.logistics-column .cost-total {
+  grid-column: 1 / -1;
+}
+
 .operator-shift-card {
   display: grid;
   gap: 10px;
@@ -589,6 +610,15 @@ button.edit-chip:hover {
   border-left: 3px solid #22c55e;
 }
 
+.complete-order-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.complete-order-btn {
+  min-width: 220px;
+}
+
 .operation-line.expense {
   border-left: 3px solid #ef4444;
 }
@@ -621,6 +651,8 @@ button.edit-chip:hover {
   .cost-grid,
   .cost-fields,
   .operator-shift-grid,
+  .logistics-two-columns,
+  .logistics-column,
   .order-finance-grid,
   .operation-form {
     grid-template-columns: 1fr;

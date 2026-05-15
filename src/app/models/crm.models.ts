@@ -64,6 +64,10 @@ export interface Order {
   logisticsTrailerId: string;
   logisticsStartDate: string;
   logisticsEndDate: string;
+  logisticsReturnProvider: "own_trawl" | "third_party" | "self_drive";
+  logisticsReturnTrailerId: string;
+  logisticsReturnStartDate: string;
+  logisticsReturnEndDate: string;
   logisticsDistanceKm: number;
   logisticsPricePerKm: number;
   logisticsCost: number;

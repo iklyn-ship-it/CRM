@@ -69,6 +69,9 @@ export class ProjectsComponent {
     { value: "completed", label: "Завершена" },
     { value: "cancelled", label: "Отменена" },
   ];
+  readonly editableStatuses = this.statuses.filter(
+    (status) => status.value !== "completed",
+  );
 
   readonly operationCategories = [
     "Оплата клиента",
@@ -363,6 +366,24 @@ export class ProjectsComponent {
       logisticsEndDate: this.orderForm.logisticsEnabled
         ? this.orderForm.logisticsEndDate || order.endDate
         : "",
+      logisticsReturnProvider: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsReturnProvider
+        : "own_trawl",
+      logisticsReturnTrailerId:
+        this.orderForm.logisticsEnabled &&
+        this.orderForm.logisticsReturnProvider === "own_trawl"
+          ? this.orderForm.logisticsReturnTrailerId
+          : "",
+      logisticsReturnStartDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsReturnStartDate ||
+          this.orderForm.logisticsEndDate ||
+          order.endDate
+        : "",
+      logisticsReturnEndDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsReturnEndDate ||
+          this.orderForm.logisticsEndDate ||
+          order.endDate
+        : "",
       logisticsDistanceKm: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsPickupKm || 0) +
           Number(this.orderForm.logisticsDeliveryKm || 0) +
@@ -471,6 +492,11 @@ export class ProjectsComponent {
     } catch (error) {
       alert(`Не удалось сохранить заявку: ${this.errorMessage(error)}`);
     }
+  }
+
+  async completeOrder(): Promise<void> {
+    this.orderForm.status = "completed";
+    await this.saveOrder();
   }
 
   async addOperation(): Promise<void> {
@@ -928,6 +954,13 @@ export class ProjectsComponent {
       logisticsTrailerId: "",
       logisticsStartDate: "",
       logisticsEndDate: "",
+      logisticsReturnProvider: "own_trawl" as
+        | "own_trawl"
+        | "third_party"
+        | "self_drive",
+      logisticsReturnTrailerId: "",
+      logisticsReturnStartDate: "",
+      logisticsReturnEndDate: "",
       logisticsDistanceKm: 0,
       logisticsPricePerKm: 0,
       logisticsCost: 0,
@@ -999,6 +1032,20 @@ export class ProjectsComponent {
       logisticsTrailerId: order.logisticsTrailerId || "",
       logisticsStartDate: order.logisticsStartDate || order.startDate || "",
       logisticsEndDate: order.logisticsEndDate || order.endDate || "",
+      logisticsReturnProvider:
+        order.logisticsReturnProvider || order.logisticsProvider || "own_trawl",
+      logisticsReturnTrailerId:
+        order.logisticsReturnTrailerId || order.logisticsTrailerId || "",
+      logisticsReturnStartDate:
+        order.logisticsReturnStartDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
+      logisticsReturnEndDate:
+        order.logisticsReturnEndDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
       logisticsDistanceKm: Number(order.logisticsDistanceKm || 0),
       logisticsPricePerKm: Number(order.logisticsPricePerKm || 0),
       logisticsCost: Number(order.logisticsCost || 0),
@@ -1090,6 +1137,24 @@ export class ProjectsComponent {
         : "",
       logisticsEndDate: this.orderForm.logisticsEnabled
         ? this.orderForm.logisticsEndDate || order.endDate
+        : "",
+      logisticsReturnProvider: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsReturnProvider
+        : "own_trawl",
+      logisticsReturnTrailerId:
+        this.orderForm.logisticsEnabled &&
+        this.orderForm.logisticsReturnProvider === "own_trawl"
+          ? this.orderForm.logisticsReturnTrailerId
+          : "",
+      logisticsReturnStartDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsReturnStartDate ||
+          this.orderForm.logisticsEndDate ||
+          order.endDate
+        : "",
+      logisticsReturnEndDate: this.orderForm.logisticsEnabled
+        ? this.orderForm.logisticsReturnEndDate ||
+          this.orderForm.logisticsEndDate ||
+          order.endDate
         : "",
       logisticsDistanceKm: this.orderForm.logisticsEnabled
         ? Number(this.orderForm.logisticsPickupKm || 0) +
@@ -1276,6 +1341,10 @@ export class ProjectsComponent {
       logisticsTrailerId: "",
       logisticsStartDate: "",
       logisticsEndDate: "",
+      logisticsReturnProvider: "own_trawl" as const,
+      logisticsReturnTrailerId: "",
+      logisticsReturnStartDate: "",
+      logisticsReturnEndDate: "",
       logisticsDistanceKm: 0,
       logisticsPricePerKm: 0,
       logisticsCost: 0,

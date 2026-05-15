@@ -484,11 +484,15 @@ export class StateService {
     }
     return (
       Boolean(order.logisticsEnabled) &&
-      order.logisticsProvider === "own_trawl" &&
-      order.logisticsTrailerId === equipmentId &&
       this.orderBlocksSchedule(order) &&
-      date >= this.orderLogisticsStart(order) &&
-      date <= this.orderLogisticsEnd(order)
+      ((order.logisticsProvider === "own_trawl" &&
+        order.logisticsTrailerId === equipmentId &&
+        date >= this.orderLogisticsStart(order) &&
+        date <= this.orderLogisticsEnd(order)) ||
+        (order.logisticsReturnProvider === "own_trawl" &&
+          order.logisticsReturnTrailerId === equipmentId &&
+          date >= this.orderLogisticsReturnStart(order) &&
+          date <= this.orderLogisticsReturnEnd(order)))
     );
   }
 
@@ -498,6 +502,18 @@ export class StateService {
 
   orderLogisticsEnd(order: Order): string {
     return order.logisticsEndDate || order.endDate;
+  }
+
+  orderLogisticsReturnStart(order: Order): string {
+    return (
+      order.logisticsReturnStartDate || order.logisticsEndDate || order.endDate
+    );
+  }
+
+  orderLogisticsReturnEnd(order: Order): string {
+    return (
+      order.logisticsReturnEndDate || order.logisticsEndDate || order.endDate
+    );
   }
 
   transportBlocksSchedule(transport: Transport): boolean {
@@ -720,6 +736,11 @@ export class StateService {
       order.logisticsTrailerId
         ? order.logisticsTrailerId
         : "",
+      order.logisticsEnabled &&
+      order.logisticsReturnProvider === "own_trawl" &&
+      order.logisticsReturnTrailerId
+        ? order.logisticsReturnTrailerId
+        : "",
     ].filter((id): id is string => Boolean(id));
   }
 
@@ -860,7 +881,10 @@ export class StateService {
           o.equipmentId === eqId ||
           (o.logisticsEnabled &&
             o.logisticsProvider === "own_trawl" &&
-            o.logisticsTrailerId === eqId),
+            o.logisticsTrailerId === eqId) ||
+          (o.logisticsEnabled &&
+            o.logisticsReturnProvider === "own_trawl" &&
+            o.logisticsReturnTrailerId === eqId),
       )
       .flatMap((o) =>
         this.utils

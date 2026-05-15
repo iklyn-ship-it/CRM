@@ -62,6 +62,13 @@ export class OrdersComponent {
     logisticsTrailerId: "",
     logisticsStartDate: "",
     logisticsEndDate: "",
+    logisticsReturnProvider: "own_trawl" as
+      | "own_trawl"
+      | "third_party"
+      | "self_drive",
+    logisticsReturnTrailerId: "",
+    logisticsReturnStartDate: "",
+    logisticsReturnEndDate: "",
     logisticsDistanceKm: 0,
     logisticsPricePerKm: 0,
     logisticsCost: 0,
@@ -598,6 +605,20 @@ export class OrdersComponent {
       logisticsTrailerId: order.logisticsTrailerId || "",
       logisticsStartDate: order.logisticsStartDate || order.startDate || "",
       logisticsEndDate: order.logisticsEndDate || order.endDate || "",
+      logisticsReturnProvider:
+        order.logisticsReturnProvider || order.logisticsProvider || "own_trawl",
+      logisticsReturnTrailerId:
+        order.logisticsReturnTrailerId || order.logisticsTrailerId || "",
+      logisticsReturnStartDate:
+        order.logisticsReturnStartDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
+      logisticsReturnEndDate:
+        order.logisticsReturnEndDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
       logisticsDistanceKm,
       logisticsPricePerKm: Number(
         order.logisticsPricePerKm ||
@@ -697,6 +718,10 @@ export class OrdersComponent {
       logisticsTrailerId: "",
       logisticsStartDate: "",
       logisticsEndDate: "",
+      logisticsReturnProvider: "own_trawl",
+      logisticsReturnTrailerId: "",
+      logisticsReturnStartDate: "",
+      logisticsReturnEndDate: "",
       logisticsDistanceKm: 0,
       logisticsPricePerKm: 0,
       logisticsCost: 0,
@@ -973,6 +998,24 @@ export class OrdersComponent {
         : "",
       logisticsEndDate: this.form.logisticsEnabled
         ? this.form.logisticsEndDate || this.form.endDate
+        : "",
+      logisticsReturnProvider: this.form.logisticsEnabled
+        ? this.form.logisticsReturnProvider
+        : "own_trawl",
+      logisticsReturnTrailerId:
+        this.form.logisticsEnabled &&
+        this.form.logisticsReturnProvider === "own_trawl"
+          ? this.form.logisticsReturnTrailerId
+          : "",
+      logisticsReturnStartDate: this.form.logisticsEnabled
+        ? this.form.logisticsReturnStartDate ||
+          this.form.logisticsEndDate ||
+          this.form.endDate
+        : "",
+      logisticsReturnEndDate: this.form.logisticsEnabled
+        ? this.form.logisticsReturnEndDate ||
+          this.form.logisticsEndDate ||
+          this.form.endDate
         : "",
       logisticsDistanceKm: this.form.logisticsEnabled
         ? Number(this.form.logisticsPickupKm || 0) +

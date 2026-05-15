@@ -152,6 +152,20 @@ export class DbService {
       logisticsTrailerId: order.logisticsTrailerId || "",
       logisticsStartDate: order.logisticsStartDate || order.startDate || "",
       logisticsEndDate: order.logisticsEndDate || order.endDate || "",
+      logisticsReturnProvider:
+        order.logisticsReturnProvider || order.logisticsProvider || "own_trawl",
+      logisticsReturnTrailerId:
+        order.logisticsReturnTrailerId || order.logisticsTrailerId || "",
+      logisticsReturnStartDate:
+        order.logisticsReturnStartDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
+      logisticsReturnEndDate:
+        order.logisticsReturnEndDate ||
+        order.logisticsEndDate ||
+        order.endDate ||
+        "",
       logisticsDistanceKm,
       logisticsPricePerKm: Number(
         order.logisticsPricePerKm ||
@@ -608,7 +622,7 @@ export class DbService {
     return (
       table === "orders" &&
       ["42703", "PGRST204"].includes(error?.code) &&
-      /logistics_(distance_km|price_per_km|cost|pickup_price_per_km|delivery_price_per_km|return_pickup_price_per_km|return_delivery_price_per_km|return_pickup_km|return_delivery_km|return_pickup_cost|return_delivery_cost)/.test(
+      /logistics_(distance_km|price_per_km|cost|pickup_price_per_km|delivery_price_per_km|return_provider|return_trailer_id|return_start_date|return_end_date|return_pickup_price_per_km|return_delivery_price_per_km|return_pickup_km|return_delivery_km|return_pickup_cost|return_delivery_cost)/.test(
         message,
       )
     );
@@ -623,6 +637,10 @@ export class DbService {
     delete fallbackRow["logistics_cost"];
     delete fallbackRow["logistics_pickup_price_per_km"];
     delete fallbackRow["logistics_delivery_price_per_km"];
+    delete fallbackRow["logistics_return_provider"];
+    delete fallbackRow["logistics_return_trailer_id"];
+    delete fallbackRow["logistics_return_start_date"];
+    delete fallbackRow["logistics_return_end_date"];
     delete fallbackRow["logistics_return_pickup_price_per_km"];
     delete fallbackRow["logistics_return_delivery_price_per_km"];
     delete fallbackRow["logistics_return_pickup_km"];
@@ -820,6 +838,10 @@ export class DbService {
       logisticsTrailerId: "Трал",
       logisticsStartDate: "Дата начала логистики",
       logisticsEndDate: "Дата окончания логистики",
+      logisticsReturnProvider: "Возврат: перевозчик",
+      logisticsReturnTrailerId: "Возврат: трал",
+      logisticsReturnStartDate: "Возврат: дата начала",
+      logisticsReturnEndDate: "Возврат: дата окончания",
       logisticsDistanceKm: "Км логистики",
       logisticsPricePerKm: "Цена за км",
       logisticsCost: "Стоимость логистики",
