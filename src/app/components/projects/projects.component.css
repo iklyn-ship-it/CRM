@@ -274,6 +274,46 @@
   color: #bbf7d0;
 }
 
+.ending-chip.conflict,
+.ending-notice.conflict {
+  border: 1px solid rgba(248, 113, 113, 0.38);
+  background: rgba(127, 29, 29, 0.24);
+  color: #fecaca;
+}
+
+.ending-chip.operator,
+.ending-notice.operator {
+  border: 1px solid rgba(251, 146, 60, 0.38);
+  background: rgba(124, 45, 18, 0.22);
+  color: #fed7aa;
+}
+
+.ending-chip.repair,
+.ending-notice.repair {
+  border: 1px solid rgba(168, 85, 247, 0.36);
+  background: rgba(88, 28, 135, 0.18);
+  color: #e9d5ff;
+}
+
+.conflict-note,
+.operator-conflict-note,
+.repair-order-note {
+  margin-top: 4px;
+  font-weight: 800;
+}
+
+.conflict-note {
+  color: #fca5a5;
+}
+
+.operator-conflict-note {
+  color: #fdba74;
+}
+
+.repair-order-note {
+  color: #d8b4fe;
+}
+
 .order-full-card {
   display: grid;
   gap: 16px;

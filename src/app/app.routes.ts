@@ -34,6 +34,13 @@ export const routes: Routes = [
       {
         path: "orders",
         loadComponent: () =>
+          import("./components/projects/projects.component").then(
+            (m) => m.ProjectsComponent,
+          ),
+      },
+      {
+        path: "orders-old",
+        loadComponent: () =>
           import("./components/orders/orders.component").then(
             (m) => m.OrdersComponent,
           ),
@@ -75,10 +82,8 @@ export const routes: Routes = [
       },
       {
         path: "projects",
-        loadComponent: () =>
-          import("./components/projects/projects.component").then(
-            (m) => m.ProjectsComponent,
-          ),
+        redirectTo: "orders",
+        pathMatch: "full",
       },
       {
         path: "equipment",

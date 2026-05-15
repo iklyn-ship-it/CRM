@@ -34,6 +34,9 @@ interface LocationGroup {
   overdue: number;
   unpaidCompleted: number;
   newOrders: number;
+  equipmentConflicts: number;
+  operatorConflicts: number;
+  repairWarnings: number;
   latestDate: string;
 }
 
@@ -52,6 +55,9 @@ interface ClientGroup {
   overdue: number;
   unpaidCompleted: number;
   newOrders: number;
+  equipmentConflicts: number;
+  operatorConflicts: number;
+  repairWarnings: number;
   latestDate: string;
 }
 
@@ -106,6 +112,30 @@ export class ProjectsComponent {
     "Прочее",
   ];
   readonly documentTypes = this.proposal.documentTypes;
+
+  readonly conflictSet = computed(() => {
+    const orderConflicts = this.state
+      .orderConflicts()
+      .flatMap((x) => [x[0], x[1]]);
+    const transportConflicts = this.state
+      .orderTransportConflicts()
+      .map(([orderId]) => orderId);
+    return new Set([...orderConflicts, ...transportConflicts]);
+  });
+
+  readonly operatorConflictSet = computed(() => {
+    const orderConflicts = this.state
+      .operatorConflicts()
+      .flatMap((x) => [x[0], x[1]]);
+    const transportConflicts = this.state
+      .orderTransportOperatorConflicts()
+      .map(([orderId]) => orderId);
+    return new Set([...orderConflicts, ...transportConflicts]);
+  });
+
+  readonly repairConflictSet = computed(() => {
+    return new Set(this.state.repairConflicts().map(([, orderId]) => orderId));
+  });
 
   readonly filteredOrders = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -197,6 +227,15 @@ export class ProjectsComponent {
             this.orderPaymentKind(order),
           ).length,
           newOrders: orders.filter((order) => order.status === "new").length,
+          equipmentConflicts: orders.filter((order) =>
+            this.conflictSet().has(order.id),
+          ).length,
+          operatorConflicts: orders.filter((order) =>
+            this.operatorConflictSet().has(order.id),
+          ).length,
+          repairWarnings: orders.filter((order) =>
+            this.orderRepairNotice(order),
+          ).length,
           latestDate: orders.reduce(
             (latest, order) =>
               order.startDate > latest ? order.startDate : latest,
@@ -1354,6 +1393,29 @@ export class ProjectsComponent {
     )}`;
   }
 
+  orderRepairNotice(order: Order): string {
+    if (this.repairConflictSet().has(order.id)) {
+      return "Техника пересекается с ремонтом";
+    }
+    if (!order.breakdownEnabled) return "";
+    const status = this.breakdownStatusLabel(order.breakdownStatus);
+    const from = this.utils.fmtDate(order.breakdownDate);
+    const to = this.utils.fmtDate(
+      order.breakdownEndDate || order.breakdownDate,
+    );
+    return `Поломка/ремонт: ${status}, ${from} - ${to}`;
+  }
+
+  breakdownStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      reported: "Зафиксирована",
+      diagnostics: "Диагностика",
+      repair: "Ремонт",
+      resolved: "Устранена",
+    };
+    return labels[status] || "Зафиксирована";
+  }
+
   opTypeLabel(type: string): string {
     return type === "income" ? "Приход" : "Расход";
   }
@@ -1402,6 +1464,14 @@ export class ProjectsComponent {
       unpaidCompleted: sorted.filter((order) => this.orderPaymentKind(order))
         .length,
       newOrders: sorted.filter((order) => order.status === "new").length,
+      equipmentConflicts: sorted.filter((order) =>
+        this.conflictSet().has(order.id),
+      ).length,
+      operatorConflicts: sorted.filter((order) =>
+        this.operatorConflictSet().has(order.id),
+      ).length,
+      repairWarnings: sorted.filter((order) => this.orderRepairNotice(order))
+        .length,
       latestDate: sorted[0]?.startDate || "",
     };
   }

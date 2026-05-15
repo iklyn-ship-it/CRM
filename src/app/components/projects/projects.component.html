@@ -1,6 +1,6 @@
 <div class="section-heading">
   <div>
-    <h2>Новая версия заявок</h2>
+    <h2>Заявки</h2>
     <p>Клиент → локация → техника/заявки → полноэкранная карточка заявки.</p>
   </div>
   @if (!selectedOrder() && !selectedLocation() && !creatingOrder()) {
@@ -1866,6 +1866,19 @@
                       {{ orderPaymentLabel(order) }}
                     </div>
                   }
+                  @if (conflictSet().has(order.id)) {
+                    <div class="small conflict-note">Конфликт по технике</div>
+                  }
+                  @if (operatorConflictSet().has(order.id)) {
+                    <div class="small operator-conflict-note">
+                      Оператор занят в другой заявке/перевозке
+                    </div>
+                  }
+                  @if (orderRepairNotice(order); as repairNotice) {
+                    <div class="small repair-order-note">
+                      {{ repairNotice }}
+                    </div>
+                  }
                 </td>
                 <td>{{ utils.money(state.orderPlan(order)) }}</td>
                 <td>{{ utils.money(state.orderIncome(order.id)) }}</td>
@@ -1949,6 +1962,21 @@
                   Не оплачено: {{ client.unpaidCompleted }}
                 </span>
               }
+              @if (client.equipmentConflicts) {
+                <span class="ending-chip conflict">
+                  Техника: {{ client.equipmentConflicts }}
+                </span>
+              }
+              @if (client.operatorConflicts) {
+                <span class="ending-chip operator">
+                  Операторы: {{ client.operatorConflicts }}
+                </span>
+              }
+              @if (client.repairWarnings) {
+                <span class="ending-chip repair">
+                  Ремонт: {{ client.repairWarnings }}
+                </span>
+              }
             </span>
           </button>
 
@@ -1988,6 +2016,21 @@
                       @if (location.unpaidCompleted) {
                         <span class="ending-chip unpaid">
                           Не оплачено: {{ location.unpaidCompleted }}
+                        </span>
+                      }
+                      @if (location.equipmentConflicts) {
+                        <span class="ending-chip conflict">
+                          Техника: {{ location.equipmentConflicts }}
+                        </span>
+                      }
+                      @if (location.operatorConflicts) {
+                        <span class="ending-chip operator">
+                          Операторы: {{ location.operatorConflicts }}
+                        </span>
+                      }
+                      @if (location.repairWarnings) {
+                        <span class="ending-chip repair">
+                          Ремонт: {{ location.repairWarnings }}
                         </span>
                       }
                     </span>
