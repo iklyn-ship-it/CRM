@@ -4,6 +4,7 @@ import { FormsModule } from "@angular/forms";
 import {
   CommercialProposalDraft,
   CommercialProposalService,
+  CrmDocumentType,
   ProposalRow,
 } from "../../services/commercial-proposal.service";
 import { DbService } from "../../services/db.service";
@@ -104,6 +105,7 @@ export class ProjectsComponent {
     "Зарплата оператора",
     "Прочее",
   ];
+  readonly documentTypes = this.proposal.documentTypes;
 
   readonly filteredOrders = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -575,7 +577,11 @@ export class ProjectsComponent {
   }
 
   async generateCommercialProposal(order: Order): Promise<void> {
-    this.proposalDraft = this.proposal.createDraft(order);
+    this.openDocumentEditor(order, "proposal");
+  }
+
+  openDocumentEditor(order: Order, type: CrmDocumentType): void {
+    this.proposalDraft = this.proposal.createDraft(order, type);
     this.proposalEditorOpen.set(true);
   }
 

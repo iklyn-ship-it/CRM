@@ -825,7 +825,7 @@
           <div class="proposal-editor card" (click)="$event.stopPropagation()">
             <div class="proposal-head">
               <div>
-                <div class="eyebrow">Редактор КП</div>
+                <div class="eyebrow">Редактор документа</div>
                 <h3>{{ draft.title }}</h3>
                 <p>Проверь данные, отредактируй строки и скачай DOCX.</p>
               </div>
@@ -1193,13 +1193,22 @@
           }
         </div>
         <div class="actions">
-          <button
-            type="button"
-            class="btn info"
-            (click)="generateCommercialProposal(selected)"
-          >
-            Комерційна пропозиція
-          </button>
+          <details class="print-menu">
+            <summary class="btn info">
+              <span class="print-icon" aria-hidden="true">⎙</span>
+              Документи
+            </summary>
+            <div class="print-menu-list">
+              @for (document of documentTypes; track document.type) {
+                <button
+                  type="button"
+                  (click)="openDocumentEditor(selected, document.type)"
+                >
+                  {{ document.label }}
+                </button>
+              }
+            </div>
+          </details>
           <button
             type="button"
             class="btn primary"

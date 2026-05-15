@@ -10,7 +10,16 @@ export interface ProposalRow {
   negative?: boolean;
 }
 
+export type CrmDocumentType =
+  | "proposal"
+  | "invoice"
+  | "serviceAct"
+  | "returnAct"
+  | "orderReport"
+  | "taxInvoiceNote";
+
 export interface CommercialProposalDraft {
+  documentType: CrmDocumentType;
   orderId: string;
   title: string;
   subtitle: string;
@@ -21,6 +30,8 @@ export interface CommercialProposalDraft {
   operator: string;
   status: string;
   rows: ProposalRow[];
+  costHeading: string;
+  termsHeading: string;
   notes: string;
   terms: string[];
 }
@@ -36,14 +47,43 @@ export class CommercialProposalService {
   private utils = inject(UtilsService);
   private encoder = new TextEncoder();
 
+  readonly documentTypes: { type: CrmDocumentType; label: string }[] = [
+    { type: "proposal", label: "Комерційна пропозиція" },
+    { type: "invoice", label: "Рахунок на оплату" },
+    { type: "serviceAct", label: "Акт наданих послуг" },
+    { type: "returnAct", label: "Акт повернення техніки" },
+    { type: "orderReport", label: "Звіт по заявці" },
+    { type: "taxInvoiceNote", label: "Податкова накладна" },
+  ];
+
   async generateForOrder(order: Order): Promise<void> {
     await this.downloadDraft(this.createDraft(order));
   }
 
-  createDraft(order: Order): CommercialProposalDraft {
+  createDraft(
+    order: Order,
+    documentType: CrmDocumentType = "proposal",
+  ): CommercialProposalDraft {
+    const base = this.baseDraft(order, documentType);
+    if (documentType === "invoice") return this.invoiceDraft(order, base);
+    if (documentType === "serviceAct") return this.serviceActDraft(order, base);
+    if (documentType === "returnAct") return this.returnActDraft(order, base);
+    if (documentType === "orderReport")
+      return this.orderReportDraft(order, base);
+    if (documentType === "taxInvoiceNote") {
+      return this.taxInvoiceNoteDraft(order, base);
+    }
+    return this.proposalDraft(order, base);
+  }
+
+  private baseDraft(
+    order: Order,
+    documentType: CrmDocumentType,
+  ): CommercialProposalDraft {
     return {
+      documentType,
       orderId: order.id,
-      title: "Комерційна пропозиція",
+      title: this.documentLabel(documentType),
       subtitle: `до заявки ${this.shortId(order.id)} від ${this.todayUk()}`,
       client: this.clientName(order.clientId),
       location: order.location || "Не вказано",
@@ -51,12 +91,192 @@ export class CommercialProposalService {
       equipment: this.equipmentName(order.equipmentId),
       operator: this.operatorName(order.operatorId) || "Без оператора",
       status: this.statusLabel(order.status),
-      rows: this.proposalRows(order),
+      rows: [],
+      costHeading: "Розрахунок вартості",
+      termsHeading: "Умови",
       notes: order.notes || "",
+      terms: [],
+    };
+  }
+
+  private proposalDraft(
+    order: Order,
+    draft: CommercialProposalDraft,
+  ): CommercialProposalDraft {
+    return {
+      ...draft,
+      title: "Комерційна пропозиція",
+      costHeading: "Розрахунок вартості",
+      termsHeading: "Умови пропозиції",
+      rows: this.proposalRows(order),
       terms: [
         "Вартість сформована на підставі даних заявки в CRM.",
         "Фінальна сума може бути уточнена після погодження обсягу робіт, логістики та додаткових витрат.",
         "Оплата, строки та інші умови узгоджуються сторонами окремо.",
+      ],
+    };
+  }
+
+  private invoiceDraft(
+    order: Order,
+    draft: CommercialProposalDraft,
+  ): CommercialProposalDraft {
+    const paid = this.state.orderIncome(order.id);
+    const remaining = this.state.orderRemaining(order);
+    return {
+      ...draft,
+      title: "Рахунок на оплату",
+      subtitle: `за заявкою ${this.shortId(order.id)} від ${this.todayUk()}`,
+      costHeading: "До оплати",
+      termsHeading: "Примітки до рахунку",
+      rows:
+        remaining > 0
+          ? [
+              {
+                title: `Оренда та додаткові послуги за заявкою ${this.shortId(order.id)}`,
+                details: `План ${this.money(this.state.orderPlan(order))}; оплачено ${this.money(paid)}`,
+                amount: remaining,
+              },
+            ]
+          : this.proposalRows(order),
+      terms: [
+        "Рахунок сформовано на підставі даних заявки в CRM.",
+        "Оплата здійснюється згідно з погодженими сторонами умовами.",
+        "Після оплати закриваючими документами є акт наданих послуг та акт повернення техніки.",
+      ],
+    };
+  }
+
+  private serviceActDraft(
+    order: Order,
+    draft: CommercialProposalDraft,
+  ): CommercialProposalDraft {
+    return {
+      ...draft,
+      title: "Акт наданих послуг",
+      subtitle: `за заявкою ${this.shortId(order.id)} від ${this.todayUk()}`,
+      costHeading: "Надані послуги",
+      termsHeading: "Підтвердження",
+      rows: this.proposalRows(order),
+      terms: [
+        "Послуги надані в повному обсязі згідно з даними заявки.",
+        "Сторони підтверджують період роботи, техніку, локацію та вартість послуг.",
+        "Зауваження щодо обсягу або якості послуг фіксуються окремо в коментарі до акта.",
+      ],
+    };
+  }
+
+  private returnActDraft(
+    order: Order,
+    draft: CommercialProposalDraft,
+  ): CommercialProposalDraft {
+    return {
+      ...draft,
+      title: "Акт повернення техніки з оренди",
+      subtitle: `за заявкою ${this.shortId(order.id)} від ${this.todayUk()}`,
+      costHeading: "Дані повернення",
+      termsHeading: "Стан техніки",
+      rows: [
+        {
+          title: `Повернення техніки: ${this.equipmentName(order.equipmentId)}`,
+          details: `Період оренди: ${draft.period}; об'єкт: ${draft.location}`,
+          amount: 0,
+        },
+        {
+          title: "Стан техніки",
+          details: "Повернена / потребує додаткового огляду",
+          amount: 0,
+        },
+        {
+          title: "Пошкодження / зауваження",
+          details: order.breakdownEnabled
+            ? order.breakdownDescription || "Зафіксована поломка"
+            : "Не зафіксовано",
+          amount: 0,
+        },
+      ],
+      terms: [
+        "Дата та час повернення підтверджуються сторонами під час підписання акта.",
+        "Комплектність, рівень пального, мотогодини та пошкодження за потреби вносяться вручну перед друком.",
+        "Після підписання акта техніка вважається поверненою з оренди.",
+      ],
+    };
+  }
+
+  private orderReportDraft(
+    order: Order,
+    draft: CommercialProposalDraft,
+  ): CommercialProposalDraft {
+    return {
+      ...draft,
+      title: "Звіт по заявці",
+      subtitle: `заявка ${this.shortId(order.id)} від ${this.todayUk()}`,
+      costHeading: "Фінансова деталізація",
+      termsHeading: "Коментарі",
+      rows: [
+        {
+          title: "План по заявці",
+          details: "Оренда, логістика, додаткові послуги та витрати клієнта",
+          amount: this.state.orderPlan(order),
+        },
+        {
+          title: "Отримано оплат",
+          details: "Фактичні приходи по заявці",
+          amount: this.state.orderIncome(order.id),
+        },
+        {
+          title: "Витрати",
+          details: "Фактичні витрати та зарплата операторів",
+          amount: this.state.orderExpense(order.id),
+        },
+        {
+          title: "Залишок до оплати",
+          details: "План мінус отримані платежі",
+          amount: this.state.orderRemaining(order),
+        },
+        {
+          title: "Прибуток",
+          details: "Приходи мінус витрати",
+          amount: this.state.orderProfit(order.id),
+        },
+      ],
+      terms: [
+        `Робочі дні техніки: ${this.state.orderEquipmentWorkDays(order)}.`,
+        `Робочі години техніки: ${this.state.orderEquipmentWorkHours(order)}.`,
+        `Робочі дні операторів: ${this.state.orderOperatorWorkDays(order)}.`,
+      ],
+    };
+  }
+
+  private taxInvoiceNoteDraft(
+    order: Order,
+    draft: CommercialProposalDraft,
+  ): CommercialProposalDraft {
+    return {
+      ...draft,
+      title: "Податкова накладна",
+      subtitle: `нагадування по заявці ${this.shortId(order.id)} від ${this.todayUk()}`,
+      costHeading: "Сума для контролю",
+      termsHeading: "Нагадування",
+      rows: [
+        {
+          title: "База для податкової накладної",
+          details:
+            "Сума за актом / рахунком, що підлягає перевірці бухгалтерією",
+          amount: this.state.orderPlan(order),
+        },
+        {
+          title: "ПДВ по техніці",
+          details: order.vatEnabled
+            ? "ПДВ увімкнено в заявці"
+            : "ПДВ не увімкнено в заявці",
+          amount: this.state.orderEquipmentVat(order),
+        },
+      ],
+      terms: [
+        "Цей документ є внутрішнім нагадуванням для підготовки/реєстрації податкової накладної.",
+        "Офіційна податкова накладна формується та реєструється бухгалтерією в ЄРПН.",
+        "Перед реєстрацією потрібно звірити суму, дату першої події та реквізити клієнта.",
       ],
     };
   }
@@ -131,10 +351,10 @@ export class CommercialProposalService {
       ["Оператор", draft.operator],
       ["Статус заявки", draft.status],
     ])}
-    ${this.paragraph("Розрахунок вартості", "Heading1")}
+    ${this.paragraph(draft.costHeading, "Heading1")}
     ${this.costTable(draft.rows, this.total(draft))}
     ${this.notesBlock(draft)}
-    ${this.paragraph("Умови пропозиції", "Heading1")}
+    ${this.paragraph(draft.termsHeading, "Heading1")}
     ${draft.terms
       .filter(Boolean)
       .map((term) => this.bullet(term))
@@ -744,12 +964,19 @@ export class CommercialProposalService {
     return labels[status];
   }
 
+  private documentLabel(type: CrmDocumentType): string {
+    return (
+      this.documentTypes.find((documentType) => documentType.type === type)
+        ?.label || "Документ"
+    );
+  }
+
   private fileName(draft: CommercialProposalDraft): string {
     const client = draft.client
       .replace(/[\\/:*?"<>|]/g, "")
       .trim()
       .slice(0, 40);
-    return `Комерційна пропозиція ${this.shortId(draft.orderId)} ${client}.docx`;
+    return `${this.documentLabel(draft.documentType)} ${this.shortId(draft.orderId)} ${client}.docx`;
   }
 
   private shortId(id: string): string {

@@ -4,6 +4,7 @@ import { NgClass, SlicePipe } from "@angular/common";
 import {
   CommercialProposalDraft,
   CommercialProposalService,
+  CrmDocumentType,
   ProposalRow,
 } from "../../services/commercial-proposal.service";
 import { StateService } from "../../services/state.service";
@@ -39,6 +40,7 @@ export class OrdersComponent {
   expandedClientIds = signal<string[]>([]);
   editingId = "";
   proposalDraft: CommercialProposalDraft | null = null;
+  readonly documentTypes = this.proposal.documentTypes;
 
   form = {
     clientId: "",
@@ -772,7 +774,11 @@ export class OrdersComponent {
   }
 
   async generateCommercialProposal(order: Order): Promise<void> {
-    this.proposalDraft = this.proposal.createDraft(order);
+    this.openDocumentEditor(order, "proposal");
+  }
+
+  openDocumentEditor(order: Order, type: CrmDocumentType): void {
+    this.proposalDraft = this.proposal.createDraft(order, type);
     this.proposalEditorOpen.set(true);
   }
 

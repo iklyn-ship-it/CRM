@@ -534,6 +534,66 @@ th {
   font-size: 22px;
 }
 
+.print-menu {
+  position: relative;
+  display: inline-flex;
+}
+
+.print-menu summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.print-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.print-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.print-menu-list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  display: flex;
+  width: min(300px, calc(100vw - 24px));
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  border-radius: 16px;
+  background:
+    radial-gradient(
+      circle at 100% 0,
+      rgba(56, 189, 248, 0.12),
+      transparent 34%
+    ),
+    #0b1220;
+  box-shadow: 0 20px 60px rgba(2, 6, 23, 0.42);
+}
+
+.print-menu-list button {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 12px;
+  color: var(--text);
+  text-align: left;
+  background: rgba(15, 23, 42, 0.82);
+  cursor: pointer;
+}
+
+.print-menu-list button:hover {
+  border-color: rgba(250, 204, 21, 0.45);
+  background: rgba(30, 41, 59, 0.92);
+}
+
 /* Responsive grid */
 @media (max-width: 960px) {
   .row {
