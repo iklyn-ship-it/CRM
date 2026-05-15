@@ -6,10 +6,18 @@ export const authGuard: CanActivateFn = () => {
   const supa = inject(SupabaseService);
   const router = inject(Router);
 
-  if (supa.isAuthenticated) {
+  if (!supa.isAuthenticated) {
+    return router.createUrlTree(["/login"]);
+  }
+
+  if (supa.isApproved) {
     return true;
   }
-  return router.createUrlTree(["/login"]);
+
+  return supa.ensureAccountApproval().then((approved) => {
+    if (approved) return true;
+    return router.createUrlTree(["/pending"]);
+  });
 };
 
 export const loginGuard: CanActivateFn = () => {
@@ -19,5 +27,32 @@ export const loginGuard: CanActivateFn = () => {
   if (!supa.isAuthenticated) {
     return true;
   }
-  return router.createUrlTree(["/dashboard"]);
+
+  if (supa.isApproved) {
+    return router.createUrlTree(["/dashboard"]);
+  }
+
+  return supa
+    .ensureAccountApproval()
+    .then((approved) =>
+      router.createUrlTree([approved ? "/dashboard" : "/pending"]),
+    );
+};
+
+export const pendingGuard: CanActivateFn = () => {
+  const supa = inject(SupabaseService);
+  const router = inject(Router);
+
+  if (!supa.isAuthenticated) {
+    return router.createUrlTree(["/login"]);
+  }
+
+  if (supa.isApproved) {
+    return router.createUrlTree(["/dashboard"]);
+  }
+
+  return supa.ensureAccountApproval().then((approved) => {
+    if (approved) return router.createUrlTree(["/dashboard"]);
+    return true;
+  });
 };

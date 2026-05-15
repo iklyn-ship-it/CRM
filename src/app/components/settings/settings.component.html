@@ -42,6 +42,108 @@
       </div>
     </div>
   </div>
+  <div class="col-12">
+    <div class="card panel">
+      <div class="settings-head">
+        <div>
+          <h3 style="margin: 0">Доступ пользователей</h3>
+          <p class="small">
+            Новые аккаунты не попадут в CRM, пока администратор их не
+            активирует.
+          </p>
+        </div>
+        @if (supa.isAdmin) {
+          <button class="btn ghost" type="button" (click)="reloadApprovals()">
+            Обновить
+          </button>
+        }
+      </div>
+
+      @if (!supa.isAdmin) {
+        <div class="item">
+          <div>
+            <strong>Статус аккаунта</strong>
+            <div class="small">
+              {{
+                supa.isApproved ? "Аккаунт активирован." : "Ожидает активации."
+              }}
+            </div>
+          </div>
+          <span [class]="supa.isApproved ? 'badge confirmed' : 'badge active'">
+            {{ supa.isApproved ? "Активен" : "Ожидает" }}
+          </span>
+        </div>
+      } @else {
+        <div class="table-wrap access-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Email</th>
+                <th>Статус</th>
+                <th>Создан</th>
+                <th>Активирован</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (account of supa.accountApprovals(); track account.user_id) {
+                <tr>
+                  <td>
+                    <strong>{{ account.email || "Без email" }}</strong>
+                    @if (account.user_id === supa.userId) {
+                      <div class="small">текущий аккаунт</div>
+                    }
+                  </td>
+                  <td>
+                    <span
+                      [class]="
+                        account.approved ? 'badge confirmed' : 'badge active'
+                      "
+                    >
+                      {{ account.approved ? "Активен" : "Ожидает" }}
+                    </span>
+                  </td>
+                  <td>{{ account.created_at }}</td>
+                  <td>{{ account.approved_at || "—" }}</td>
+                  <td>
+                    <div class="actions compact-actions">
+                      @if (!account.approved) {
+                        <button
+                          class="btn primary"
+                          type="button"
+                          (click)="approveAccount(account)"
+                        >
+                          Активировать
+                        </button>
+                      } @else {
+                        <button
+                          class="btn warn"
+                          type="button"
+                          (click)="blockAccount(account)"
+                          [disabled]="account.user_id === supa.userId"
+                        >
+                          Заблокировать
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5">
+                    <div class="empty">
+                      Пока нет аккаунтов на активацию. Они появятся после входа
+                      или регистрации пользователя.
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
   <div class="col-6">
     <div class="card panel">
       <h3 style="margin-top: 0">Чеклист запуска</h3>

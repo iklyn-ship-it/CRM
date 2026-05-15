@@ -1,5 +1,5 @@
 import { Routes } from "@angular/router";
-import { authGuard, loginGuard } from "./guards/auth.guard";
+import { authGuard, loginGuard, pendingGuard } from "./guards/auth.guard";
 
 export const routes: Routes = [
   {
@@ -7,6 +7,14 @@ export const routes: Routes = [
     canActivate: [loginGuard],
     loadComponent: () =>
       import("./components/auth/auth.component").then((m) => m.AuthComponent),
+  },
+  {
+    path: "pending",
+    canActivate: [pendingGuard],
+    loadComponent: () =>
+      import("./components/account-pending/account-pending.component").then(
+        (m) => m.AccountPendingComponent,
+      ),
   },
   {
     path: "",

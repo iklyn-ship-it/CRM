@@ -26,7 +26,7 @@ export class AuthComponent {
     await this.supa.signIn(this.email, this.password);
     this.loading = false;
     if (this.supa.isAuthenticated) {
-      this.router.navigate(["/dashboard"]);
+      this.router.navigate([this.supa.isApproved ? "/dashboard" : "/pending"]);
     }
   }
 

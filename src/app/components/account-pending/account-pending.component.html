@@ -1,0 +1,30 @@
+<div class="pending-page">
+  <div class="pending-card card panel">
+    <div class="pending-mark">CRM</div>
+    <p class="eyebrow">Аккаунт создан</p>
+    <h1>Ожидает активации</h1>
+    <p class="lead">
+      Пользователь <strong>{{ supa.user()?.email }}</strong> пока не имеет
+      доступа к CRM. Администратор должен активировать аккаунт в разделе
+      настроек.
+    </p>
+
+    @if (supa.authStatus().text) {
+      <div [class]="supa.authStatus().kind === 'error' ? 'alert' : 'ok'">
+        {{ supa.authStatus().text }}
+      </div>
+    }
+
+    <div class="actions">
+      <button class="btn primary" type="button" (click)="checkAccess()">
+        Проверить доступ
+      </button>
+      <button class="btn ghost" type="button" (click)="signOut()">Выйти</button>
+    </div>
+
+    <div class="hint">
+      После активации доступ откроется сразу: достаточно нажать “Проверить
+      доступ” или войти заново.
+    </div>
+  </div>
+</div>
