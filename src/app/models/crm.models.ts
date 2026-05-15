@@ -188,6 +188,9 @@ export interface FinanceOperation {
   repairId: string;
   transportId: string;
   equipmentId: string;
+  billClient: boolean;
+  markup: number;
+  paid: boolean;
   comment: string;
 }
 

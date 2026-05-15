@@ -231,6 +231,11 @@ export class DbService {
       amount: Number(operation.amount || 0),
       transportId: operation.transportId || "",
       equipmentId: operation.equipmentId || "",
+      billClient:
+        Boolean(operation.billClient) ||
+        String(operation.comment || "").includes("[Выставить клиенту]"),
+      markup: Number(operation.markup || 0),
+      paid: Boolean(operation.paid),
     } as FinanceOperation;
   }
 
@@ -622,7 +627,7 @@ export class DbService {
     return (
       table === "orders" &&
       ["42703", "PGRST204"].includes(error?.code) &&
-      /logistics_(distance_km|price_per_km|cost|pickup_price_per_km|delivery_price_per_km|return_provider|return_trailer_id|return_start_date|return_end_date|return_pickup_price_per_km|return_delivery_price_per_km|return_pickup_km|return_delivery_km|return_pickup_cost|return_delivery_cost)/.test(
+      /logistics_(distance_km|price_per_km|cost|pickup_price_per_km|delivery_price_per_km)/.test(
         message,
       )
     );
@@ -637,16 +642,6 @@ export class DbService {
     delete fallbackRow["logistics_cost"];
     delete fallbackRow["logistics_pickup_price_per_km"];
     delete fallbackRow["logistics_delivery_price_per_km"];
-    delete fallbackRow["logistics_return_provider"];
-    delete fallbackRow["logistics_return_trailer_id"];
-    delete fallbackRow["logistics_return_start_date"];
-    delete fallbackRow["logistics_return_end_date"];
-    delete fallbackRow["logistics_return_pickup_price_per_km"];
-    delete fallbackRow["logistics_return_delivery_price_per_km"];
-    delete fallbackRow["logistics_return_pickup_km"];
-    delete fallbackRow["logistics_return_delivery_km"];
-    delete fallbackRow["logistics_return_pickup_cost"];
-    delete fallbackRow["logistics_return_delivery_cost"];
     return fallbackRow;
   }
 
@@ -896,6 +891,9 @@ export class DbService {
       amount: "Сумма",
       orderId: "Заявка",
       repairId: "Ремонт",
+      billClient: "Выставить клиенту",
+      markup: "Наценка",
+      paid: "Оплачено",
       comment: "Комментарий",
       googleFormsUrl: "Google Таблицы",
       autoSync: "Автосинхронизация",

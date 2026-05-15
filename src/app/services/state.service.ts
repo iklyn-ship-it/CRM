@@ -305,7 +305,12 @@ export class StateService {
       this.orderEquipmentCharge(order) +
       this.orderLogisticsCost(order) +
       this.orderAssemblyCost(order);
-    return Math.max(0, subtotal - this.orderDiscountAmount(order, subtotal));
+    return Math.max(
+      0,
+      subtotal -
+        this.orderDiscountAmount(order, subtotal) +
+        this.orderBillableExpenses(order.id),
+    );
   }
 
   orderEquipmentRentalPlan(order: Order): number {
@@ -340,6 +345,12 @@ export class StateService {
 
   orderOps(orderId: string): FinanceOperation[] {
     return this.operations().filter((o) => o.orderId === orderId);
+  }
+
+  orderBillableExpenses(orderId: string): number {
+    return this.orderOps(orderId)
+      .filter((o) => o.type === "expense" && o.billClient)
+      .reduce((s, o) => s + Number(o.amount || 0) + Number(o.markup || 0), 0);
   }
 
   orderIncome(orderId: string): number {

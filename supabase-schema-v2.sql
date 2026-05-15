@@ -178,6 +178,9 @@ create table if not exists public.operations (
   repair_id  text not null default '',
   transport_id text not null default '',
   equipment_id text not null default '',
+  bill_client boolean not null default false,
+  markup numeric not null default 0,
+  paid boolean not null default false,
   comment    text not null default '',
   created_at timestamptz not null default now()
 );

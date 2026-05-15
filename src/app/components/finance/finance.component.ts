@@ -82,6 +82,9 @@ export class FinanceComponent {
     repairId: "",
     transportId: "",
     equipmentId: "",
+    billClient: false,
+    markup: 0,
+    paid: false,
     comment: "",
   };
   readonly categories = [
@@ -249,10 +252,11 @@ export class FinanceComponent {
         const expense = manualExpense + driverExpense;
         const route = `${transport.loadingPoint || "—"} → ${transport.unloadingPoint || "—"}`;
         const driverName =
-          this.state.byId(this.state.operators(), transport.driverId)?.name || "—";
-        const equipmentName =
-          this.state.byId(this.state.equipment(), transport.equipmentId)?.name ||
+          this.state.byId(this.state.operators(), transport.driverId)?.name ||
           "—";
+        const equipmentName =
+          this.state.byId(this.state.equipment(), transport.equipmentId)
+            ?.name || "—";
 
         return {
           transport,
@@ -370,7 +374,10 @@ export class FinanceComponent {
         return `Ремонт ${rep.id.slice(-5)} • ${this.state.byId(this.state.equipment(), rep.equipmentId)?.name || ""}`;
     }
     if (op.transportId) {
-      const transport = this.state.byId(this.state.transports(), op.transportId);
+      const transport = this.state.byId(
+        this.state.transports(),
+        op.transportId,
+      );
       if (transport) {
         return `Перевозка ${transport.id.slice(-5)} • ${transport.loadingPoint || "—"} → ${transport.unloadingPoint || "—"}`;
       }
@@ -391,13 +398,22 @@ export class FinanceComponent {
       );
       return;
     }
+    const payload = {
+      ...this.form,
+      billClient: this.form.type === "expense" && Boolean(this.form.billClient),
+      markup:
+        this.form.type === "expense" && this.form.billClient
+          ? Number(this.form.markup || 0)
+          : 0,
+      paid: this.form.type === "expense" ? Boolean(this.form.paid) : false,
+    };
     try {
       if (this.editingId)
-        await this.db.update("operations", this.editingId, this.form);
+        await this.db.update("operations", this.editingId, payload);
       else
         await this.db.insert("operations", {
           id: this.utils.uid("fin"),
-          ...this.form,
+          ...payload,
         });
     } catch (error) {
       alert(this.saveErrorMessage(error));
@@ -440,6 +456,9 @@ export class FinanceComponent {
       repairId: op.repairId,
       transportId: op.transportId || "",
       equipmentId: op.equipmentId || "",
+      billClient: Boolean(op.billClient),
+      markup: Number(op.markup || 0),
+      paid: Boolean(op.paid),
       comment: op.comment,
     };
     this.formOpen.set(true);
@@ -462,6 +481,9 @@ export class FinanceComponent {
       repairId: "",
       transportId: "",
       equipmentId: "",
+      billClient: false,
+      markup: 0,
+      paid: false,
       comment: "",
     };
   }
@@ -476,6 +498,13 @@ export class FinanceComponent {
     }
     if (message.includes("transport_id")) {
       return "База Supabase еще не готова для финансов перевозок. Выполни SQL-файл supabase-transport-finance.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (
+      message.includes("bill_client") ||
+      message.includes("markup") ||
+      message.includes("paid")
+    ) {
+      return "База Supabase еще не готова для расходов с наценкой/оплатой. Выполни SQL-файл supabase-operation-billing.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message
       ? `Не удалось сохранить финансовую операцию: ${message}`

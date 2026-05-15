@@ -105,6 +105,17 @@
   margin-bottom: 14px;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.btn.danger {
+  border-color: rgba(248, 113, 113, 0.36);
+  color: #fecaca;
+}
+
 .location-card,
 .order-full-card {
   min-height: calc(100vh - 180px);
@@ -708,6 +719,13 @@ button.edit-chip:hover {
 
 .operation-line p {
   margin: 6px 0 0;
+}
+
+.operation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 @media (max-width: 1180px) {

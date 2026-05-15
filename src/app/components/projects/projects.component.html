@@ -416,9 +416,18 @@
           ← К технике на локации
         </button>
       }
-      <button type="button" class="btn primary" (click)="saveOrder()">
-        Сохранить изменения
-      </button>
+      <div class="topbar-actions">
+        <button
+          type="button"
+          class="btn ghost danger"
+          (click)="removeOrder(order)"
+        >
+          Удалить заявку
+        </button>
+        <button type="button" class="btn primary" (click)="saveOrder()">
+          Сохранить изменения
+        </button>
+      </div>
     </div>
 
     @if (costEditorOpen()) {
@@ -1337,6 +1346,20 @@
                 />
                 <span>Считать простой оператора</span>
               </label>
+              <label class="bill-client">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="orderForm.breakdownCreateRepair"
+                  name="breakdownCreateRepair"
+                />
+                <span>Создать/обновить ремонт в разделе ремонтов</span>
+              </label>
+              @if (orderForm.breakdownRepairId) {
+                <div class="breakdown-impact">
+                  Связанный ремонт:
+                  {{ orderForm.breakdownRepairId | slice: -5 }}
+                </div>
+              }
               <div class="field wide">
                 <label>Описание поломки</label>
                 <textarea
@@ -1393,9 +1416,39 @@
                     <span>{{ opTypeLabel(op.type) }} • {{ op.category }}</span>
                   </div>
                   <small>{{ utils.fmtDate(op.date) }}</small>
+                  @if (op.type === "expense" && op.billClient) {
+                    <p>
+                      Выставлено клиенту:
+                      {{ utils.money(op.amount + (op.markup || 0)) }}
+                      @if (op.markup) {
+                        <span>• наценка {{ utils.money(op.markup) }}</span>
+                      }
+                    </p>
+                  }
+                  @if (op.type === "expense") {
+                    <p>
+                      {{ op.paid ? "Расход оплачен" : "Расход не оплачен" }}
+                    </p>
+                  }
                   @if (op.comment) {
                     <p>{{ op.comment }}</p>
                   }
+                  <div class="operation-actions">
+                    <button
+                      type="button"
+                      class="btn ghost"
+                      (click)="editOperation(op)"
+                    >
+                      Ред.
+                    </button>
+                    <button
+                      type="button"
+                      class="btn ghost danger"
+                      (click)="removeOperation(op)"
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </div>
               }
               @if (!selectedOrderOps().length) {
@@ -1421,7 +1474,13 @@
           <div class="modal-backdrop" (click)="closeOperationEditor()">
             <div class="operation-modal card" (click)="stopModalClick($event)">
               <div class="inner-card-head">
-                <h4>Добавить операцию</h4>
+                <h4>
+                  {{
+                    operationEditingId
+                      ? "Редактировать операцию"
+                      : "Добавить операцию"
+                  }}
+                </h4>
                 <button
                   type="button"
                   class="btn ghost"
@@ -1486,6 +1545,25 @@
                     />
                     <span>Выставить клиенту</span>
                   </label>
+                  @if (operationForm.billClient) {
+                    <div class="field wide">
+                      <label>Наценка, ₴</label>
+                      <input
+                        type="number"
+                        min="0"
+                        [(ngModel)]="operationForm.markup"
+                        name="opMarkup"
+                      />
+                    </div>
+                  }
+                  <label class="bill-client wide">
+                    <input
+                      type="checkbox"
+                      [(ngModel)]="operationForm.paid"
+                      name="opPaid"
+                    />
+                    <span>Расход оплачен</span>
+                  </label>
                 }
                 <div class="field wide">
                   <label>Комментарий</label>
@@ -1499,7 +1577,11 @@
                   class="btn primary"
                   (click)="addOperation()"
                 >
-                  Сохранить операцию
+                  {{
+                    operationEditingId
+                      ? "Сохранить изменения"
+                      : "Сохранить операцию"
+                  }}
                 </button>
                 <button
                   type="button"

@@ -56,6 +56,31 @@
             required
           />
         </div>
+        @if (form.type === "expense") {
+          <label class="bill-client">
+            <input
+              type="checkbox"
+              [(ngModel)]="form.billClient"
+              name="billClient"
+            />
+            <span>Выставить клиенту</span>
+          </label>
+          @if (form.billClient) {
+            <div class="field">
+              <label>Наценка, ₴</label>
+              <input
+                type="number"
+                [(ngModel)]="form.markup"
+                name="markup"
+                min="0"
+              />
+            </div>
+          }
+          <label class="bill-client">
+            <input type="checkbox" [(ngModel)]="form.paid" name="paid" />
+            <span>Оплачено</span>
+          </label>
+        }
         <div class="field">
           <label>Привязать к заявке</label>
           <select
@@ -124,7 +149,8 @@
             }
           </select>
           <div class="small">
-            Можно указать технику даже без заявки, например для топлива, мойки или прочих расходов.
+            Можно указать технику даже без заявки, например для топлива, мойки
+            или прочих расходов.
           </div>
         </div>
         <div class="field">
@@ -204,7 +230,20 @@
                   }}</span>
                 </td>
                 <td>{{ o.category || "—" }}</td>
-                <td>{{ utils.money(o.amount) }}</td>
+                <td>
+                  {{ utils.money(o.amount) }}
+                  @if (o.type === "expense" && o.billClient) {
+                    <div class="small">
+                      клиенту:
+                      {{ utils.money(o.amount + (o.markup || 0)) }}
+                    </div>
+                  }
+                  @if (o.type === "expense") {
+                    <div class="small">
+                      {{ o.paid ? "оплачено" : "не оплачено" }}
+                    </div>
+                  }
+                </td>
                 <td>{{ linkText(o) }}</td>
                 <td>{{ o.comment || "—" }}</td>
                 <td>
@@ -321,7 +360,9 @@
                           {{ utils.fmtDate(row.order.endDate) }}
                         </div>
                         @if (row.order.location) {
-                          <div class="small">Локация: {{ row.order.location }}</div>
+                          <div class="small">
+                            Локация: {{ row.order.location }}
+                          </div>
                         }
                       </div>
                       <div class="order-finance-summary">
@@ -364,7 +405,9 @@
                           </div>
                         }
                         @if (!row.incomeOps.length) {
-                          <div class="empty compact">Приходов по заявке нет.</div>
+                          <div class="empty compact">
+                            Приходов по заявке нет.
+                          </div>
                         }
                       </div>
                       <div class="ledger-column">
@@ -372,10 +415,14 @@
                         @if (row.operatorExpense > 0) {
                           <div class="ledger-line expense-line">
                             <div>
-                              <strong>{{ utils.money(row.operatorExpense) }}</strong>
+                              <strong>{{
+                                utils.money(row.operatorExpense)
+                              }}</strong>
                               <span>Зарплата оператора</span>
                             </div>
-                            <small>Автоматически по ставке и сроку заявки</small>
+                            <small
+                              >Автоматически по ставке и сроку заявки</small
+                            >
                           </div>
                         }
                         @for (op of row.expenseOps; track op.id) {
@@ -391,7 +438,9 @@
                           </div>
                         }
                         @if (!row.expenseOps.length && !row.operatorExpense) {
-                          <div class="empty compact">Расходов по заявке нет.</div>
+                          <div class="empty compact">
+                            Расходов по заявке нет.
+                          </div>
                         }
                       </div>
                     </div>
@@ -433,8 +482,9 @@
                   </span>
                 </div>
                 <div class="small">
-                  {{ row.route }} • {{ utils.fmtDate(row.transport.startDate) }}
-                  - {{ utils.fmtDate(row.transport.endDate) }} •
+                  {{ row.route }} •
+                  {{ utils.fmtDate(row.transport.startDate) }} -
+                  {{ utils.fmtDate(row.transport.endDate) }} •
                   {{ row.equipmentName }} • {{ row.driverName }}
                 </div>
               </div>

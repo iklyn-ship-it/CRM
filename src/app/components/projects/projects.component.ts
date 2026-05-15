@@ -9,6 +9,7 @@ import {
   OperatorShift,
   Order,
   OrderStatus,
+  Transport,
 } from "../../models/crm.models";
 
 interface LocationGroup {
@@ -67,6 +68,7 @@ export class ProjectsComponent {
   costEditorOpen = signal(false);
   createCostEditorOpen = signal(false);
   operationEditorOpen = signal(false);
+  operationEditingId = "";
 
   orderForm = this.emptyOrderForm();
   operationForm = this.emptyOperationForm();
@@ -289,11 +291,15 @@ export class ProjectsComponent {
       alert("Дата начала не может быть позже даты окончания.");
       return;
     }
+    const draft = this.createDraftOrder(this.utils.uid("draft"));
+    if (!this.validatePrimaryOperatorPeriod(this.createForm)) return;
+    if (!this.validateOperatorShifts(this.createForm)) return;
+    if (!this.validateDraftConflicts(draft)) return;
     const id = this.utils.uid("ord");
-    const draft = this.createDraftOrder(id);
+    const order = this.createDraftOrder(id);
     try {
       await this.db.insert("orders", {
-        ...draft,
+        ...order,
         id,
         createdAt: new Date().toISOString(),
       });
@@ -339,12 +345,14 @@ export class ProjectsComponent {
   }
 
   openOperationEditor(type: "income" | "expense" = "income"): void {
+    this.operationEditingId = "";
     this.setOperationType(type);
     this.operationEditorOpen.set(true);
   }
 
   closeOperationEditor(): void {
     this.operationEditorOpen.set(false);
+    this.operationEditingId = "";
   }
 
   stopModalClick(event: MouseEvent): void {
@@ -354,6 +362,12 @@ export class ProjectsComponent {
   async saveOrder(): Promise<void> {
     const order = this.selectedOrder();
     if (!order) return;
+    const draft = this.draftOrder(order);
+    if (!this.validateLogistics(order)) return;
+    if (!this.validateBreakdown(order)) return;
+    if (!this.validatePrimaryOperatorPeriod(this.orderForm)) return;
+    if (!this.validateOperatorShifts(this.orderForm)) return;
+    if (!this.validateDraftConflicts(draft, order.id)) return;
     const idlePatch = this.breakdownIdlePatch(order);
     const patch: Record<string, any> = {
       status: this.orderForm.status,
@@ -505,11 +519,21 @@ export class ProjectsComponent {
       breakdownPartsCost: this.orderForm.breakdownEnabled
         ? Number(this.orderForm.breakdownPartsCost || 0)
         : 0,
+      breakdownCreateRepair: this.orderForm.breakdownEnabled
+        ? Boolean(this.orderForm.breakdownCreateRepair)
+        : false,
+      breakdownRepairId: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownRepairId
+        : "",
       equipmentIdleDates: idlePatch.equipmentIdleDates,
       operatorIdleDates: idlePatch.operatorIdleDates,
     };
     try {
       await this.db.update("orders", order.id, patch);
+      await this.syncBreakdownRepair(
+        order.id,
+        patch as Omit<Order, "id" | "createdAt">,
+      );
       const updated = this.state.byId(this.state.orders(), order.id) || {
         ...order,
         ...patch,
@@ -525,35 +549,107 @@ export class ProjectsComponent {
     await this.saveOrder();
   }
 
+  async removeOrder(order: Order): Promise<void> {
+    if (!confirm("Удалить заявку? Операции будут отвязаны от заявки.")) return;
+    const ops = this.state.operations().filter((op) => op.orderId === order.id);
+    try {
+      for (const op of ops) {
+        await this.db.update("operations", op.id, { orderId: "" });
+      }
+      await this.db.remove("orders", order.id);
+      this.closeOrder();
+    } catch (error) {
+      alert(`Не удалось удалить заявку: ${this.errorMessage(error)}`);
+    }
+  }
+
   async addOperation(): Promise<void> {
     const order = this.selectedOrder();
     if (!order) return;
+    if (order.status === "completed") {
+      alert(
+        "Завершённая заявка закрыта для финансовых операций. Чтобы внести изменения, сначала измени статус заявки.",
+      );
+      return;
+    }
     if (!this.operationForm.amount || Number(this.operationForm.amount) <= 0) {
       alert("Укажи сумму операции.");
       return;
     }
-    const billClientPrefix =
-      this.operationForm.type === "expense" && this.operationForm.billClient
-        ? "[Выставить клиенту] "
-        : "";
+    const payload = {
+      date: this.operationForm.date || this.utils.todayStr(),
+      type: this.operationForm.type,
+      category: this.operationForm.category,
+      amount: Number(this.operationForm.amount || 0),
+      orderId: order.id,
+      repairId: "",
+      transportId: "",
+      equipmentId: order.equipmentId,
+      billClient:
+        this.operationForm.type === "expense" &&
+        Boolean(this.operationForm.billClient),
+      markup:
+        this.operationForm.type === "expense" && this.operationForm.billClient
+          ? Number(this.operationForm.markup || 0)
+          : 0,
+      paid:
+        this.operationForm.type === "expense"
+          ? Boolean(this.operationForm.paid)
+          : false,
+      comment: this.operationForm.comment || "",
+    };
     try {
-      await this.db.insert("operations", {
-        id: this.utils.uid("op"),
-        date: this.operationForm.date || this.utils.todayStr(),
-        type: this.operationForm.type,
-        category: this.operationForm.category,
-        amount: Number(this.operationForm.amount || 0),
-        orderId: order.id,
-        repairId: "",
-        transportId: "",
-        equipmentId: order.equipmentId,
-        comment:
-          `${billClientPrefix}${this.operationForm.comment || ""}`.trim(),
-      });
+      if (this.operationEditingId) {
+        await this.db.update("operations", this.operationEditingId, payload);
+      } else {
+        await this.db.insert("operations", {
+          id: this.utils.uid("op"),
+          ...payload,
+        });
+      }
       this.operationForm = this.emptyOperationForm(order);
       this.operationEditorOpen.set(false);
+      this.operationEditingId = "";
     } catch (error) {
       alert(`Не удалось добавить операцию: ${this.errorMessage(error)}`);
+    }
+  }
+
+  editOperation(op: FinanceOperation): void {
+    const order = this.selectedOrder();
+    if (order?.status === "completed") {
+      alert(
+        "Операции по завершённой заявке нельзя изменять. Сначала измени статус заявки.",
+      );
+      return;
+    }
+    this.operationEditingId = op.id;
+    this.operationForm = {
+      date: op.date,
+      type: op.type,
+      category: op.category,
+      amount: Number(op.amount || 0),
+      billClient: Boolean(op.billClient),
+      markup: Number(op.markup || 0),
+      paid: Boolean(op.paid),
+      comment: op.comment || "",
+    };
+    this.operationEditorOpen.set(true);
+  }
+
+  async removeOperation(op: FinanceOperation): Promise<void> {
+    const order = this.selectedOrder();
+    if (order?.status === "completed") {
+      alert(
+        "Операции по завершённой заявке нельзя удалять. Сначала измени статус заявки.",
+      );
+      return;
+    }
+    if (!confirm("Удалить операцию?")) return;
+    try {
+      await this.db.remove("operations", op.id);
+    } catch (error) {
+      alert(`Не удалось удалить операцию: ${this.errorMessage(error)}`);
     }
   }
 
@@ -561,6 +657,262 @@ export class ProjectsComponent {
     this.operationForm.type = type;
     this.operationForm.category =
       type === "income" ? "Оплата клиента" : "Прочее";
+    if (type === "income") {
+      this.operationForm.billClient = false;
+      this.operationForm.markup = 0;
+      this.operationForm.paid = false;
+    }
+  }
+
+  private validateDraftConflicts(draft: Order, ignoreOrderId = ""): boolean {
+    const equipmentConflict = this.findOrderEquipmentConflict(
+      draft,
+      ignoreOrderId,
+    );
+    if (equipmentConflict) {
+      alert(
+        `Техника занята в другой заявке: ${this.equipmentName(equipmentConflict.equipmentId)}, ${this.utils.fmtDate(equipmentConflict.startDate)} - ${this.utils.fmtDate(equipmentConflict.endDate)}.`,
+      );
+      return false;
+    }
+    const transportEquipmentConflict =
+      this.findTransportEquipmentConflict(draft);
+    if (transportEquipmentConflict) {
+      alert(
+        `Техника занята в перевозке: ${this.equipmentName(transportEquipmentConflict.equipmentId)}, ${this.utils.fmtDate(transportEquipmentConflict.startDate)} - ${this.utils.fmtDate(transportEquipmentConflict.endDate)}.`,
+      );
+      return false;
+    }
+    const operatorConflict = this.findOrderOperatorConflict(
+      draft,
+      ignoreOrderId,
+    );
+    if (operatorConflict) {
+      alert(
+        `Оператор занят в другой заявке: ${this.equipmentName(operatorConflict.equipmentId)}, ${this.utils.fmtDate(operatorConflict.startDate)} - ${this.utils.fmtDate(operatorConflict.endDate)}.`,
+      );
+      return false;
+    }
+    const transportOperatorConflict = this.findTransportOperatorConflict(draft);
+    if (transportOperatorConflict) {
+      alert(
+        `Оператор занят в перевозке: ${this.utils.fmtDate(transportOperatorConflict.startDate)} - ${this.utils.fmtDate(transportOperatorConflict.endDate)}.`,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  private findOrderEquipmentConflict(
+    draft: Order,
+    ignoreOrderId = "",
+  ): Order | null {
+    if (!draft.startDate || !draft.endDate) return null;
+    return (
+      this.state.orders().find((order) => {
+        if (
+          order.id === ignoreOrderId ||
+          !this.state.orderBlocksSchedule(order)
+        ) {
+          return false;
+        }
+        return this.state
+          .orderEquipmentReservationIds(draft)
+          .some(
+            (equipmentId) =>
+              this.state
+                .orderEquipmentReservationIds(order)
+                .includes(equipmentId) &&
+              this.state.ordersOverlapByEquipment(draft, order, equipmentId),
+          );
+      }) || null
+    );
+  }
+
+  private findTransportEquipmentConflict(draft: Order): Transport | null {
+    if (!draft.startDate || !draft.endDate) return null;
+    return (
+      this.state.transports().find((transport) => {
+        if (!this.state.transportBlocksSchedule(transport)) return false;
+        return this.state
+          .orderEquipmentReservationIds(draft)
+          .some(
+            (equipmentId) =>
+              equipmentId === transport.equipmentId &&
+              this.state.orderTransportOverlapByEquipment(
+                draft,
+                transport,
+                equipmentId,
+              ),
+          );
+      }) || null
+    );
+  }
+
+  private findOrderOperatorConflict(
+    draft: Order,
+    ignoreOrderId = "",
+  ): Order | null {
+    const operatorIds = this.state.orderOperatorIds(draft);
+    if (!operatorIds.length || !draft.startDate || !draft.endDate) return null;
+    return (
+      this.state.orders().find((order) => {
+        if (
+          order.id === ignoreOrderId ||
+          !this.state.orderBlocksSchedule(order)
+        ) {
+          return false;
+        }
+        return operatorIds.some(
+          (operatorId) =>
+            this.state.orderOperatorIds(order).includes(operatorId) &&
+            this.state.ordersOverlapByOperator(draft, order, operatorId),
+        );
+      }) || null
+    );
+  }
+
+  private findTransportOperatorConflict(draft: Order): Transport | null {
+    const operatorIds = this.state.orderOperatorIds(draft);
+    if (!operatorIds.length || !draft.startDate || !draft.endDate) return null;
+    return (
+      this.state
+        .transports()
+        .find(
+          (transport) =>
+            this.state.transportBlocksSchedule(transport) &&
+            operatorIds.includes(transport.driverId) &&
+            this.state.orderTransportOverlapByOperator(
+              draft,
+              transport,
+              transport.driverId,
+            ),
+        ) || null
+    );
+  }
+
+  private validateLogistics(order: Order): boolean {
+    if (!this.orderForm.logisticsEnabled) return true;
+    const start = this.orderForm.logisticsStartDate || order.startDate;
+    const end = this.orderForm.logisticsEndDate || order.endDate;
+    if (start > end) {
+      alert("Дата логистики на объект не может начинаться позже окончания.");
+      return false;
+    }
+    if (
+      this.orderForm.logisticsProvider === "own_trawl" &&
+      !this.orderForm.logisticsTrailerId
+    ) {
+      alert("Выбери наш трал для логистики на объект.");
+      return false;
+    }
+    const returnStart =
+      this.orderForm.logisticsReturnStartDate ||
+      this.orderForm.logisticsEndDate ||
+      order.endDate;
+    const returnEnd =
+      this.orderForm.logisticsReturnEndDate ||
+      this.orderForm.logisticsEndDate ||
+      order.endDate;
+    if (returnStart > returnEnd) {
+      alert("Дата возврата на базу не может начинаться позже окончания.");
+      return false;
+    }
+    if (
+      this.orderForm.logisticsReturnProvider === "own_trawl" &&
+      !this.orderForm.logisticsReturnTrailerId
+    ) {
+      alert("Выбери наш трал для возврата на базу.");
+      return false;
+    }
+    return true;
+  }
+
+  private validateBreakdown(order: Order): boolean {
+    if (!this.orderForm.breakdownEnabled) return true;
+    if (!this.orderForm.breakdownDate) {
+      alert("Укажи дату поломки.");
+      return false;
+    }
+    const endDate =
+      this.orderForm.breakdownEndDate || this.orderForm.breakdownDate;
+    if (this.orderForm.breakdownDate > endDate) {
+      alert("Дата устранения поломки не может быть раньше даты поломки.");
+      return false;
+    }
+    if (
+      this.orderForm.breakdownDate < order.startDate ||
+      endDate > order.endDate
+    ) {
+      alert("Даты поломки должны быть внутри периода заявки.");
+      return false;
+    }
+    return true;
+  }
+
+  private validatePrimaryOperatorPeriod(
+    form: typeof this.orderForm | typeof this.createForm,
+  ): boolean {
+    if (!form.operatorId || form.operatorShifts.length) return true;
+    const startDate = form.primaryOperatorStartDate || form.startDate;
+    const endDate = form.primaryOperatorEndDate || form.endDate;
+    if (!startDate || !endDate) return true;
+    if (startDate > endDate) {
+      alert(
+        "Дата начала работы основного оператора не может быть позже даты окончания.",
+      );
+      return false;
+    }
+    if (startDate < form.startDate || endDate > form.endDate) {
+      alert("Период работы основного оператора должен быть внутри заявки.");
+      return false;
+    }
+    return true;
+  }
+
+  private validateOperatorShifts(
+    form: typeof this.orderForm | typeof this.createForm,
+  ): boolean {
+    if (!form.operatorShifts.length) return true;
+    if (!form.startDate || !form.endDate) {
+      alert("Сначала укажи период заявки, потом добавляй смены операторов.");
+      return false;
+    }
+    for (const shift of form.operatorShifts) {
+      if (!shift.operatorId) {
+        alert("В каждой смене нужно выбрать оператора.");
+        return false;
+      }
+      if (!shift.startDate || !shift.endDate) {
+        alert("В каждой смене нужно указать даты начала и окончания.");
+        return false;
+      }
+      if (shift.startDate > shift.endDate) {
+        alert("Дата начала смены не может быть позже даты окончания.");
+        return false;
+      }
+      if (shift.startDate < form.startDate || shift.endDate > form.endDate) {
+        alert("Смены операторов должны быть внутри периода заявки.");
+        return false;
+      }
+    }
+    for (let i = 0; i < form.operatorShifts.length; i++) {
+      for (let j = i + 1; j < form.operatorShifts.length; j++) {
+        const a = form.operatorShifts[i];
+        const b = form.operatorShifts[j];
+        if (
+          a.operatorId &&
+          a.operatorId === b.operatorId &&
+          this.utils.overlap(a.startDate, a.endDate, b.startDate, b.endDate)
+        ) {
+          alert(
+            "У одного оператора не должно быть пересекающихся смен в одной заявке.",
+          );
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   createDraftPlan(): number {
@@ -1076,6 +1428,8 @@ export class ProjectsComponent {
       breakdownOperatorIdle: true,
       breakdownLaborCost: 0,
       breakdownPartsCost: 0,
+      breakdownCreateRepair: false,
+      breakdownRepairId: "",
     };
   }
 
@@ -1170,6 +1524,8 @@ export class ProjectsComponent {
       breakdownOperatorIdle: Boolean(order.breakdownOperatorIdle),
       breakdownLaborCost: Number(order.breakdownLaborCost || 0),
       breakdownPartsCost: Number(order.breakdownPartsCost || 0),
+      breakdownCreateRepair: Boolean(order.breakdownCreateRepair),
+      breakdownRepairId: order.breakdownRepairId || "",
     };
   }
 
@@ -1326,6 +1682,12 @@ export class ProjectsComponent {
       breakdownPartsCost: this.orderForm.breakdownEnabled
         ? Number(this.orderForm.breakdownPartsCost || 0)
         : 0,
+      breakdownCreateRepair: this.orderForm.breakdownEnabled
+        ? Boolean(this.orderForm.breakdownCreateRepair)
+        : false,
+      breakdownRepairId: this.orderForm.breakdownEnabled
+        ? this.orderForm.breakdownRepairId
+        : "",
       equipmentIdleDates: idlePatch.equipmentIdleDates,
       operatorIdleDates: idlePatch.operatorIdleDates,
     };
@@ -1386,6 +1748,61 @@ export class ProjectsComponent {
     return this.utils
       .datesInclusive(order.breakdownDate, endDate)
       .filter((date) => date >= order.startDate && date <= order.endDate);
+  }
+
+  private async syncBreakdownRepair(
+    orderId: string,
+    order: Omit<Order, "id" | "createdAt">,
+  ): Promise<void> {
+    if (!order.breakdownEnabled || !order.breakdownCreateRepair) return;
+    const repairId = order.breakdownRepairId || this.utils.uid("rep");
+    const repair = {
+      equipmentId: order.equipmentId,
+      startDate: order.breakdownDate,
+      endDate: order.breakdownEndDate || order.breakdownDate,
+      status:
+        order.breakdownStatus === "resolved"
+          ? ("completed" as const)
+          : order.breakdownStatus === "reported"
+            ? ("planned" as const)
+            : ("active" as const),
+      laborCost: Number(order.breakdownLaborCost || 0),
+      partsCost: Number(order.breakdownPartsCost || 0),
+      responsible: order.breakdownResponsible,
+      tasks: `Поломка по заявке ${orderId.slice(-5)}: ${order.breakdownDescription || "без описания"}`,
+      notes: [
+        order.breakdownReporter ? `Сообщил: ${order.breakdownReporter}` : "",
+        `Ответственность: ${this.breakdownFaultPartyLabel(order.breakdownFaultParty)}`,
+        order.breakdownAffectsPayment
+          ? "Влияет на оплату аренды"
+          : "Не влияет на оплату аренды",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    };
+    if (
+      order.breakdownRepairId &&
+      this.state.byId(this.state.repairs(), repairId)
+    ) {
+      await this.db.update("repairs", repairId, repair);
+    } else {
+      await this.db.insert("repairs", { id: repairId, ...repair });
+      this.orderForm.breakdownRepairId = repairId;
+      await this.db.update("orders", orderId, { breakdownRepairId: repairId });
+    }
+  }
+
+  private breakdownFaultPartyLabel(
+    party: "unknown" | "ours" | "client" | "operator",
+  ): string {
+    return (
+      {
+        unknown: "Не установлено",
+        ours: "Наша сторона",
+        client: "Клиент",
+        operator: "Оператор",
+      }[party] || party
+    );
   }
 
   private createDraftOrder(id = "draft"): Order {
@@ -1549,6 +1966,8 @@ export class ProjectsComponent {
       category: "Прочее",
       amount: 0,
       billClient: false,
+      markup: 0,
+      paid: false,
       comment: order ? `Заявка ${order.id.slice(-5)}` : "",
     };
   }
@@ -1624,6 +2043,18 @@ export class ProjectsComponent {
   }
 
   private errorMessage(error: any): string {
-    return error?.message || error?.details || String(error || "ошибка");
+    const message =
+      error?.message || error?.details || String(error || "ошибка");
+    if (message.includes("logistics_")) {
+      return "База Supabase еще не готова для сохранения логистики/возврата на базу. Выполни обновленный SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (
+      message.includes("bill_client") ||
+      message.includes("markup") ||
+      message.includes("paid")
+    ) {
+      return "База Supabase еще не готова для расходов с наценкой/оплатой. Выполни SQL-файл supabase-operation-billing.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    return message;
   }
 }
