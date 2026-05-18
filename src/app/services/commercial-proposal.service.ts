@@ -555,29 +555,44 @@ export class CommercialProposalService {
   }
 
   private costTable(rows: ProposalRow[], total: number): string {
+    const vatRows = rows.filter((row) => row.title.startsWith("ПДВ 20%"));
+    const calculationRows = rows.filter(
+      (row) => !row.title.startsWith("ПДВ 20%"),
+    );
+    const vatTotal = vatRows.reduce(
+      (sum, row) => sum + Number(row.amount || 0),
+      0,
+    );
     const header = `<w:tr>
-      ${this.cell("Послуга", "3300", true, "0B2A5B", "FFFFFF")}
-      ${this.cell("Деталі", "3830", true, "0B2A5B", "FFFFFF")}
-      ${this.cell("Сума", "2130", true, "0B2A5B", "FFFFFF", "right")}
+      ${this.cell("Послуга", "3700", true, "0B2A5B", "FFFFFF")}
+      ${this.cell("Деталі", "3560", true, "0B2A5B", "FFFFFF")}
+      ${this.cell("Сума", "2000", true, "0B2A5B", "FFFFFF", "right")}
     </w:tr>`;
-    const body = rows
+    const body = calculationRows
       .map(
         (row) => `<w:tr>
-          ${this.cell(row.title, "3300", true)}
-          ${this.cell(row.details || "—", "3830")}
-          ${this.cell(`${row.negative ? "-" : ""}${this.money(row.amount)}`, "2130", true, "", "", "right")}
+          ${this.cell(row.title, "3700", true)}
+          ${this.cell(row.details || "—", "3560")}
+          ${this.cell(`${row.negative ? "-" : ""}${this.money(row.amount)}`, "2000", true, "", "", "right")}
         </w:tr>`,
       )
       .join("");
+    const vatFooter =
+      vatTotal > 0
+        ? `<w:tr>
+      ${this.cell("у тому числі ПДВ 20%", "7260", true, "F7FAFF", "", "right", 2)}
+      ${this.cell(this.money(vatTotal), "2000", true, "F7FAFF", "", "right")}
+    </w:tr>`
+        : "";
     const footer = `<w:tr>
-      ${this.cell("Разом до сплати", "7130", true, "EAF2FF")}
-      ${this.cell(this.money(total), "2130", true, "EAF2FF", "", "right")}
+      ${this.cell("Разом до сплати", "7260", true, "EAF2FF", "", "right", 2)}
+      ${this.cell(this.money(total), "2000", true, "EAF2FF", "", "right")}
     </w:tr>`;
 
     return `<w:tbl>
       ${this.tableProps("9260")}
-      <w:tblGrid><w:gridCol w:w="3300"/><w:gridCol w:w="3830"/><w:gridCol w:w="2130"/></w:tblGrid>
-      ${header}${body}${footer}
+      <w:tblGrid><w:gridCol w:w="3700"/><w:gridCol w:w="3560"/><w:gridCol w:w="2000"/></w:tblGrid>
+      ${header}${body}${vatFooter}${footer}
     </w:tbl>`;
   }
 
@@ -588,12 +603,15 @@ export class CommercialProposalService {
     fill = "",
     color = "",
     align: "left" | "right" | "center" = "left",
+    gridSpan = 1,
   ): string {
     const shading = fill ? `<w:shd w:fill="${fill}"/>` : "";
+    const span = gridSpan > 1 ? `<w:gridSpan w:val="${gridSpan}"/>` : "";
     return `<w:tc>
       <w:tcPr>
         <w:tcW w:w="${width}" w:type="dxa"/>
         <w:tcMar><w:top w:w="100" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="100" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tcMar>
+        ${span}
         ${shading}
       </w:tcPr>
       ${this.paragraph(text, "TableText", { bold, color, align })}
@@ -603,6 +621,7 @@ export class CommercialProposalService {
   private tableProps(width: string): string {
     return `<w:tblPr>
       <w:tblW w:w="${width}" w:type="dxa"/>
+      <w:tblLayout w:type="fixed"/>
       <w:tblInd w:w="0" w:type="dxa"/>
       <w:tblBorders>
         <w:top w:val="single" w:sz="6" w:space="0" w:color="D6E0EE"/>
