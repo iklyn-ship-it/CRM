@@ -441,6 +441,9 @@ export class ProjectsComponent {
       ),
       standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
       additionalWorkHours: Number(this.orderForm.additionalWorkHours || 0),
+      operatorAdditionalWorkHours: Number(
+        this.orderForm.operatorAdditionalWorkHours || 0,
+      ),
       vatEnabled: Boolean(this.orderForm.vatEnabled),
       operatorShifts: this.normalizeOperatorShifts(
         this.orderForm.operatorShifts,
@@ -1593,6 +1596,7 @@ export class ProjectsComponent {
       equipmentEngineHoursEnd: 0,
       standardWorkHours: 8,
       additionalWorkHours: 0,
+      operatorAdditionalWorkHours: 0,
       vatEnabled: false,
       equipmentIdleDates: [] as string[],
       operatorIdleDates: [] as string[],
@@ -1678,6 +1682,9 @@ export class ProjectsComponent {
       equipmentEngineHoursEnd: Number(order.equipmentEngineHoursEnd || 0),
       standardWorkHours: Number(order.standardWorkHours || 8),
       additionalWorkHours: Number(order.additionalWorkHours || 0),
+      operatorAdditionalWorkHours: Number(
+        order.operatorAdditionalWorkHours || 0,
+      ),
       vatEnabled: Boolean(order.vatEnabled),
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
       operatorIdleDates: [...(order.operatorIdleDates || [])],
@@ -1785,6 +1792,9 @@ export class ProjectsComponent {
       ),
       standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
       additionalWorkHours: Number(this.orderForm.additionalWorkHours || 0),
+      operatorAdditionalWorkHours: Number(
+        this.orderForm.operatorAdditionalWorkHours || 0,
+      ),
       vatEnabled: Boolean(this.orderForm.vatEnabled),
       discountEnabled: this.orderForm.discountEnabled,
       discountType: this.orderForm.discountType,
@@ -2060,6 +2070,9 @@ export class ProjectsComponent {
       ),
       standardWorkHours: Number(this.createForm.standardWorkHours || 8),
       additionalWorkHours: Number(this.createForm.additionalWorkHours || 0),
+      operatorAdditionalWorkHours: Number(
+        this.createForm.operatorAdditionalWorkHours || 0,
+      ),
       vatEnabled: Boolean(this.createForm.vatEnabled),
       discountEnabled: Boolean(this.createForm.discountEnabled),
       discountType: this.createForm.discountType,
@@ -2232,6 +2245,7 @@ export class ProjectsComponent {
       equipmentEngineHoursEnd: 0,
       standardWorkHours: 8,
       additionalWorkHours: 0,
+      operatorAdditionalWorkHours: 0,
       vatEnabled: false,
       operatorIdleDates: [] as string[],
       operatorShifts: [] as OperatorShift[],
@@ -2294,6 +2308,9 @@ export class ProjectsComponent {
     }
     if (message.includes("engine_hours")) {
       return "База Supabase еще не готова для моточасов. Выполни SQL-файл supabase-equipment-engine-hours.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("operator_additional_work_hours")) {
+      return "База Supabase еще не готова для дополнительных часов оператора. Выполни SQL-файл supabase-operator-additional-hours.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (
       message.includes("bill_client") ||

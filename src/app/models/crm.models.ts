@@ -52,6 +52,7 @@ export interface Order {
   equipmentEngineHoursEnd: number;
   standardWorkHours: number;
   additionalWorkHours: number;
+  operatorAdditionalWorkHours: number;
   vatEnabled: boolean;
   discountEnabled: boolean;
   discountType: "percent" | "amount";

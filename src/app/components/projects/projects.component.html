@@ -225,6 +225,19 @@
                   name="createPrimaryOperatorEndDate"
                 />
               </div>
+              <div class="field wide">
+                <label>Дополнительные часы оператора</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="createForm.operatorAdditionalWorkHours"
+                  name="createOperatorAdditionalWorkHours"
+                />
+                <small>
+                  Эти часы добавляются только к зарплате оператора и уменьшают
+                  прибыль заявки.
+                </small>
+              </div>
               <div class="cost-total wide">
                 Основной оператор:
                 <strong
@@ -750,6 +763,19 @@
                   [(ngModel)]="orderForm.primaryOperatorEndDate"
                   name="primaryOperatorEndDate"
                 />
+              </div>
+              <div class="field wide">
+                <label>Дополнительные часы оператора</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.operatorAdditionalWorkHours"
+                  name="operatorAdditionalWorkHours"
+                />
+                <small>
+                  Эти часы добавляются только к зарплате оператора и уменьшают
+                  прибыль заявки.
+                </small>
               </div>
               <div class="cost-total wide">
                 Основной оператор:

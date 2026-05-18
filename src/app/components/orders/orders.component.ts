@@ -57,6 +57,7 @@ export class OrdersComponent {
     equipmentEngineHoursEnd: 0,
     standardWorkHours: 8,
     additionalWorkHours: 0,
+    operatorAdditionalWorkHours: 0,
     vatEnabled: false,
     discountEnabled: false,
     discountType: "percent" as "percent" | "amount",
@@ -605,6 +606,7 @@ export class OrdersComponent {
       equipmentEngineHoursEnd: order.equipmentEngineHoursEnd || 0,
       standardWorkHours: order.standardWorkHours || 8,
       additionalWorkHours: order.additionalWorkHours || 0,
+      operatorAdditionalWorkHours: order.operatorAdditionalWorkHours || 0,
       vatEnabled: Boolean(order.vatEnabled),
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || "percent",
@@ -720,6 +722,7 @@ export class OrdersComponent {
       equipmentEngineHoursEnd: 0,
       standardWorkHours: 8,
       additionalWorkHours: 0,
+      operatorAdditionalWorkHours: 0,
       vatEnabled: false,
       discountEnabled: false,
       discountType: "percent",
@@ -1053,6 +1056,9 @@ export class OrdersComponent {
       equipmentEngineHoursEnd: Number(this.form.equipmentEngineHoursEnd || 0),
       standardWorkHours: Number(this.form.standardWorkHours || 8),
       additionalWorkHours: Number(this.form.additionalWorkHours || 0),
+      operatorAdditionalWorkHours: Number(
+        this.form.operatorAdditionalWorkHours || 0,
+      ),
       discountValue: Number(this.form.discountValue || 0),
       logisticsTrailerId:
         this.form.logisticsEnabled &&

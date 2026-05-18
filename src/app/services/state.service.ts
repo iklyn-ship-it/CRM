@@ -398,7 +398,7 @@ export class StateService {
       if (hourlyRate > 0) {
         const extraHours =
           totalOperatorDays > 0
-            ? Number(order.additionalWorkHours || 0) *
+            ? Number(order.operatorAdditionalWorkHours || 0) *
               (days / totalOperatorDays)
             : 0;
         return (

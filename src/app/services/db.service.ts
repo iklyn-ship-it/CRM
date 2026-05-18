@@ -131,6 +131,9 @@ export class DbService {
       equipmentEngineHoursEnd: Number(order.equipmentEngineHoursEnd || 0),
       standardWorkHours: Number(order.standardWorkHours || 8),
       additionalWorkHours: Number(order.additionalWorkHours || 0),
+      operatorAdditionalWorkHours: Number(
+        order.operatorAdditionalWorkHours || 0,
+      ),
       vatEnabled: Boolean(order.vatEnabled),
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || "percent",
@@ -883,6 +886,7 @@ export class DbService {
       equipmentEngineHoursEnd: "Моточасы на конец",
       standardWorkHours: "Стандарт часов",
       additionalWorkHours: "Дополнительные часы",
+      operatorAdditionalWorkHours: "Дополнительные часы оператора",
       vatEnabled: "НДС",
       discountEnabled: "Скидка",
       discountType: "Тип скидки",

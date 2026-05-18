@@ -57,6 +57,7 @@ create table if not exists public.orders (
   equipment_engine_hours_end numeric not null default 0,
   standard_work_hours numeric not null default 8,
   additional_work_hours numeric not null default 0,
+  operator_additional_work_hours numeric not null default 0,
   vat_enabled boolean not null default false,
   discount_enabled boolean not null default false,
   discount_type text not null default 'percent',
