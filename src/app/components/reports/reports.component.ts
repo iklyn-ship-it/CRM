@@ -322,7 +322,10 @@ export class ReportsComponent {
   private filteredOrders(): Order[] {
     return this.state
       .orders()
-      .filter((order) => this.rangeInPeriod(order.startDate, order.endDate));
+      .filter(
+        (order) =>
+          !order.deferred && this.rangeInPeriod(order.startDate, order.endDate),
+      );
   }
 
   private summaryFor(orders: Order[]): ReportSummary {

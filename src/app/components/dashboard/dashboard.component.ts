@@ -124,15 +124,17 @@ export class DashboardComponent {
       .orders()
       .filter(
         (order) =>
-          order.status === "completed" && this.state.orderRemaining(order) > 0,
+          !order.deferred &&
+          order.status === "completed" &&
+          this.state.orderRemaining(order) > 0,
       )
       .sort((a, b) => b.endDate.localeCompare(a.endDate)),
   );
 
   readonly conflictDetails = computed((): ConflictDetail[] => {
-    const orderConflicts = this.state.orderConflicts().map(([aId, bId, eqId]) =>
-      this.orderConflictDetail(aId, bId, eqId),
-    );
+    const orderConflicts = this.state
+      .orderConflicts()
+      .map(([aId, bId, eqId]) => this.orderConflictDetail(aId, bId, eqId));
     const operatorConflicts = this.state
       .operatorConflicts()
       .map(([aId, bId, operatorId]) =>
@@ -156,7 +158,11 @@ export class DashboardComponent {
     const orderTransportOperatorConflicts = this.state
       .orderTransportOperatorConflicts()
       .map(([orderId, transportId, operatorId]) =>
-        this.orderTransportOperatorConflictDetail(orderId, transportId, operatorId),
+        this.orderTransportOperatorConflictDetail(
+          orderId,
+          transportId,
+          operatorId,
+        ),
       );
     const transportOperatorConflicts = this.state
       .transportOperatorConflicts()
@@ -175,13 +181,25 @@ export class DashboardComponent {
   });
 
   readonly periodOperations = computed(() =>
-    this.state.operations().filter((op) => this.dateInPeriod(op.date)),
+    this.state
+      .operations()
+      .filter(
+        (op) =>
+          this.dateInPeriod(op.date) &&
+          !(
+            op.orderId &&
+            this.state.byId(this.state.orders(), op.orderId)?.deferred
+          ),
+      ),
   );
 
   readonly periodOrders = computed(() =>
     this.state
       .orders()
-      .filter((order) => this.rangeInPeriod(order.startDate, order.endDate)),
+      .filter(
+        (order) =>
+          !order.deferred && this.rangeInPeriod(order.startDate, order.endDate),
+      ),
   );
 
   readonly periodRepairs = computed(() =>
@@ -302,76 +320,78 @@ export class DashboardComponent {
     return events;
   });
 
-  readonly periodEquipmentAnalytics = computed((): EquipmentDashboardAnalytics[] => {
-    const orders = this.periodOrders();
-    const repairs = this.periodRepairs();
-    const ops = this.periodOperations();
+  readonly periodEquipmentAnalytics = computed(
+    (): EquipmentDashboardAnalytics[] => {
+      const orders = this.periodOrders();
+      const repairs = this.periodRepairs();
+      const ops = this.periodOperations();
 
-    return this.state
-      .equipment()
-      .map((eq) => {
-        const orderIds = new Set(
-          orders.filter((o) => o.equipmentId === eq.id).map((o) => o.id),
-        );
-        const repairIds = new Set(
-          repairs.filter((r) => r.equipmentId === eq.id).map((r) => r.id),
-        );
-        const income = ops
-          .filter((op) => op.type === "income" && orderIds.has(op.orderId))
-          .reduce((sum, op) => sum + Number(op.amount || 0), 0);
-        const directIncome = ops
-          .filter(
-            (op) =>
-              op.type === "income" &&
-              op.equipmentId === eq.id &&
-              !orderIds.has(op.orderId),
-          )
-          .reduce((sum, op) => sum + Number(op.amount || 0), 0);
-        const operatorExpense = orders
-          .filter((o) => o.equipmentId === eq.id)
-          .reduce(
-            (sum, order) =>
-              sum +
-              this.state.orderOperatorCost(
-                order,
-                this.periodStart(),
-                this.periodEnd(),
-              ),
-            0,
+      return this.state
+        .equipment()
+        .map((eq) => {
+          const orderIds = new Set(
+            orders.filter((o) => o.equipmentId === eq.id).map((o) => o.id),
           );
-        const orderExpense = ops
-          .filter((op) => op.type === "expense" && orderIds.has(op.orderId))
-          .reduce((sum, op) => sum + Number(op.amount || 0), 0);
-        const repairExpense = ops
-          .filter((op) => op.type === "expense" && repairIds.has(op.repairId))
-          .reduce((sum, op) => sum + Number(op.amount || 0), 0);
-        const directExpense = ops
-          .filter(
-            (op) =>
-              op.type === "expense" &&
-              op.equipmentId === eq.id &&
-              !orderIds.has(op.orderId) &&
-              !repairIds.has(op.repairId),
-          )
-          .reduce((sum, op) => sum + Number(op.amount || 0), 0);
-        const totalIncome = income + directIncome;
-        const totalExpense =
-          orderExpense + operatorExpense + repairExpense + directExpense;
-        return {
-          name: eq.name,
-          income: totalIncome,
-          expense: totalExpense,
-          profit: totalIncome - totalExpense,
-          directExpense,
-          operatorExpense,
-          orderExpense,
-          repairExpense,
-        };
-      })
-      .filter((item) => item.income || item.expense || item.profit)
-      .sort((a, b) => b.profit - a.profit)
-      .slice(0, 8);
-  });
+          const repairIds = new Set(
+            repairs.filter((r) => r.equipmentId === eq.id).map((r) => r.id),
+          );
+          const income = ops
+            .filter((op) => op.type === "income" && orderIds.has(op.orderId))
+            .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+          const directIncome = ops
+            .filter(
+              (op) =>
+                op.type === "income" &&
+                op.equipmentId === eq.id &&
+                !orderIds.has(op.orderId),
+            )
+            .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+          const operatorExpense = orders
+            .filter((o) => o.equipmentId === eq.id)
+            .reduce(
+              (sum, order) =>
+                sum +
+                this.state.orderOperatorCost(
+                  order,
+                  this.periodStart(),
+                  this.periodEnd(),
+                ),
+              0,
+            );
+          const orderExpense = ops
+            .filter((op) => op.type === "expense" && orderIds.has(op.orderId))
+            .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+          const repairExpense = ops
+            .filter((op) => op.type === "expense" && repairIds.has(op.repairId))
+            .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+          const directExpense = ops
+            .filter(
+              (op) =>
+                op.type === "expense" &&
+                op.equipmentId === eq.id &&
+                !orderIds.has(op.orderId) &&
+                !repairIds.has(op.repairId),
+            )
+            .reduce((sum, op) => sum + Number(op.amount || 0), 0);
+          const totalIncome = income + directIncome;
+          const totalExpense =
+            orderExpense + operatorExpense + repairExpense + directExpense;
+          return {
+            name: eq.name,
+            income: totalIncome,
+            expense: totalExpense,
+            profit: totalIncome - totalExpense,
+            directExpense,
+            operatorExpense,
+            orderExpense,
+            repairExpense,
+          };
+        })
+        .filter((item) => item.income || item.expense || item.profit)
+        .sort((a, b) => b.profit - a.profit)
+        .slice(0, 8);
+    },
+  );
 
   readonly maxProfit = computed(() =>
     Math.max(
@@ -484,9 +504,10 @@ export class DashboardComponent {
       const income = this.periodOperations()
         .filter((o) => o.type === "income" && o.date.startsWith(key))
         .reduce((s, o) => s + Number(o.amount || 0), 0);
-      const expense = this.periodOperations()
-        .filter((o) => o.type === "expense" && o.date.startsWith(key))
-        .reduce((s, o) => s + Number(o.amount || 0), 0) +
+      const expense =
+        this.periodOperations()
+          .filter((o) => o.type === "expense" && o.date.startsWith(key))
+          .reduce((s, o) => s + Number(o.amount || 0), 0) +
         this.operatorPayrollForMonth(key);
       months.push({
         label: `${String(d.getMonth() + 1).padStart(2, "0")}.${String(
@@ -529,10 +550,12 @@ export class DashboardComponent {
   }
 
   periodExpense(): number {
-    return this.periodOperations()
-      .filter((o) => o.type === "expense")
-      .reduce((s, o) => s + Number(o.amount || 0), 0) +
-      this.periodOperatorPayroll();
+    return (
+      this.periodOperations()
+        .filter((o) => o.type === "expense")
+        .reduce((s, o) => s + Number(o.amount || 0), 0) +
+      this.periodOperatorPayroll()
+    );
   }
 
   setActiveChart(chart: DashboardChart): void {
@@ -670,15 +693,21 @@ export class DashboardComponent {
   private orderProfitInPeriod(orderId: string): number {
     const order = this.state.byId(this.state.orders(), orderId);
     const operatorCost = order
-      ? this.state.orderOperatorCost(order, this.periodStart(), this.periodEnd())
+      ? this.state.orderOperatorCost(
+          order,
+          this.periodStart(),
+          this.periodEnd(),
+        )
       : 0;
-    return this.periodOperations()
-      .filter((op) => op.orderId === orderId)
-      .reduce(
-        (sum, op) =>
-          sum + (op.type === "income" ? 1 : -1) * Number(op.amount || 0),
-        0,
-      ) - operatorCost;
+    return (
+      this.periodOperations()
+        .filter((op) => op.orderId === orderId)
+        .reduce(
+          (sum, op) =>
+            sum + (op.type === "income" ? 1 : -1) * Number(op.amount || 0),
+          0,
+        ) - operatorCost
+    );
   }
 
   private repairExpenseInPeriod(repairId: string): number {
@@ -767,7 +796,8 @@ export class DashboardComponent {
       primary: this.orderTitle(first),
       secondary: this.orderTitle(second),
       period: this.periodText(overlapStart, overlapEnd),
-      location: [first.location, second.location].filter(Boolean).join(" / ") || "—",
+      location:
+        [first.location, second.location].filter(Boolean).join(" / ") || "—",
       money: this.state.orderPlan(first) + this.state.orderPlan(second),
     };
   }
@@ -789,7 +819,8 @@ export class DashboardComponent {
       primary: this.orderTitle(first),
       secondary: this.orderTitle(second),
       period: this.periodText(overlapStart, overlapEnd),
-      location: [first.location, second.location].filter(Boolean).join(" / ") || "—",
+      location:
+        [first.location, second.location].filter(Boolean).join(" / ") || "—",
       money: this.state.orderPlan(first) + this.state.orderPlan(second),
     };
   }
@@ -843,9 +874,10 @@ export class DashboardComponent {
       primary: this.orderTitle(order),
       secondary: this.transportTitle(transport),
       period: this.periodText(overlapStart, overlapEnd),
-      location: [order.location, transport.loadingPoint, transport.unloadingPoint]
-        .filter(Boolean)
-        .join(" / ") || "—",
+      location:
+        [order.location, transport.loadingPoint, transport.unloadingPoint]
+          .filter(Boolean)
+          .join(" / ") || "—",
       money: this.state.orderPlan(order) + this.state.transportTotal(transport),
     };
   }
@@ -867,8 +899,11 @@ export class DashboardComponent {
       primary: this.transportTitle(first),
       secondary: this.transportTitle(second),
       period: this.periodText(overlapStart, overlapEnd),
-      location: [first.loadingPoint, second.loadingPoint].filter(Boolean).join(" / ") || "—",
-      money: this.state.transportTotal(first) + this.state.transportTotal(second),
+      location:
+        [first.loadingPoint, second.loadingPoint].filter(Boolean).join(" / ") ||
+        "—",
+      money:
+        this.state.transportTotal(first) + this.state.transportTotal(second),
     };
   }
 
@@ -889,9 +924,10 @@ export class DashboardComponent {
       primary: this.orderTitle(order),
       secondary: this.transportTitle(transport),
       period: this.periodText(overlapStart, overlapEnd),
-      location: [order.location, transport.loadingPoint, transport.unloadingPoint]
-        .filter(Boolean)
-        .join(" / ") || "—",
+      location:
+        [order.location, transport.loadingPoint, transport.unloadingPoint]
+          .filter(Boolean)
+          .join(" / ") || "—",
       money: this.state.orderPlan(order) + this.state.transportTotal(transport),
     };
   }
@@ -913,12 +949,19 @@ export class DashboardComponent {
       primary: this.transportTitle(first),
       secondary: this.transportTitle(second),
       period: this.periodText(overlapStart, overlapEnd),
-      location: [first.loadingPoint, second.loadingPoint].filter(Boolean).join(" / ") || "—",
-      money: this.state.transportTotal(first) + this.state.transportTotal(second),
+      location:
+        [first.loadingPoint, second.loadingPoint].filter(Boolean).join(" / ") ||
+        "—",
+      money:
+        this.state.transportTotal(first) + this.state.transportTotal(second),
     };
   }
 
-  private orderTitle(order: { id: string; clientId: string; equipmentId: string }): string {
+  private orderTitle(order: {
+    id: string;
+    clientId: string;
+    equipmentId: string;
+  }): string {
     return `${order.id.slice(-5)} • ${this.clientName(order.clientId)} • ${this.equipmentName(order.equipmentId)}`;
   }
 
@@ -939,14 +982,20 @@ export class DashboardComponent {
   }
 
   private clientName(id: string): string {
-    return this.state.byId(this.state.clients(), id)?.name || "Клиент не указан";
+    return (
+      this.state.byId(this.state.clients(), id)?.name || "Клиент не указан"
+    );
   }
 
   private equipmentName(id: string): string {
-    return this.state.byId(this.state.equipment(), id)?.name || "Техника не указана";
+    return (
+      this.state.byId(this.state.equipment(), id)?.name || "Техника не указана"
+    );
   }
 
   private operatorName(id: string): string {
-    return this.state.byId(this.state.operators(), id)?.name || "Оператор не указан";
+    return (
+      this.state.byId(this.state.operators(), id)?.name || "Оператор не указан"
+    );
   }
 }
