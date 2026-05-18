@@ -34,6 +34,8 @@ export class ReportsComponent {
 
   selectedClientId = signal("");
   selectedLocation = signal("");
+  selectedEquipmentId = signal("");
+  selectedOperatorId = signal("");
   periodFrom = signal("");
   periodTo = signal("");
 
@@ -63,7 +65,38 @@ export class ReportsComponent {
   });
 
   readonly clientSummary = computed(() => this.summaryFor(this.clientOrders()));
-  readonly locationSummary = computed(() => this.summaryFor(this.locationOrders()));
+  readonly locationSummary = computed(() =>
+    this.summaryFor(this.locationOrders()),
+  );
+
+  readonly equipmentOrders = computed(() => {
+    const equipmentId = this.selectedEquipmentId();
+    if (!equipmentId) return [];
+    return this.filteredOrders().filter((order) =>
+      this.state.orderEquipmentReservationIds(order).includes(equipmentId),
+    );
+  });
+
+  readonly operatorOrders = computed(() => {
+    const operatorId = this.selectedOperatorId();
+    if (!operatorId) return [];
+    return this.filteredOrders().filter((order) =>
+      this.state.orderOperatorIds(order).includes(operatorId),
+    );
+  });
+
+  readonly equipmentSummary = computed(() =>
+    this.summaryFor(this.equipmentOrders()),
+  );
+  readonly operatorSummary = computed(() =>
+    this.summaryFor(this.operatorOrders()),
+  );
+  readonly operatorSalarySummary = computed(() =>
+    this.operatorOrders().reduce(
+      (sum, order) => sum + this.operatorCost(order),
+      0,
+    ),
+  );
 
   readonly clientLocations = computed(() =>
     Array.from(
@@ -125,6 +158,46 @@ export class ReportsComponent {
       .slice(0, 6),
   );
 
+  readonly topEquipment = computed(() =>
+    this.state
+      .equipment()
+      .map((equipment) => {
+        const orders = this.filteredOrders().filter((order) =>
+          this.state.orderEquipmentReservationIds(order).includes(equipment.id),
+        );
+        return {
+          id: equipment.id,
+          name: equipment.name,
+          summary: this.summaryFor(orders),
+        };
+      })
+      .filter((item) => item.summary.orders)
+      .sort((a, b) => b.summary.plan - a.summary.plan)
+      .slice(0, 6),
+  );
+
+  readonly topOperators = computed(() =>
+    this.state
+      .operators()
+      .map((operator) => {
+        const orders = this.filteredOrders().filter((order) =>
+          this.state.orderOperatorIds(order).includes(operator.id),
+        );
+        return {
+          id: operator.id,
+          name: operator.name,
+          summary: this.summaryFor(orders),
+          salary: orders.reduce(
+            (sum, order) => sum + this.operatorCost(order, operator.id),
+            0,
+          ),
+        };
+      })
+      .filter((item) => item.summary.orders)
+      .sort((a, b) => b.salary - a.salary)
+      .slice(0, 6),
+  );
+
   selectClient(id: string): void {
     this.selectedClientId.set(id);
   }
@@ -133,13 +206,23 @@ export class ReportsComponent {
     this.selectedLocation.set(location);
   }
 
+  selectEquipment(id: string): void {
+    this.selectedEquipmentId.set(id);
+  }
+
+  selectOperator(id: string): void {
+    this.selectedOperatorId.set(id);
+  }
+
   resetPeriod(): void {
     this.periodFrom.set("");
     this.periodTo.set("");
   }
 
   clientName(id: string): string {
-    return this.state.byId(this.state.clients(), id)?.name || "Клиент не указан";
+    return (
+      this.state.byId(this.state.clients(), id)?.name || "Клиент не указан"
+    );
   }
 
   equipmentName(id: string): string {
@@ -156,6 +239,73 @@ export class ReportsComponent {
       .map((id) => this.operatorName(id))
       .filter((name) => name !== "—");
     return names.length ? names.join(", ") : "—";
+  }
+
+  equipmentWorkDays(
+    order: Order,
+    equipmentId = this.selectedEquipmentId(),
+  ): number {
+    if (!equipmentId) return 0;
+    if (order.equipmentId === equipmentId) {
+      return this.state.orderEquipmentWorkDays(
+        order,
+        this.periodStart(),
+        this.periodEnd(),
+      );
+    }
+    const dates = this.utils.datesInclusive(
+      order.logisticsStartDate || order.startDate,
+      order.logisticsEndDate || order.startDate,
+    );
+    const returnDates = this.utils.datesInclusive(
+      order.logisticsReturnStartDate || order.endDate,
+      order.logisticsReturnEndDate || order.endDate,
+    );
+    const reserved = new Set<string>();
+    if (order.logisticsTrailerId === equipmentId) {
+      dates.forEach((date) => reserved.add(date));
+    }
+    if (order.logisticsReturnTrailerId === equipmentId) {
+      returnDates.forEach((date) => reserved.add(date));
+    }
+    return [...reserved].filter((date) => this.dateInPeriod(date)).length;
+  }
+
+  equipmentWorkHours(
+    order: Order,
+    equipmentId = this.selectedEquipmentId(),
+  ): number {
+    if (order.equipmentId === equipmentId) {
+      return this.state.orderEquipmentWorkHours(
+        order,
+        this.periodStart(),
+        this.periodEnd(),
+      );
+    }
+    return this.equipmentWorkDays(order, equipmentId) * 8;
+  }
+
+  operatorWorkDays(
+    order: Order,
+    operatorId = this.selectedOperatorId(),
+  ): number {
+    if (!operatorId) return 0;
+    return this.state.orderOperatorWorkDaysFor(
+      order,
+      operatorId,
+      this.periodStart(),
+      this.periodEnd(),
+    );
+  }
+
+  operatorCost(order: Order, operatorId = this.selectedOperatorId()): number {
+    if (!operatorId) return 0;
+    return this.state.orderOperatorCostFor(
+      order,
+      operatorId,
+      this.periodStart(),
+      this.periodEnd(),
+    );
   }
 
   statusLabel(status: string): string {
@@ -199,6 +349,14 @@ export class ReportsComponent {
     const to = this.periodEnd();
     if (from && endDate < from) return false;
     if (to && startDate > to) return false;
+    return true;
+  }
+
+  private dateInPeriod(date: string): boolean {
+    const from = this.periodStart();
+    const to = this.periodEnd();
+    if (from && date < from) return false;
+    if (to && date > to) return false;
     return true;
   }
 

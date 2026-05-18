@@ -45,12 +45,29 @@
 
     @if (selectedClientId()) {
       <div class="summary-cards">
-        <div><span>Заявки</span><strong>{{ clientSummary().orders }}</strong></div>
-        <div><span>План</span><strong>{{ utils.money(clientSummary().plan) }}</strong></div>
-        <div><span>Приход</span><strong>{{ utils.money(clientSummary().income) }}</strong></div>
-        <div><span>Расход</span><strong>{{ utils.money(clientSummary().expense) }}</strong></div>
-        <div><span>Прибыль</span><strong>{{ utils.money(clientSummary().profit) }}</strong></div>
-        <div><span>Остаток</span><strong>{{ utils.money(clientSummary().remaining) }}</strong></div>
+        <div>
+          <span>Заявки</span><strong>{{ clientSummary().orders }}</strong>
+        </div>
+        <div>
+          <span>План</span
+          ><strong>{{ utils.money(clientSummary().plan) }}</strong>
+        </div>
+        <div>
+          <span>Приход</span
+          ><strong>{{ utils.money(clientSummary().income) }}</strong>
+        </div>
+        <div>
+          <span>Расход</span
+          ><strong>{{ utils.money(clientSummary().expense) }}</strong>
+        </div>
+        <div>
+          <span>Прибыль</span
+          ><strong>{{ utils.money(clientSummary().profit) }}</strong>
+        </div>
+        <div>
+          <span>Остаток</span
+          ><strong>{{ utils.money(clientSummary().remaining) }}</strong>
+        </div>
       </div>
 
       <div class="report-note">
@@ -86,7 +103,10 @@
                   {{ utils.fmtDate(order.startDate) }}
                   <div class="small">
                     {{ utils.fmtDate(order.endDate) }} •
-                    {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+                    {{
+                      utils.daysInclusive(order.startDate, order.endDate)
+                    }}
+                    дн.
                   </div>
                 </td>
                 <td>
@@ -103,7 +123,9 @@
             }
             @if (!clientOrders().length) {
               <tr>
-                <td colspan="11"><div class="empty">Нет заявок по клиенту.</div></td>
+                <td colspan="11">
+                  <div class="empty">Нет заявок по клиенту.</div>
+                </td>
               </tr>
             }
           </tbody>
@@ -131,12 +153,29 @@
 
     @if (selectedLocation()) {
       <div class="summary-cards">
-        <div><span>Заявки</span><strong>{{ locationSummary().orders }}</strong></div>
-        <div><span>План</span><strong>{{ utils.money(locationSummary().plan) }}</strong></div>
-        <div><span>Приход</span><strong>{{ utils.money(locationSummary().income) }}</strong></div>
-        <div><span>Расход</span><strong>{{ utils.money(locationSummary().expense) }}</strong></div>
-        <div><span>Прибыль</span><strong>{{ utils.money(locationSummary().profit) }}</strong></div>
-        <div><span>Остаток</span><strong>{{ utils.money(locationSummary().remaining) }}</strong></div>
+        <div>
+          <span>Заявки</span><strong>{{ locationSummary().orders }}</strong>
+        </div>
+        <div>
+          <span>План</span
+          ><strong>{{ utils.money(locationSummary().plan) }}</strong>
+        </div>
+        <div>
+          <span>Приход</span
+          ><strong>{{ utils.money(locationSummary().income) }}</strong>
+        </div>
+        <div>
+          <span>Расход</span
+          ><strong>{{ utils.money(locationSummary().expense) }}</strong>
+        </div>
+        <div>
+          <span>Прибыль</span
+          ><strong>{{ utils.money(locationSummary().profit) }}</strong>
+        </div>
+        <div>
+          <span>Остаток</span
+          ><strong>{{ utils.money(locationSummary().remaining) }}</strong>
+        </div>
       </div>
 
       <div class="location-groups">
@@ -170,7 +209,10 @@
                         {{ utils.fmtDate(order.startDate) }}
                         <div class="small">
                           {{ utils.fmtDate(order.endDate) }} •
-                          {{ utils.daysInclusive(order.startDate, order.endDate) }} дн.
+                          {{
+                            utils.daysInclusive(order.startDate, order.endDate)
+                          }}
+                          дн.
                         </div>
                       </td>
                       <td>
@@ -190,7 +232,220 @@
         }
       </div>
     } @else {
-      <div class="empty">Выбери локацию, чтобы увидеть клиентов на объекте.</div>
+      <div class="empty">
+        Выбери локацию, чтобы увидеть клиентов на объекте.
+      </div>
+    }
+  </div>
+</div>
+
+<div class="report-grid">
+  <div class="card panel">
+    <h3>Отчет по технике</h3>
+    <div class="field">
+      <label>Техника</label>
+      <select
+        [ngModel]="selectedEquipmentId()"
+        (ngModelChange)="selectEquipment($event)"
+      >
+        <option value="">— выбрать технику —</option>
+        @for (item of state.equipment(); track item.id) {
+          <option [value]="item.id">{{ item.name }}</option>
+        }
+      </select>
+    </div>
+
+    @if (selectedEquipmentId()) {
+      <div class="summary-cards">
+        <div>
+          <span>Заявки</span><strong>{{ equipmentSummary().orders }}</strong>
+        </div>
+        <div>
+          <span>План</span
+          ><strong>{{ utils.money(equipmentSummary().plan) }}</strong>
+        </div>
+        <div>
+          <span>Приход</span
+          ><strong>{{ utils.money(equipmentSummary().income) }}</strong>
+        </div>
+        <div>
+          <span>Расход</span
+          ><strong>{{ utils.money(equipmentSummary().expense) }}</strong>
+        </div>
+        <div>
+          <span>Прибыль</span
+          ><strong>{{ utils.money(equipmentSummary().profit) }}</strong>
+        </div>
+        <div>
+          <span>Остаток</span
+          ><strong>{{ utils.money(equipmentSummary().remaining) }}</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Заявка</th>
+              <th>Клиент / локация</th>
+              <th>Оператор</th>
+              <th>Период</th>
+              <th>Работа</th>
+              <th>Статус</th>
+              <th>Комментарий</th>
+              <th>План</th>
+              <th>Прибыль</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of equipmentOrders(); track order.id) {
+              <tr>
+                <td>{{ order.id | slice: -5 }}</td>
+                <td>
+                  {{ clientName(order.clientId) }}
+                  <div class="small">{{ order.location || "—" }}</div>
+                </td>
+                <td>{{ orderOperatorNames(order) }}</td>
+                <td>
+                  {{ utils.fmtDate(order.startDate) }}
+                  <div class="small">
+                    {{ utils.fmtDate(order.endDate) }} •
+                    {{
+                      utils.daysInclusive(order.startDate, order.endDate)
+                    }}
+                    дн.
+                  </div>
+                </td>
+                <td>
+                  {{ equipmentWorkDays(order) }} дн.
+                  <div class="small">{{ equipmentWorkHours(order) }} ч.</div>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="order.status">
+                    {{ statusLabel(order.status) }}
+                  </span>
+                </td>
+                <td>{{ order.notes || "—" }}</td>
+                <td>{{ utils.money(state.orderPlan(order)) }}</td>
+                <td>{{ utils.money(state.orderProfit(order.id)) }}</td>
+              </tr>
+            }
+            @if (!equipmentOrders().length) {
+              <tr>
+                <td colspan="9">
+                  <div class="empty">Нет заявок по технике.</div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty">Выбери технику, чтобы увидеть историю работы.</div>
+    }
+  </div>
+
+  <div class="card panel">
+    <h3>Отчет по оператору</h3>
+    <div class="field">
+      <label>Оператор</label>
+      <select
+        [ngModel]="selectedOperatorId()"
+        (ngModelChange)="selectOperator($event)"
+      >
+        <option value="">— выбрать оператора —</option>
+        @for (operator of state.operators(); track operator.id) {
+          <option [value]="operator.id">{{ operator.name }}</option>
+        }
+      </select>
+    </div>
+
+    @if (selectedOperatorId()) {
+      <div class="summary-cards">
+        <div>
+          <span>Заявки</span><strong>{{ operatorSummary().orders }}</strong>
+        </div>
+        <div>
+          <span>План</span
+          ><strong>{{ utils.money(operatorSummary().plan) }}</strong>
+        </div>
+        <div>
+          <span>Приход</span
+          ><strong>{{ utils.money(operatorSummary().income) }}</strong>
+        </div>
+        <div>
+          <span>Расход</span
+          ><strong>{{ utils.money(operatorSummary().expense) }}</strong>
+        </div>
+        <div>
+          <span>Прибыль</span
+          ><strong>{{ utils.money(operatorSummary().profit) }}</strong>
+        </div>
+        <div>
+          <span>ЗП оператора</span
+          ><strong>{{ utils.money(operatorSalarySummary()) }}</strong>
+        </div>
+      </div>
+
+      <div class="table-wrap report-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Заявка</th>
+              <th>Клиент / локация</th>
+              <th>Техника</th>
+              <th>Период</th>
+              <th>Работа</th>
+              <th>ЗП</th>
+              <th>Статус</th>
+              <th>Комментарий</th>
+              <th>План</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (order of operatorOrders(); track order.id) {
+              <tr>
+                <td>{{ order.id | slice: -5 }}</td>
+                <td>
+                  {{ clientName(order.clientId) }}
+                  <div class="small">{{ order.location || "—" }}</div>
+                </td>
+                <td>{{ equipmentName(order.equipmentId) }}</td>
+                <td>
+                  {{ utils.fmtDate(order.startDate) }}
+                  <div class="small">
+                    {{ utils.fmtDate(order.endDate) }} •
+                    {{
+                      utils.daysInclusive(order.startDate, order.endDate)
+                    }}
+                    дн.
+                  </div>
+                </td>
+                <td>{{ operatorWorkDays(order) }} дн.</td>
+                <td>{{ utils.money(operatorCost(order)) }}</td>
+                <td>
+                  <span class="badge" [ngClass]="order.status">
+                    {{ statusLabel(order.status) }}
+                  </span>
+                </td>
+                <td>{{ order.notes || "—" }}</td>
+                <td>{{ utils.money(state.orderPlan(order)) }}</td>
+              </tr>
+            }
+            @if (!operatorOrders().length) {
+              <tr>
+                <td colspan="9">
+                  <div class="empty">Нет заявок по оператору.</div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty">
+        Выбери оператора, чтобы увидеть где и сколько он работал.
+      </div>
     }
   </div>
 </div>
@@ -230,6 +485,46 @@
       }
       @if (!topLocations().length) {
         <div class="empty">Пока нет данных по локациям.</div>
+      }
+    </div>
+  </div>
+</div>
+
+<div class="report-grid compact">
+  <div class="card panel">
+    <h3>Топ техники по плану</h3>
+    <div class="list">
+      @for (item of topEquipment(); track item.id) {
+        <button
+          type="button"
+          class="report-link"
+          (click)="selectEquipment(item.id)"
+        >
+          <span>{{ item.name }}</span>
+          <strong>{{ utils.money(item.summary.plan) }}</strong>
+        </button>
+      }
+      @if (!topEquipment().length) {
+        <div class="empty">Пока нет данных по технике.</div>
+      }
+    </div>
+  </div>
+
+  <div class="card panel">
+    <h3>Топ операторов по ЗП</h3>
+    <div class="list">
+      @for (operator of topOperators(); track operator.id) {
+        <button
+          type="button"
+          class="report-link"
+          (click)="selectOperator(operator.id)"
+        >
+          <span>{{ operator.name }}</span>
+          <strong>{{ utils.money(operator.salary) }}</strong>
+        </button>
+      }
+      @if (!topOperators().length) {
+        <div class="empty">Пока нет данных по операторам.</div>
       }
     </div>
   </div>
