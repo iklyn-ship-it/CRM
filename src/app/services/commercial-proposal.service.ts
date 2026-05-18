@@ -28,6 +28,7 @@ export interface CommercialProposalDraft {
   period: string;
   equipment: string;
   operator: string;
+  cargo: string;
   status: string;
   rows: ProposalRow[];
   costHeading: string;
@@ -115,6 +116,7 @@ export class CommercialProposalService {
       period: `${this.date(transport.startDate)} - ${this.date(transport.endDate)}`,
       equipment: this.equipmentName(transport.equipmentId),
       operator: this.operatorName(transport.driverId) || "Водія не вказано",
+      cargo: transport.cargoName || "Не вказано",
       status: this.transportStatusLabel(transport.status),
       costHeading: "До оплати за перевезення",
       termsHeading: "Примітки до рахунку",
@@ -142,6 +144,7 @@ export class CommercialProposalService {
       period: `${this.date(order.startDate)} - ${this.date(order.endDate)}`,
       equipment: this.equipmentName(order.equipmentId),
       operator: this.operatorName(order.operatorId) || "Без оператора",
+      cargo: "",
       status: this.statusLabel(order.status),
       rows: [],
       costHeading: "Розрахунок вартості",
@@ -401,6 +404,7 @@ export class CommercialProposalService {
       ["Період робіт", draft.period],
       ["Техніка", draft.equipment],
       ["Оператор", draft.operator],
+      ...(draft.cargo ? ([["Вантаж", draft.cargo]] as [string, string][]) : []),
       ["Статус заявки", draft.status],
     ])}
     ${this.paragraph(draft.costHeading, "Heading1")}
