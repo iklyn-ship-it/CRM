@@ -76,7 +76,7 @@ export class ProjectsComponent {
 
   search = signal("");
   filterStatus = signal("");
-  ordersScope = signal<"active" | "deferred">("active");
+  ordersScope = signal<"active" | "deferred" | "completed">("active");
   expandedClientIds = signal<string[]>([]);
   selectedLocationKey = signal("");
   selectedOrderId = signal("");
@@ -141,10 +141,14 @@ export class ProjectsComponent {
   readonly filteredOrders = computed(() => {
     const q = this.search().trim().toLowerCase();
     const status = this.filterStatus();
-    const showDeferred = this.ordersScope() === "deferred";
-    let rows = this.state
-      .orders()
-      .filter((order) => (showDeferred ? order.deferred : !order.deferred));
+    const scope = this.ordersScope();
+    let rows = this.state.orders().filter((order) => {
+      if (scope === "deferred") return order.deferred;
+      if (scope === "completed") {
+        return !order.deferred && order.status === "completed";
+      }
+      return !order.deferred && order.status !== "completed";
+    });
     if (status) rows = rows.filter((order) => order.status === status);
     if (q) {
       rows = rows.filter((order) =>
@@ -287,7 +291,7 @@ export class ProjectsComponent {
     this.costEditorOpen.set(false);
   }
 
-  switchOrdersScope(scope: "active" | "deferred"): void {
+  switchOrdersScope(scope: "active" | "deferred" | "completed"): void {
     this.ordersScope.set(scope);
     this.selectedLocationKey.set("");
     this.selectedOrderId.set("");

@@ -3,7 +3,12 @@
     <h2>Заявки</h2>
     <p>Клиент → локация → техника/заявки → полноэкранная карточка заявки.</p>
   </div>
-  @if (!selectedOrder() && !selectedLocation() && !creatingOrder()) {
+  @if (
+    ordersScope() === "active" &&
+    !selectedOrder() &&
+    !selectedLocation() &&
+    !creatingOrder()
+  ) {
     <button type="button" class="btn primary" (click)="openCreateOrder()">
       + Создать заявку
     </button>
@@ -1902,10 +1907,12 @@
         <button
           type="button"
           class="btn ghost"
-          (click)="setLocationDeferred(location, ordersScope() === 'active')"
+          (click)="setLocationDeferred(location, ordersScope() !== 'deferred')"
         >
           {{
-            ordersScope() === "active" ? "Отложить локацию" : "Вернуть локацию"
+            ordersScope() === "deferred"
+              ? "Вернуть локацию"
+              : "Отложить локацию"
           }}
         </button>
         @if (ordersScope() === "active") {
@@ -2038,6 +2045,14 @@
         >
           Отложенные
         </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="ordersScope() === 'completed'"
+          (click)="switchOrdersScope('completed')"
+        >
+          Завершенные
+        </button>
       </div>
       <input
         type="text"
@@ -2119,12 +2134,14 @@
               <button
                 type="button"
                 class="btn ghost"
-                (click)="setClientDeferred(client, ordersScope() === 'active')"
+                (click)="
+                  setClientDeferred(client, ordersScope() !== 'deferred')
+                "
               >
                 {{
-                  ordersScope() === "active"
-                    ? "Отложить клиента"
-                    : "Вернуть клиента"
+                  ordersScope() === "deferred"
+                    ? "Вернуть клиента"
+                    : "Отложить клиента"
                 }}
               </button>
             </span>
