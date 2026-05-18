@@ -57,6 +57,7 @@ export interface Order {
   discountEnabled: boolean;
   discountType: "percent" | "amount";
   discountValue: number;
+  deferred: boolean;
   status: OrderStatus;
   notes: string;
   createdAt: string;

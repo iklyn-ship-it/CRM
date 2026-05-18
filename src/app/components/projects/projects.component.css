@@ -27,10 +27,9 @@
 
 .client-head {
   display: grid;
-  grid-template-columns: 22px minmax(180px, 1fr) repeat(4, auto) minmax(
-      180px,
-      auto
-    );
+  grid-template-columns:
+    22px minmax(180px, 1fr) repeat(4, auto) minmax(180px, auto)
+    auto;
   gap: 12px;
   align-items: center;
   padding: 15px;
@@ -127,6 +126,22 @@
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+.scope-tabs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.client-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.defer-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .btn.danger {

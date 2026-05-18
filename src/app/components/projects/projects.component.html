@@ -1566,6 +1566,20 @@
           </div>
         </div>
 
+        <div class="defer-actions">
+          <button
+            type="button"
+            class="btn ghost"
+            (click)="setOrderDeferred(order, !order.deferred)"
+          >
+            {{
+              order.deferred
+                ? "Вернуть в рабочие заявки"
+                : "Перенести в отложенные"
+            }}
+          </button>
+        </div>
+
         @if (order.status !== "completed") {
           <div class="complete-order-actions">
             <button
@@ -1884,13 +1898,26 @@
       <button type="button" class="btn ghost" (click)="closeLocation()">
         ← К клиентам
       </button>
-      <button
-        type="button"
-        class="btn primary"
-        (click)="openCreateOrder(location)"
-      >
-        + Создать заявку
-      </button>
+      <div class="topbar-actions">
+        <button
+          type="button"
+          class="btn ghost"
+          (click)="setLocationDeferred(location, ordersScope() === 'active')"
+        >
+          {{
+            ordersScope() === "active" ? "Отложить локацию" : "Вернуть локацию"
+          }}
+        </button>
+        @if (ordersScope() === "active") {
+          <button
+            type="button"
+            class="btn primary"
+            (click)="openCreateOrder(location)"
+          >
+            + Создать заявку
+          </button>
+        }
+      </div>
     </div>
 
     <div class="card panel location-card">
@@ -1994,6 +2021,24 @@
 } @else {
   <div class="card panel internal-scroll-panel">
     <div class="toolbar">
+      <div class="scope-tabs">
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="ordersScope() === 'active'"
+          (click)="switchOrdersScope('active')"
+        >
+          Рабочие
+        </button>
+        <button
+          type="button"
+          class="filter-chip"
+          [class.active]="ordersScope() === 'deferred'"
+          (click)="switchOrdersScope('deferred')"
+        >
+          Отложенные
+        </button>
+      </div>
       <input
         type="text"
         [value]="search()"
@@ -2069,6 +2114,19 @@
                   Ремонт: {{ client.repairWarnings }}
                 </span>
               }
+            </span>
+            <span class="client-actions" (click)="$event.stopPropagation()">
+              <button
+                type="button"
+                class="btn ghost"
+                (click)="setClientDeferred(client, ordersScope() === 'active')"
+              >
+                {{
+                  ordersScope() === "active"
+                    ? "Отложить клиента"
+                    : "Вернуть клиента"
+                }}
+              </button>
             </span>
           </button>
 

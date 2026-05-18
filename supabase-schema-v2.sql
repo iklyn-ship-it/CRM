@@ -62,6 +62,7 @@ create table if not exists public.orders (
   discount_enabled boolean not null default false,
   discount_type text not null default 'percent',
   discount_value numeric not null default 0,
+  deferred boolean not null default false,
   status       text not null default 'new',
   notes        text not null default '',
   equipment_idle_dates jsonb not null default '[]'::jsonb,

@@ -62,6 +62,7 @@ export class OrdersComponent {
     discountEnabled: false,
     discountType: "percent" as "percent" | "amount",
     discountValue: 0,
+    deferred: false,
     status: "new" as OrderStatus,
     notes: "",
     equipmentIdleDates: [] as string[],
@@ -611,6 +612,7 @@ export class OrdersComponent {
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || "percent",
       discountValue: Number(order.discountValue || 0),
+      deferred: Boolean(order.deferred),
       status: order.status,
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
@@ -727,6 +729,7 @@ export class OrdersComponent {
       discountEnabled: false,
       discountType: "percent",
       discountValue: 0,
+      deferred: false,
       status: "new",
       notes: "",
       equipmentIdleDates: [],
@@ -1060,6 +1063,7 @@ export class OrdersComponent {
         this.form.operatorAdditionalWorkHours || 0,
       ),
       discountValue: Number(this.form.discountValue || 0),
+      deferred: Boolean(this.form.deferred),
       logisticsTrailerId:
         this.form.logisticsEnabled &&
         this.form.logisticsProvider === "own_trawl"

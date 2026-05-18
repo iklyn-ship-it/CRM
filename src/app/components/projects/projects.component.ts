@@ -76,6 +76,7 @@ export class ProjectsComponent {
 
   search = signal("");
   filterStatus = signal("");
+  ordersScope = signal<"active" | "deferred">("active");
   expandedClientIds = signal<string[]>([]);
   selectedLocationKey = signal("");
   selectedOrderId = signal("");
@@ -140,7 +141,10 @@ export class ProjectsComponent {
   readonly filteredOrders = computed(() => {
     const q = this.search().trim().toLowerCase();
     const status = this.filterStatus();
-    let rows = [...this.state.orders()];
+    const showDeferred = this.ordersScope() === "deferred";
+    let rows = this.state
+      .orders()
+      .filter((order) => (showDeferred ? order.deferred : !order.deferred));
     if (status) rows = rows.filter((order) => order.status === status);
     if (q) {
       rows = rows.filter((order) =>
@@ -281,6 +285,16 @@ export class ProjectsComponent {
     this.selectedLocationKey.set(location.key);
     this.selectedOrderId.set("");
     this.costEditorOpen.set(false);
+  }
+
+  switchOrdersScope(scope: "active" | "deferred"): void {
+    this.ordersScope.set(scope);
+    this.selectedLocationKey.set("");
+    this.selectedOrderId.set("");
+    this.creatingOrder.set(false);
+    this.costEditorOpen.set(false);
+    this.createCostEditorOpen.set(false);
+    this.operationEditorOpen.set(false);
   }
 
   closeLocation(): void {
@@ -454,6 +468,7 @@ export class ProjectsComponent {
       discountEnabled: this.orderForm.discountEnabled,
       discountType: this.orderForm.discountType,
       discountValue: Number(this.orderForm.discountValue || 0),
+      deferred: Boolean(order.deferred),
       notes: this.orderForm.notes,
       logisticsEnabled: Boolean(this.orderForm.logisticsEnabled),
       logisticsProvider: this.orderForm.logisticsEnabled
@@ -625,6 +640,52 @@ export class ProjectsComponent {
       this.closeOrder();
     } catch (error) {
       alert(`Не удалось удалить заявку: ${this.errorMessage(error)}`);
+    }
+  }
+
+  async setOrderDeferred(order: Order, deferred: boolean): Promise<void> {
+    try {
+      await this.db.update("orders", order.id, { deferred });
+      this.closeOrder();
+    } catch (error) {
+      alert(`Не удалось перенести заявку: ${this.errorMessage(error)}`);
+    }
+  }
+
+  async setLocationDeferred(
+    location: LocationGroup,
+    deferred: boolean,
+  ): Promise<void> {
+    const message = deferred
+      ? "Перенести все заявки этой локации в отложенные?"
+      : "Вернуть все заявки этой локации в рабочий список?";
+    if (!confirm(message)) return;
+    try {
+      for (const order of location.orders) {
+        await this.db.update("orders", order.id, { deferred });
+      }
+      this.closeLocation();
+    } catch (error) {
+      alert(`Не удалось перенести локацию: ${this.errorMessage(error)}`);
+    }
+  }
+
+  async setClientDeferred(
+    client: ClientGroup,
+    deferred: boolean,
+  ): Promise<void> {
+    const message = deferred
+      ? "Перенести все заявки клиента в отложенные?"
+      : "Вернуть все заявки клиента в рабочий список?";
+    if (!confirm(message)) return;
+    try {
+      for (const order of client.locations.flatMap((item) => item.orders)) {
+        await this.db.update("orders", order.id, { deferred });
+      }
+      this.selectedLocationKey.set("");
+      this.selectedOrderId.set("");
+    } catch (error) {
+      alert(`Не удалось перенести клиента: ${this.errorMessage(error)}`);
     }
   }
 
@@ -1692,6 +1753,7 @@ export class ProjectsComponent {
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || ("percent" as "percent" | "amount"),
       discountValue: Number(order.discountValue || 0),
+      deferred: Boolean(order.deferred),
       notes: order.notes || "",
       logisticsEnabled: Boolean(order.logisticsEnabled),
       logisticsProvider: order.logisticsProvider || "own_trawl",
@@ -1799,6 +1861,7 @@ export class ProjectsComponent {
       discountEnabled: this.orderForm.discountEnabled,
       discountType: this.orderForm.discountType,
       discountValue: Number(this.orderForm.discountValue || 0),
+      deferred: Boolean(order.deferred),
       notes: this.orderForm.notes,
       logisticsEnabled: Boolean(this.orderForm.logisticsEnabled),
       logisticsProvider: this.orderForm.logisticsEnabled
@@ -2077,6 +2140,7 @@ export class ProjectsComponent {
       discountEnabled: Boolean(this.createForm.discountEnabled),
       discountType: this.createForm.discountType,
       discountValue: Number(this.createForm.discountValue || 0),
+      deferred: false,
       status: this.createForm.status,
       notes: this.createForm.notes,
       createdAt: "",
@@ -2311,6 +2375,9 @@ export class ProjectsComponent {
     }
     if (message.includes("operator_additional_work_hours")) {
       return "База Supabase еще не готова для дополнительных часов оператора. Выполни SQL-файл supabase-operator-additional-hours.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("deferred")) {
+      return "База Supabase еще не готова для отложенных заявок. Выполни SQL-файл supabase-order-deferred.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (
       message.includes("bill_client") ||

@@ -67,6 +67,7 @@ export class CalendarComponent {
     discountEnabled: false,
     discountType: "percent" as "percent" | "amount",
     discountValue: 0,
+    deferred: false,
     status: "new" as OrderStatus,
     notes: "",
     equipmentIdleDates: [] as string[],
@@ -607,6 +608,7 @@ export class CalendarComponent {
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || "percent",
       discountValue: Number(order.discountValue || 0),
+      deferred: Boolean(order.deferred),
       status: order.status,
       notes: order.notes,
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
@@ -963,6 +965,7 @@ export class CalendarComponent {
       vatEnabled: false,
       discountEnabled: false,
       discountType: "percent",
+      deferred: false,
       discountValue: 0,
       status: "new",
       notes: "",
@@ -1032,6 +1035,7 @@ export class CalendarComponent {
         this.form.operatorAdditionalWorkHours || 0,
       ),
       discountValue: Number(this.form.discountValue || 0),
+      deferred: Boolean(this.form.deferred),
       logisticsTrailerId:
         this.form.logisticsEnabled &&
         this.form.logisticsProvider === "own_trawl"

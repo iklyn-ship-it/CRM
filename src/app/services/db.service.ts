@@ -138,6 +138,7 @@ export class DbService {
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || "percent",
       discountValue: Number(order.discountValue || 0),
+      deferred: Boolean(order.deferred),
       equipmentIdleDates: Array.isArray(order.equipmentIdleDates)
         ? order.equipmentIdleDates
         : [],
@@ -891,6 +892,7 @@ export class DbService {
       discountEnabled: "Скидка",
       discountType: "Тип скидки",
       discountValue: "Размер скидки",
+      deferred: "Отложенная заявка",
       workStatus: "Состояние сотрудника",
       laborCost: "Стоимость работ",
       partsCost: "Стоимость запчастей",
