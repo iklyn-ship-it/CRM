@@ -350,6 +350,13 @@ export class CommercialProposalService {
     return this.previewHtml(draft, false, false);
   }
 
+  createPdfPreviewUrl(draft: CommercialProposalDraft): string {
+    const blob = new Blob([this.createPdfPreviewHtml(draft)], {
+      type: "text/html;charset=utf-8",
+    });
+    return URL.createObjectURL(blob);
+  }
+
   total(draft: CommercialProposalDraft): number {
     return draft.rows.reduce(
       (sum, row) =>

@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { NgClass, SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import {
   CommercialProposalDraft,
   CommercialProposalService,
@@ -73,6 +74,7 @@ export class ProjectsComponent {
   db = inject(DbService);
   utils = inject(UtilsService);
   proposal = inject(CommercialProposalService);
+  sanitizer = inject(DomSanitizer);
 
   search = signal("");
   filterStatus = signal("");
@@ -85,7 +87,8 @@ export class ProjectsComponent {
   createCostEditorOpen = signal(false);
   operationEditorOpen = signal(false);
   proposalEditorOpen = signal(false);
-  documentPreviewHtml = signal("");
+  documentPreviewUrl = signal<SafeResourceUrl | null>(null);
+  private documentPreviewObjectUrl = "";
   operationEditingId = "";
 
   orderForm = this.emptyOrderForm();
@@ -747,11 +750,21 @@ export class ProjectsComponent {
   }
 
   openProposalPreview(draft: CommercialProposalDraft): void {
-    this.documentPreviewHtml.set(this.proposal.createPdfPreviewHtml(draft));
+    this.closeDocumentPreview();
+    this.documentPreviewObjectUrl = this.proposal.createPdfPreviewUrl(draft);
+    this.documentPreviewUrl.set(
+      this.sanitizer.bypassSecurityTrustResourceUrl(
+        this.documentPreviewObjectUrl,
+      ),
+    );
   }
 
   closeDocumentPreview(): void {
-    this.documentPreviewHtml.set("");
+    if (this.documentPreviewObjectUrl) {
+      URL.revokeObjectURL(this.documentPreviewObjectUrl);
+      this.documentPreviewObjectUrl = "";
+    }
+    this.documentPreviewUrl.set(null);
   }
 
   printDocumentPreview(frame: HTMLIFrameElement): void {

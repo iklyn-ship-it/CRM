@@ -538,7 +538,7 @@
           }
         </div>
 
-        @if (documentPreviewHtml(); as previewHtml) {
+        @if (documentPreviewUrl(); as previewUrl) {
           <div class="document-preview-panel">
             <div class="document-preview-head">
               <div>
@@ -565,7 +565,7 @@
             <iframe
               #documentPreviewFrame
               class="document-preview-frame"
-              [attr.srcdoc]="previewHtml"
+              [src]="previewUrl"
               title="Предпросмотр счета"
             ></iframe>
           </div>
@@ -575,7 +575,7 @@
   }
 }
 
-@if (documentPreviewHtml(); as previewHtml) {
+@if (documentPreviewUrl(); as previewUrl) {
   <div class="document-preview-backdrop" (click)="closeDocumentPreview()">
     <div class="document-preview-modal" (click)="$event.stopPropagation()">
       <div class="document-preview-head">
@@ -603,7 +603,7 @@
       <iframe
         #documentOverlayFrame
         class="document-preview-frame"
-        [attr.srcdoc]="previewHtml"
+        [src]="previewUrl"
         title="Предпросмотр счета"
       ></iframe>
     </div>
