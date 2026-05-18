@@ -85,6 +85,7 @@ export class ProjectsComponent {
   createCostEditorOpen = signal(false);
   operationEditorOpen = signal(false);
   proposalEditorOpen = signal(false);
+  documentPreviewHtml = signal("");
   operationEditingId = "";
 
   orderForm = this.emptyOrderForm();
@@ -717,6 +718,7 @@ export class ProjectsComponent {
 
   closeProposalEditor(): void {
     this.proposalEditorOpen.set(false);
+    this.closeDocumentPreview();
     this.proposalDraft = null;
   }
 
@@ -745,7 +747,16 @@ export class ProjectsComponent {
   }
 
   openProposalPreview(draft: CommercialProposalDraft): void {
-    this.proposal.openPdfPreview(draft);
+    this.documentPreviewHtml.set(this.proposal.createPdfPreviewHtml(draft));
+  }
+
+  closeDocumentPreview(): void {
+    this.documentPreviewHtml.set("");
+  }
+
+  printDocumentPreview(frame: HTMLIFrameElement): void {
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
   }
 
   trackProposalRow(index: number, row: ProposalRow): string {

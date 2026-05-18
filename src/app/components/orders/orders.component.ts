@@ -37,6 +37,7 @@ export class OrdersComponent {
   formOpen = signal(false);
   selectedOrder = signal<Order | null>(null);
   proposalEditorOpen = signal(false);
+  documentPreviewHtml = signal("");
   expandedClientIds = signal<string[]>([]);
   editingId = "";
   proposalDraft: CommercialProposalDraft | null = null;
@@ -796,6 +797,7 @@ export class OrdersComponent {
 
   closeProposalEditor(): void {
     this.proposalEditorOpen.set(false);
+    this.closeDocumentPreview();
     this.proposalDraft = null;
   }
 
@@ -824,7 +826,16 @@ export class OrdersComponent {
   }
 
   openProposalPreview(draft: CommercialProposalDraft): void {
-    this.proposal.openPdfPreview(draft);
+    this.documentPreviewHtml.set(this.proposal.createPdfPreviewHtml(draft));
+  }
+
+  closeDocumentPreview(): void {
+    this.documentPreviewHtml.set("");
+  }
+
+  printDocumentPreview(frame: HTMLIFrameElement): void {
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
   }
 
   trackProposalRow(index: number, row: ProposalRow): string {

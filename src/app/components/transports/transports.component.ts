@@ -28,6 +28,7 @@ export class TransportsComponent {
   filterStatus = signal("");
   formOpen = signal(false);
   invoiceEditorOpen = signal(false);
+  documentPreviewHtml = signal("");
   editingId = "";
   invoiceDraft: CommercialProposalDraft | null = null;
 
@@ -243,6 +244,7 @@ export class TransportsComponent {
 
   closeInvoiceEditor(): void {
     this.invoiceEditorOpen.set(false);
+    this.closeDocumentPreview();
     this.invoiceDraft = null;
   }
 
@@ -271,7 +273,16 @@ export class TransportsComponent {
   }
 
   openInvoicePreview(draft: CommercialProposalDraft): void {
-    this.proposal.openPdfPreview(draft);
+    this.documentPreviewHtml.set(this.proposal.createPdfPreviewHtml(draft));
+  }
+
+  closeDocumentPreview(): void {
+    this.documentPreviewHtml.set("");
+  }
+
+  printDocumentPreview(frame: HTMLIFrameElement): void {
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
   }
 
   trackInvoiceRow(index: number, row: ProposalRow): string {

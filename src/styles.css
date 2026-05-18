@@ -534,6 +534,35 @@ th {
   font-size: 22px;
 }
 
+.document-preview-panel {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 20px;
+  background: rgba(2, 6, 23, 0.5);
+}
+
+.document-preview-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.document-preview-head h4 {
+  margin: 2px 0 0;
+  color: #facc15;
+}
+
+.document-preview-frame {
+  width: 100%;
+  min-height: min(76vh, 920px);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 16px;
+  background: #fff;
+}
+
 .print-menu {
   position: relative;
   display: inline-flex;

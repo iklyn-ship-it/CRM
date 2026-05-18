@@ -1890,6 +1890,39 @@
                     </div>
                   }
                 </div>
+
+                @if (documentPreviewHtml(); as previewHtml) {
+                  <div class="document-preview-panel">
+                    <div class="document-preview-head">
+                      <div>
+                        <div class="eyebrow">Предпросмотр PDF</div>
+                        <h4>Документ внутри CRM</h4>
+                      </div>
+                      <div class="actions">
+                        <button
+                          type="button"
+                          class="btn primary"
+                          (click)="printDocumentPreview(documentPreviewFrame)"
+                        >
+                          Печать / PDF
+                        </button>
+                        <button
+                          type="button"
+                          class="btn ghost"
+                          (click)="closeDocumentPreview()"
+                        >
+                          Скрыть
+                        </button>
+                      </div>
+                    </div>
+                    <iframe
+                      #documentPreviewFrame
+                      class="document-preview-frame"
+                      [srcdoc]="previewHtml"
+                      title="Предпросмотр документа"
+                    ></iframe>
+                  </div>
+                }
               </div>
             </div>
           }

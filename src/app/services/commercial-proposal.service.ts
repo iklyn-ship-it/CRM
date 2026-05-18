@@ -57,10 +57,6 @@ export class CommercialProposalService {
     { type: "taxInvoiceNote", label: "Податкова накладна" },
   ];
 
-  async generateForOrder(order: Order): Promise<void> {
-    this.openPdfPreview(this.createDraft(order));
-  }
-
   createDraft(
     order: Order,
     documentType: CrmDocumentType = "proposal",
@@ -350,17 +346,8 @@ export class CommercialProposalService {
     this.downloadBlob(blob, this.fileName(draft));
   }
 
-  openPdfPreview(draft: CommercialProposalDraft): void {
-    const preview = window.open("", "_blank", "noopener,noreferrer");
-    if (!preview) {
-      alert(
-        "Браузер заблокировал новую вкладку. Разреши всплывающие окна для CRM.",
-      );
-      return;
-    }
-    preview.document.open();
-    preview.document.write(this.previewHtml(draft, true));
-    preview.document.close();
+  createPdfPreviewHtml(draft: CommercialProposalDraft): string {
+    return this.previewHtml(draft, false, false);
   }
 
   total(draft: CommercialProposalDraft): number {
@@ -442,6 +429,7 @@ export class CommercialProposalService {
   private previewHtml(
     draft: CommercialProposalDraft,
     autoPrint = false,
+    showToolbar = true,
   ): string {
     const rows = draft.rows
       .map(
@@ -658,10 +646,14 @@ export class CommercialProposalService {
   </style>
 </head>
 <body${autoPrint ? ' onload="setTimeout(function(){ window.print(); }, 350)"' : ""}>
-  <div class="toolbar">
+  ${
+    showToolbar
+      ? `<div class="toolbar">
     <button type="button" onclick="window.print()">Сохранить PDF / печать</button>
     <button type="button" onclick="window.close()">Закрыть</button>
-  </div>
+  </div>`
+      : ""
+  }
   <main class="page">
     <header>
       <div>
