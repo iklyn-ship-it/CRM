@@ -24,6 +24,7 @@ create table if not exists public.equipment (
   code         text not null default '',
   default_rate numeric not null default 0,
   hourly_rate  numeric not null default 0,
+  engine_hours numeric not null default 0,
   status       text not null default 'free',
   created_at   timestamptz not null default now()
 );
@@ -52,6 +53,8 @@ create table if not exists public.orders (
   location     text not null default '',
   rate         numeric not null default 0,
   equipment_hourly_rate numeric not null default 0,
+  equipment_engine_hours_start numeric not null default 0,
+  equipment_engine_hours_end numeric not null default 0,
   standard_work_hours numeric not null default 8,
   additional_work_hours numeric not null default 0,
   vat_enabled boolean not null default false,

@@ -103,6 +103,7 @@ export class DbService {
       ...equipment,
       defaultRate: Number(equipment.defaultRate || 0),
       hourlyRate: Number(equipment.hourlyRate || 0),
+      engineHours: Number(equipment.engineHours || 0),
     } as Equipment;
   }
 
@@ -126,6 +127,8 @@ export class DbService {
       ...order,
       rate: Number(order.rate || 0),
       equipmentHourlyRate: Number(order.equipmentHourlyRate || 0),
+      equipmentEngineHoursStart: Number(order.equipmentEngineHoursStart || 0),
+      equipmentEngineHoursEnd: Number(order.equipmentEngineHoursEnd || 0),
       standardWorkHours: Number(order.standardWorkHours || 8),
       additionalWorkHours: Number(order.additionalWorkHours || 0),
       vatEnabled: Boolean(order.vatEnabled),
@@ -804,6 +807,7 @@ export class DbService {
       code: "Код",
       defaultRate: "Ставка по умолчанию",
       hourlyRate: "Ставка за час",
+      engineHours: "Моточасы",
       status: "Статус",
       clientId: "Клиент",
       equipmentId: "Техника",
@@ -875,6 +879,8 @@ export class DbService {
       budget: "Бюджет",
       rate: "Тариф",
       equipmentHourlyRate: "Ставка техники за час",
+      equipmentEngineHoursStart: "Моточасы на начало",
+      equipmentEngineHoursEnd: "Моточасы на конец",
       standardWorkHours: "Стандарт часов",
       additionalWorkHours: "Дополнительные часы",
       vatEnabled: "НДС",

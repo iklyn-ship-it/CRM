@@ -27,6 +27,7 @@ export class EquipmentComponent {
     code: "",
     defaultRate: 0,
     hourlyRate: 0,
+    engineHours: 0,
     status: "free" as Equipment["status"],
   };
   readonly googleFormEquipmentNames = [
@@ -169,6 +170,7 @@ export class EquipmentComponent {
         code: "",
         defaultRate: 0,
         hourlyRate: 0,
+        engineHours: 0,
         status: "free",
       });
     }
@@ -183,6 +185,7 @@ export class EquipmentComponent {
       code: eq.code,
       defaultRate: eq.defaultRate,
       hourlyRate: eq.hourlyRate || 0,
+      engineHours: eq.engineHours || 0,
       status: eq.status,
     };
     this.formOpen.set(true);
@@ -212,6 +215,7 @@ export class EquipmentComponent {
       code: "",
       defaultRate: 0,
       hourlyRate: 0,
+      engineHours: 0,
       status: "free",
     };
   }
@@ -223,6 +227,9 @@ export class EquipmentComponent {
         : "";
     if (message.includes("hourly_rate")) {
       return "База Supabase еще не готова для часовых ставок. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("engine_hours")) {
+      return "База Supabase еще не готова для моточасов. Выполни SQL-файл supabase-equipment-engine-hours.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message
       ? `Не удалось сохранить технику: ${message}`

@@ -144,6 +144,39 @@
                   name="createAdditionalWorkHours"
                 />
               </div>
+              <div class="field">
+                <label>Моточасы на начало</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="createForm.equipmentEngineHoursStart"
+                  name="createEquipmentEngineHoursStart"
+                />
+              </div>
+              <div class="field">
+                <label>Моточасы на конец</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="createForm.equipmentEngineHoursEnd"
+                  name="createEquipmentEngineHoursEnd"
+                />
+              </div>
+              <div class="cost-total wide">
+                Фактически по счетчику:
+                <strong>{{ createEngineHoursTotal() }} м/ч</strong>
+                <span>
+                  стандарт {{ createEngineHoursIncluded() }} ч., доп.
+                  {{ createEngineHoursOvertime() }} ч.
+                </span>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  (click)="applyCreateEngineHoursAsAdditional()"
+                >
+                  Перенести доп. часы в расчет
+                </button>
+              </div>
               <label class="bill-client wide">
                 <input
                   type="checkbox"
@@ -553,6 +586,39 @@
                   [(ngModel)]="orderForm.additionalWorkHours"
                   name="additionalWorkHours"
                 />
+              </div>
+              <div class="field">
+                <label>Моточасы на начало</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.equipmentEngineHoursStart"
+                  name="equipmentEngineHoursStart"
+                />
+              </div>
+              <div class="field">
+                <label>Моточасы на конец</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.equipmentEngineHoursEnd"
+                  name="equipmentEngineHoursEnd"
+                />
+              </div>
+              <div class="cost-total wide">
+                Фактически по счетчику:
+                <strong>{{ orderEngineHoursTotal() }} м/ч</strong>
+                <span>
+                  стандарт {{ orderEngineHoursIncluded(order) }} ч., доп.
+                  {{ orderEngineHoursOvertime(order) }} ч.
+                </span>
+                <button
+                  type="button"
+                  class="btn ghost"
+                  (click)="applyEngineHoursAsAdditional(order)"
+                >
+                  Перенести доп. часы в расчет
+                </button>
               </div>
               <label class="bill-client wide">
                 <input

@@ -343,6 +343,7 @@ export class ProjectsComponent {
       alert("Дата начала не может быть позже даты окончания.");
       return;
     }
+    if (!this.validateEngineHours(this.createForm)) return;
     const draft = this.createDraftOrder(this.utils.uid("draft"));
     if (!this.validatePrimaryOperatorPeriod(this.createForm)) return;
     if (!this.validateOperatorShifts(this.createForm)) return;
@@ -355,6 +356,7 @@ export class ProjectsComponent {
         id,
         createdAt: new Date().toISOString(),
       });
+      await this.syncEquipmentEngineHours(order);
       this.creatingOrder.set(false);
       this.createCostEditorOpen.set(false);
       this.createForm = this.emptyCreateForm();
@@ -417,6 +419,7 @@ export class ProjectsComponent {
     const draft = this.draftOrder(order);
     if (!this.validateLogistics(order)) return;
     if (!this.validateBreakdown(order)) return;
+    if (!this.validateEngineHours(this.orderForm)) return;
     if (!this.validatePrimaryOperatorPeriod(this.orderForm)) return;
     if (!this.validateOperatorShifts(this.orderForm)) return;
     if (!this.validateDraftConflicts(draft, order.id)) return;
@@ -430,6 +433,12 @@ export class ProjectsComponent {
       location: this.orderForm.location,
       rate: Number(this.orderForm.rate || 0),
       equipmentHourlyRate: Number(this.orderForm.equipmentHourlyRate || 0),
+      equipmentEngineHoursStart: Number(
+        this.orderForm.equipmentEngineHoursStart || 0,
+      ),
+      equipmentEngineHoursEnd: Number(
+        this.orderForm.equipmentEngineHoursEnd || 0,
+      ),
       standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
       additionalWorkHours: Number(this.orderForm.additionalWorkHours || 0),
       vatEnabled: Boolean(this.orderForm.vatEnabled),
@@ -582,6 +591,7 @@ export class ProjectsComponent {
     };
     try {
       await this.db.update("orders", order.id, patch);
+      await this.syncEquipmentEngineHours(patch as Order);
       await this.syncBreakdownRepair(
         order.id,
         patch as Omit<Order, "id" | "createdAt">,
@@ -613,6 +623,19 @@ export class ProjectsComponent {
     } catch (error) {
       alert(`Не удалось удалить заявку: ${this.errorMessage(error)}`);
     }
+  }
+
+  private async syncEquipmentEngineHours(order: Order): Promise<void> {
+    const endHours = Number(order.equipmentEngineHoursEnd || 0);
+    if (!order.equipmentId || endHours <= 0) return;
+    const equipment = this.state.byId(
+      this.state.equipment(),
+      order.equipmentId,
+    );
+    if (!equipment || endHours <= Number(equipment.engineHours || 0)) return;
+    await this.db.update("equipment", order.equipmentId, {
+      engineHours: endHours,
+    });
   }
 
   async generateCommercialProposal(order: Order): Promise<void> {
@@ -948,6 +971,19 @@ export class ProjectsComponent {
     return true;
   }
 
+  private validateEngineHours(form: {
+    equipmentEngineHoursStart: number;
+    equipmentEngineHoursEnd: number;
+  }): boolean {
+    const start = Number(form.equipmentEngineHoursStart || 0);
+    const end = Number(form.equipmentEngineHoursEnd || 0);
+    if (end > 0 && end < start) {
+      alert("Моточасы на конец не могут быть меньше моточасов на начало.");
+      return false;
+    }
+    return true;
+  }
+
   private validatePrimaryOperatorPeriod(
     form: typeof this.orderForm | typeof this.createForm,
   ): boolean {
@@ -1084,6 +1120,56 @@ export class ProjectsComponent {
     );
   }
 
+  orderEngineHoursTotal(order = this.orderForm): number {
+    const start = Number(order.equipmentEngineHoursStart || 0);
+    const end = Number(order.equipmentEngineHoursEnd || 0);
+    if (!end || end < start) return 0;
+    return Math.round((end - start) * 100) / 100;
+  }
+
+  orderEngineHoursIncluded(order: Order): number {
+    return (
+      this.state.orderEquipmentWorkDays(this.draftOrder(order)) *
+      Number(this.orderForm.standardWorkHours || 8)
+    );
+  }
+
+  orderEngineHoursOvertime(order: Order): number {
+    return Math.max(
+      0,
+      this.orderEngineHoursTotal() - this.orderEngineHoursIncluded(order),
+    );
+  }
+
+  applyEngineHoursAsAdditional(order: Order): void {
+    this.orderForm.additionalWorkHours = this.orderEngineHoursOvertime(order);
+  }
+
+  createEngineHoursTotal(): number {
+    const start = Number(this.createForm.equipmentEngineHoursStart || 0);
+    const end = Number(this.createForm.equipmentEngineHoursEnd || 0);
+    if (!end || end < start) return 0;
+    return Math.round((end - start) * 100) / 100;
+  }
+
+  createEngineHoursIncluded(): number {
+    return (
+      this.createDraftWorkDays() *
+      Number(this.createForm.standardWorkHours || 8)
+    );
+  }
+
+  createEngineHoursOvertime(): number {
+    return Math.max(
+      0,
+      this.createEngineHoursTotal() - this.createEngineHoursIncluded(),
+    );
+  }
+
+  applyCreateEngineHoursAsAdditional(): void {
+    this.createForm.additionalWorkHours = this.createEngineHoursOvertime();
+  }
+
   onOrderEquipmentChange(): void {
     const equipment = this.state.byId(
       this.state.equipment(),
@@ -1094,6 +1180,11 @@ export class ProjectsComponent {
       this.orderForm.rate = Number(equipment.defaultRate || 0);
     if (!this.orderForm.equipmentHourlyRate) {
       this.orderForm.equipmentHourlyRate = Number(equipment.hourlyRate || 0);
+    }
+    if (!this.orderForm.equipmentEngineHoursStart) {
+      this.orderForm.equipmentEngineHoursStart = Number(
+        equipment.engineHours || 0,
+      );
     }
   }
 
@@ -1108,6 +1199,11 @@ export class ProjectsComponent {
     }
     if (!this.createForm.equipmentHourlyRate) {
       this.createForm.equipmentHourlyRate = Number(equipment.hourlyRate || 0);
+    }
+    if (!this.createForm.equipmentEngineHoursStart) {
+      this.createForm.equipmentEngineHoursStart = Number(
+        equipment.engineHours || 0,
+      );
     }
   }
 
@@ -1493,6 +1589,8 @@ export class ProjectsComponent {
       plan: 0,
       rate: 0,
       equipmentHourlyRate: 0,
+      equipmentEngineHoursStart: 0,
+      equipmentEngineHoursEnd: 0,
       standardWorkHours: 8,
       additionalWorkHours: 0,
       vatEnabled: false,
@@ -1576,6 +1674,8 @@ export class ProjectsComponent {
       plan: Math.round(this.state.orderPlan(order)),
       rate: Number(order.rate || 0),
       equipmentHourlyRate: Number(order.equipmentHourlyRate || 0),
+      equipmentEngineHoursStart: Number(order.equipmentEngineHoursStart || 0),
+      equipmentEngineHoursEnd: Number(order.equipmentEngineHoursEnd || 0),
       standardWorkHours: Number(order.standardWorkHours || 8),
       additionalWorkHours: Number(order.additionalWorkHours || 0),
       vatEnabled: Boolean(order.vatEnabled),
@@ -1677,6 +1777,12 @@ export class ProjectsComponent {
       ),
       rate: Number(this.orderForm.rate || 0),
       equipmentHourlyRate: Number(this.orderForm.equipmentHourlyRate || 0),
+      equipmentEngineHoursStart: Number(
+        this.orderForm.equipmentEngineHoursStart || 0,
+      ),
+      equipmentEngineHoursEnd: Number(
+        this.orderForm.equipmentEngineHoursEnd || 0,
+      ),
       standardWorkHours: Number(this.orderForm.standardWorkHours || 8),
       additionalWorkHours: Number(this.orderForm.additionalWorkHours || 0),
       vatEnabled: Boolean(this.orderForm.vatEnabled),
@@ -1946,6 +2052,12 @@ export class ProjectsComponent {
       location: this.createForm.location,
       rate: Number(this.createForm.rate || 0),
       equipmentHourlyRate: Number(this.createForm.equipmentHourlyRate || 0),
+      equipmentEngineHoursStart: Number(
+        this.createForm.equipmentEngineHoursStart || 0,
+      ),
+      equipmentEngineHoursEnd: Number(
+        this.createForm.equipmentEngineHoursEnd || 0,
+      ),
       standardWorkHours: Number(this.createForm.standardWorkHours || 8),
       additionalWorkHours: Number(this.createForm.additionalWorkHours || 0),
       vatEnabled: Boolean(this.createForm.vatEnabled),
@@ -2116,6 +2228,8 @@ export class ProjectsComponent {
       plan: 0,
       rate: 0,
       equipmentHourlyRate: 0,
+      equipmentEngineHoursStart: 0,
+      equipmentEngineHoursEnd: 0,
       standardWorkHours: 8,
       additionalWorkHours: 0,
       vatEnabled: false,
@@ -2177,6 +2291,9 @@ export class ProjectsComponent {
       error?.message || error?.details || String(error || "ошибка");
     if (message.includes("logistics_")) {
       return "База Supabase еще не готова для сохранения логистики/возврата на базу. Выполни обновленный SQL-файл supabase-order-logistics.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("engine_hours")) {
+      return "База Supabase еще не готова для моточасов. Выполни SQL-файл supabase-equipment-engine-hours.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (
       message.includes("bill_client") ||

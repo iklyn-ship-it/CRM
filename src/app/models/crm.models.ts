@@ -14,6 +14,7 @@ export interface Equipment {
   code: string;
   defaultRate: number;
   hourlyRate: number;
+  engineHours: number;
   status: "free" | "busy" | "repair";
 }
 
@@ -47,6 +48,8 @@ export interface Order {
   location: string;
   rate: number;
   equipmentHourlyRate: number;
+  equipmentEngineHoursStart: number;
+  equipmentEngineHoursEnd: number;
   standardWorkHours: number;
   additionalWorkHours: number;
   vatEnabled: boolean;
