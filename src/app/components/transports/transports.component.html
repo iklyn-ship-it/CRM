@@ -20,6 +20,22 @@
       </button>
       <div class="topbar-actions">
         @if (selectedTransport(); as selected) {
+          @if (selected.status !== "completed") {
+            <button
+              type="button"
+              class="btn success"
+              (click)="completeTransport()"
+            >
+              Перевозка выполнена
+            </button>
+          }
+          <button
+            type="button"
+            class="btn ghost"
+            (click)="setTransportDeferred(selected, !form.deferred)"
+          >
+            {{ form.deferred ? "Вернуть из отложенных" : "Отложить перевозку" }}
+          </button>
           <button
             type="button"
             class="btn info"
@@ -59,6 +75,9 @@
         <span class="badge" [ngClass]="statusBadgeClass(form.status)">
           {{ statusLabel(form.status) }}
         </span>
+        @if (form.deferred) {
+          <span class="badge deferred">Отложена</span>
+        }
       </div>
 
       <div class="transport-work-summary">
@@ -228,13 +247,21 @@
               name="deliveryCost"
             />
           </div>
-          <div class="field">
+          <div class="field wide">
             <label>Статус</label>
-            <select [(ngModel)]="form.status" name="status">
+            <div class="status-button-row">
               @for (status of statuses; track status.value) {
-                <option [value]="status.value">{{ status.label }}</option>
+                <button
+                  type="button"
+                  class="status-button"
+                  [class.selected-status]="form.status === status.value"
+                  [ngClass]="statusBadgeClass(status.value)"
+                  (click)="setFormStatus(status.value)"
+                >
+                  {{ status.label }}
+                </button>
               }
-            </select>
+            </div>
           </div>
           <div class="field wide">
             <label>Наименование груза</label>
@@ -277,6 +304,32 @@
 } @else {
   <div class="card panel internal-scroll-panel">
     <div class="toolbar">
+      <div class="scope-tabs">
+        <button
+          type="button"
+          class="btn ghost"
+          [class.active]="transportScope() === 'active'"
+          (click)="switchTransportScope('active')"
+        >
+          Актуальные
+        </button>
+        <button
+          type="button"
+          class="btn ghost"
+          [class.active]="transportScope() === 'deferred'"
+          (click)="switchTransportScope('deferred')"
+        >
+          Отложенные
+        </button>
+        <button
+          type="button"
+          class="btn ghost"
+          [class.active]="transportScope() === 'completed'"
+          (click)="switchTransportScope('completed')"
+        >
+          Завершенные
+        </button>
+      </div>
       <input
         type="text"
         [value]="search()"

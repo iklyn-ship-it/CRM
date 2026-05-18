@@ -147,6 +147,7 @@ create table if not exists public.transports (
   cargo_name               text not null default '',
   notes                    text not null default '',
   status                   text not null default 'new',
+  deferred                 boolean not null default false,
   pickup_price_per_km      numeric not null default 50,
   delivery_price_per_km    numeric not null default 250,
   pickup_km                numeric not null default 0,

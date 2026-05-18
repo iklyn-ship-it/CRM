@@ -269,6 +269,7 @@ export class DbService {
       pickupCost: Number(transport.pickupCost || 0),
       deliveryCost: Number(transport.deliveryCost || 0),
       status: transport.status || "new",
+      deferred: Boolean(transport.deferred),
       createdAt: transport.createdAt || "",
     } as Transport;
   }
@@ -892,7 +893,7 @@ export class DbService {
       discountEnabled: "Скидка",
       discountType: "Тип скидки",
       discountValue: "Размер скидки",
-      deferred: "Отложенная заявка",
+      deferred: "Отложено",
       workStatus: "Состояние сотрудника",
       laborCost: "Стоимость работ",
       partsCost: "Стоимость запчастей",

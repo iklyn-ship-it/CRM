@@ -17,6 +17,7 @@ create table if not exists public.transports (
   cargo_name               text not null default '',
   notes                    text not null default '',
   status                   text not null default 'new',
+  deferred                 boolean not null default false,
   pickup_price_per_km      numeric not null default 50,
   delivery_price_per_km    numeric not null default 250,
   pickup_km                numeric not null default 0,
@@ -28,7 +29,8 @@ create table if not exists public.transports (
 
 alter table if exists public.transports
   add column if not exists shipper_client_id text not null default '',
-  add column if not exists consignee_client_id text not null default '';
+  add column if not exists consignee_client_id text not null default '',
+  add column if not exists deferred boolean not null default false;
 
 alter table public.transports enable row level security;
 

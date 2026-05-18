@@ -28,6 +28,7 @@ export class TransportsComponent {
 
   search = signal("");
   filterStatus = signal("");
+  transportScope = signal<"active" | "deferred" | "completed">("active");
   formOpen = signal(false);
   selectedTransportId = signal("");
   invoiceEditorOpen = signal(false);
@@ -49,6 +50,18 @@ export class TransportsComponent {
     const q = this.search().trim().toLowerCase();
     const status = this.filterStatus();
     let rows = [...this.state.transports()];
+    const scope = this.transportScope();
+    if (scope === "deferred") {
+      rows = rows.filter((item) => item.deferred);
+    } else if (scope === "completed") {
+      rows = rows.filter(
+        (item) => !item.deferred && item.status === "completed",
+      );
+    } else {
+      rows = rows.filter(
+        (item) => !item.deferred && item.status !== "completed",
+      );
+    }
     if (status) rows = rows.filter((item) => item.status === status);
     if (q) {
       rows = rows.filter((item) =>
@@ -75,6 +88,11 @@ export class TransportsComponent {
   readonly selectedTransport = computed(() =>
     this.state.byId(this.state.transports(), this.selectedTransportId()),
   );
+
+  switchTransportScope(scope: "active" | "deferred" | "completed"): void {
+    this.transportScope.set(scope);
+    this.closeTransport();
+  }
 
   readonly transportEquipmentConflictSet = computed(() => {
     const orderConflicts = this.state
@@ -198,6 +216,7 @@ export class TransportsComponent {
       cargoName: item.cargoName || "",
       notes: item.notes || "",
       status: item.status || "new",
+      deferred: Boolean(item.deferred),
       pickupPricePerKm: Number(item.pickupPricePerKm || 50),
       deliveryPricePerKm: Number(item.deliveryPricePerKm || 250),
       pickupKm: Number(item.pickupKm || 0),
@@ -206,6 +225,30 @@ export class TransportsComponent {
       deliveryCost: Number(item.deliveryCost || 0),
     };
     this.formOpen.set(true);
+  }
+
+  setFormStatus(status: TransportStatus): void {
+    this.form.status = status;
+  }
+
+  async completeTransport(): Promise<void> {
+    this.form.status = "completed";
+    this.form.deferred = false;
+    await this.save();
+  }
+
+  async setTransportDeferred(
+    item: Transport,
+    deferred: boolean,
+  ): Promise<void> {
+    try {
+      await this.db.update("transports", item.id, { deferred });
+      if (this.selectedTransportId() === item.id) {
+        this.form.deferred = deferred;
+      }
+    } catch (error) {
+      alert(this.saveErrorMessage(error));
+    }
   }
 
   closeTransport(): void {
@@ -338,6 +381,7 @@ export class TransportsComponent {
       cargoName: "",
       notes: "",
       status: "new" as TransportStatus,
+      deferred: false,
       pickupPricePerKm: 50,
       deliveryPricePerKm: 250,
       pickupKm: 0,
@@ -438,6 +482,9 @@ export class TransportsComponent {
       error && typeof error === "object" && "message" in error
         ? String((error as { message?: unknown }).message || "")
         : "";
+    if (message.includes("deferred")) {
+      return "База Supabase еще не готова для отложенных перевозок. Выполни SQL-файл supabase-transport-deferred.sql в Supabase SQL Editor и попробуй снова.";
+    }
     if (message.includes("transports")) {
       return "База Supabase еще не готова для перевозок. Выполни SQL-файл supabase-transports.sql в Supabase SQL Editor и попробуй снова.";
     }

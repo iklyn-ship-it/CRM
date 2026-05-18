@@ -152,6 +152,7 @@ export interface Transport {
   cargoName: string;
   notes: string;
   status: TransportStatus;
+  deferred: boolean;
   pickupPricePerKm: number;
   deliveryPricePerKm: number;
   pickupKm: number;
