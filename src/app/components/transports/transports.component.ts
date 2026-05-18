@@ -1,6 +1,11 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { NgClass, SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import {
+  CommercialProposalDraft,
+  CommercialProposalService,
+  ProposalRow,
+} from "../../services/commercial-proposal.service";
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
@@ -17,11 +22,14 @@ export class TransportsComponent {
   state = inject(StateService);
   db = inject(DbService);
   utils = inject(UtilsService);
+  proposal = inject(CommercialProposalService);
 
   search = signal("");
   filterStatus = signal("");
   formOpen = signal(false);
+  invoiceEditorOpen = signal(false);
   editingId = "";
+  invoiceDraft: CommercialProposalDraft | null = null;
 
   form = this.emptyForm();
 
@@ -228,6 +236,48 @@ export class TransportsComponent {
     }
   }
 
+  openInvoiceEditor(item: Transport): void {
+    this.invoiceDraft = this.proposal.createTransportInvoiceDraft(item);
+    this.invoiceEditorOpen.set(true);
+  }
+
+  closeInvoiceEditor(): void {
+    this.invoiceEditorOpen.set(false);
+    this.invoiceDraft = null;
+  }
+
+  addInvoiceRow(): void {
+    this.invoiceDraft?.rows.push({
+      title: "Додаткова позиція",
+      details: "",
+      amount: 0,
+    });
+  }
+
+  removeInvoiceRow(index: number): void {
+    this.invoiceDraft?.rows.splice(index, 1);
+  }
+
+  addInvoiceTerm(): void {
+    this.invoiceDraft?.terms.push("");
+  }
+
+  removeInvoiceTerm(index: number): void {
+    this.invoiceDraft?.terms.splice(index, 1);
+  }
+
+  invoiceTotal(draft: CommercialProposalDraft): number {
+    return this.proposal.total(draft);
+  }
+
+  async downloadInvoiceDraft(draft: CommercialProposalDraft): Promise<void> {
+    await this.proposal.downloadDraft(draft);
+  }
+
+  trackInvoiceRow(index: number, row: ProposalRow): string {
+    return `${index}-${row.title}`;
+  }
+
   clearForm(): void {
     this.editingId = "";
     this.form = this.emptyForm();
@@ -263,28 +313,34 @@ export class TransportsComponent {
     const warnings: string[] = [];
 
     if (draft.equipmentId) {
-      const orderConflict = this.state.orders().find(
-        (order) =>
-          this.state.orderBlocksSchedule(order) &&
-          this.state.orderEquipmentReservationIds(order).includes(draft.equipmentId) &&
-          this.state.orderTransportOverlapByEquipment(
-            order,
-            draft,
-            draft.equipmentId,
-          ),
-      );
+      const orderConflict = this.state
+        .orders()
+        .find(
+          (order) =>
+            this.state.orderBlocksSchedule(order) &&
+            this.state
+              .orderEquipmentReservationIds(order)
+              .includes(draft.equipmentId) &&
+            this.state.orderTransportOverlapByEquipment(
+              order,
+              draft,
+              draft.equipmentId,
+            ),
+        );
       if (orderConflict) {
         warnings.push(
           `Трал занят в заявке: ${this.clientName(orderConflict.clientId)}, ${this.utils.fmtDate(orderConflict.startDate)} - ${this.utils.fmtDate(orderConflict.endDate)}.`,
         );
       }
 
-      const transportConflict = this.state.transports().find(
-        (transport) =>
-          transport.id !== this.editingId &&
-          transport.equipmentId === draft.equipmentId &&
-          this.state.transportsOverlap(transport, draft),
-      );
+      const transportConflict = this.state
+        .transports()
+        .find(
+          (transport) =>
+            transport.id !== this.editingId &&
+            transport.equipmentId === draft.equipmentId &&
+            this.state.transportsOverlap(transport, draft),
+        );
       if (transportConflict) {
         warnings.push(
           `Трал занят в другой перевозке: ${this.shipperName(transportConflict)} → ${this.consigneeName(transportConflict)}, ${this.utils.fmtDate(transportConflict.startDate)} - ${this.utils.fmtDate(transportConflict.endDate)}.`,
@@ -293,24 +349,32 @@ export class TransportsComponent {
     }
 
     if (draft.driverId) {
-      const orderConflict = this.state.orders().find(
-        (order) =>
-          this.state.orderBlocksSchedule(order) &&
-          this.state.orderOperatorIds(order).includes(draft.driverId) &&
-          this.state.orderTransportOverlapByOperator(order, draft, draft.driverId),
-      );
+      const orderConflict = this.state
+        .orders()
+        .find(
+          (order) =>
+            this.state.orderBlocksSchedule(order) &&
+            this.state.orderOperatorIds(order).includes(draft.driverId) &&
+            this.state.orderTransportOverlapByOperator(
+              order,
+              draft,
+              draft.driverId,
+            ),
+        );
       if (orderConflict) {
         warnings.push(
           `Водитель/оператор занят в заявке: ${this.clientName(orderConflict.clientId)}, ${this.utils.fmtDate(orderConflict.startDate)} - ${this.utils.fmtDate(orderConflict.endDate)}.`,
         );
       }
 
-      const transportConflict = this.state.transports().find(
-        (transport) =>
-          transport.id !== this.editingId &&
-          transport.driverId === draft.driverId &&
-          this.state.transportsOverlap(transport, draft),
-      );
+      const transportConflict = this.state
+        .transports()
+        .find(
+          (transport) =>
+            transport.id !== this.editingId &&
+            transport.driverId === draft.driverId &&
+            this.state.transportsOverlap(transport, draft),
+        );
       if (transportConflict) {
         warnings.push(
           `Водитель занят в другой перевозке: ${this.shipperName(transportConflict)} → ${this.consigneeName(transportConflict)}, ${this.utils.fmtDate(transportConflict.startDate)} - ${this.utils.fmtDate(transportConflict.endDate)}.`,

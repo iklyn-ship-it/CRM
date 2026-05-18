@@ -1,5 +1,5 @@
 import { Injectable, inject } from "@angular/core";
-import { FinanceOperation, Order } from "../models/crm.models";
+import { FinanceOperation, Order, Transport } from "../models/crm.models";
 import { StateService } from "./state.service";
 import { UtilsService } from "./utils.service";
 
@@ -74,6 +74,58 @@ export class CommercialProposalService {
       return this.taxInvoiceNoteDraft(order, base);
     }
     return this.proposalDraft(order, base);
+  }
+
+  createTransportInvoiceDraft(transport: Transport): CommercialProposalDraft {
+    const paid = this.state.transportIncome(transport.id);
+    const remaining = this.state.transportRemaining(transport);
+    const total = this.state.transportTotal(transport);
+    const route = `${transport.loadingPoint || "Пункт завантаження не вказано"} - ${transport.unloadingPoint || "пункт вивантаження не вказано"}`;
+    const rows = this.transportCostRows(transport);
+    if (!rows.length && total > 0) {
+      rows.push({
+        title: `Перевезення вантажу: ${transport.cargoName || "не вказано"}`,
+        details: `Маршрут: ${route}`,
+        amount: total,
+      });
+    }
+    if (paid > 0) {
+      rows.push({
+        title: "Оплачено раніше",
+        details: "Фактичні приходи по перевезенню в CRM",
+        amount: Math.min(paid, total),
+        negative: true,
+      });
+    }
+    if (!rows.length && remaining > 0) {
+      rows.push({
+        title: `Перевезення вантажу: ${transport.cargoName || "не вказано"}`,
+        details: `Маршрут: ${route}`,
+        amount: remaining,
+      });
+    }
+
+    return {
+      documentType: "invoice",
+      orderId: transport.id,
+      title: "Рахунок на оплату",
+      subtitle: `за перевезенням ${this.shortId(transport.id)} від ${this.todayUk()}`,
+      client: this.transportPayerName(transport),
+      location: route,
+      period: `${this.date(transport.startDate)} - ${this.date(transport.endDate)}`,
+      equipment: this.equipmentName(transport.equipmentId),
+      operator: this.operatorName(transport.driverId) || "Водія не вказано",
+      status: this.transportStatusLabel(transport.status),
+      costHeading: "До оплати за перевезення",
+      termsHeading: "Примітки до рахунку",
+      notes: transport.notes || "",
+      rows,
+      terms: [
+        "Рахунок сформовано на підставі даних перевезення в CRM.",
+        "Оплата здійснюється за реквізитами ТОВ «РБТ-ГРУП» згідно з погодженими сторонами умовами.",
+        "Після оплати закриваючими документами є акт наданих послуг та інші документи за домовленістю сторін.",
+      ],
+    };
   }
 
   private baseDraft(
@@ -531,6 +583,30 @@ export class CommercialProposalService {
       );
   }
 
+  private transportCostRows(transport: Transport): ProposalRow[] {
+    const rows: ProposalRow[] = [];
+    const pickupCost = Number(transport.pickupCost || 0);
+    const deliveryCost = Number(transport.deliveryCost || 0);
+
+    if (pickupCost > 0) {
+      rows.push({
+        title: "Подача трала",
+        details: `${Number(transport.pickupKm || 0)} км x ${this.money(Number(transport.pickupPricePerKm || 0))}`,
+        amount: pickupCost,
+      });
+    }
+
+    if (deliveryCost > 0) {
+      rows.push({
+        title: "Доставка вантажу",
+        details: `${Number(transport.deliveryKm || 0)} км x ${this.money(Number(transport.deliveryPricePerKm || 0))}`,
+        amount: deliveryCost,
+      });
+    }
+
+    return rows;
+  }
+
   private notesBlock(draft: CommercialProposalDraft): string {
     if (!draft.notes?.trim()) return "";
     return `${this.paragraph("Коментар до заявки", "Heading1")}
@@ -972,10 +1048,31 @@ export class CommercialProposalService {
     return "сторонній перевізник";
   }
 
+  private transportPayerName(transport: Transport): string {
+    return (
+      this.state.byId(this.state.clients(), transport.consigneeClientId)
+        ?.name ||
+      this.state.byId(this.state.clients(), transport.shipperClientId)?.name ||
+      transport.consignee ||
+      transport.shipper ||
+      "Новий клієнт"
+    );
+  }
+
   private statusLabel(status: Order["status"]): string {
     const labels: Record<Order["status"], string> = {
       new: "Нова",
       confirmed: "Підтверджена",
+      active: "В роботі",
+      completed: "Завершена",
+      cancelled: "Скасована",
+    };
+    return labels[status];
+  }
+
+  private transportStatusLabel(status: Transport["status"]): string {
+    const labels: Record<Transport["status"], string> = {
+      new: "Нова",
       active: "В роботі",
       completed: "Завершена",
       cancelled: "Скасована",

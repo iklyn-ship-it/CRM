@@ -1,7 +1,9 @@
 <div class="section-heading">
   <div>
     <h2>Перевозки</h2>
-    <p>Заявки на перевозки тралами: отправитель, получатель, маршрут и стоимость.</p>
+    <p>
+      Заявки на перевозки тралами: отправитель, получатель, маршрут и стоимость.
+    </p>
   </div>
   <button type="button" class="btn primary" (click)="openCreate()">
     + Новая перевозка
@@ -15,7 +17,9 @@
         <h3 style="margin: 0">
           {{ editingId ? "Редактирование перевозки" : "Создать перевозку" }}
         </h3>
-        <button type="button" class="btn ghost" (click)="closeForm()">Закрыть</button>
+        <button type="button" class="btn ghost" (click)="closeForm()">
+          Закрыть
+        </button>
       </div>
 
       <form (ngSubmit)="save()">
@@ -286,6 +290,9 @@
               </span>
             </td>
             <td>
+              <button class="btn ghost" (click)="openInvoiceEditor(item)">
+                Счет
+              </button>
               <button class="btn ghost" (click)="edit(item)">Ред.</button>
               <button class="btn ghost" (click)="remove(item.id)">
                 Удалить
@@ -302,3 +309,160 @@
     </table>
   </div>
 </div>
+
+@if (invoiceEditorOpen()) {
+  @if (invoiceDraft; as draft) {
+    <div class="proposal-backdrop" (click)="closeInvoiceEditor()">
+      <div class="proposal-editor card" (click)="$event.stopPropagation()">
+        <div class="proposal-head">
+          <div>
+            <div class="eyebrow">Редактор счета</div>
+            <h3>{{ draft.title }}</h3>
+            <p>Проверь данные перевозки, поправь строки и скачай DOCX.</p>
+          </div>
+          <div class="actions">
+            <button
+              type="button"
+              class="btn primary"
+              (click)="downloadInvoiceDraft(draft)"
+            >
+              Скачать DOCX
+            </button>
+            <button
+              type="button"
+              class="btn ghost"
+              (click)="closeInvoiceEditor()"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+
+        <div class="proposal-grid">
+          <div class="field">
+            <label>Заголовок</label>
+            <input [(ngModel)]="draft.title" name="transportInvoiceTitle" />
+          </div>
+          <div class="field">
+            <label>Подзаголовок</label>
+            <input
+              [(ngModel)]="draft.subtitle"
+              name="transportInvoiceSubtitle"
+            />
+          </div>
+          <div class="field">
+            <label>Плательщик</label>
+            <input [(ngModel)]="draft.client" name="transportInvoiceClient" />
+          </div>
+          <div class="field">
+            <label>Маршрут</label>
+            <input [(ngModel)]="draft.location" name="transportInvoiceRoute" />
+          </div>
+          <div class="field">
+            <label>Период</label>
+            <input [(ngModel)]="draft.period" name="transportInvoicePeriod" />
+          </div>
+          <div class="field">
+            <label>Трал</label>
+            <input
+              [(ngModel)]="draft.equipment"
+              name="transportInvoiceEquipment"
+            />
+          </div>
+          <div class="field">
+            <label>Водитель</label>
+            <input [(ngModel)]="draft.operator" name="transportInvoiceDriver" />
+          </div>
+          <div class="field">
+            <label>Статус</label>
+            <input [(ngModel)]="draft.status" name="transportInvoiceStatus" />
+          </div>
+        </div>
+
+        <div class="proposal-section-head">
+          <h4>Позиции счета</h4>
+          <button type="button" class="btn ghost" (click)="addInvoiceRow()">
+            + Строка
+          </button>
+        </div>
+        <div class="proposal-rows">
+          @for (
+            row of draft.rows;
+            track trackInvoiceRow($index, row);
+            let i = $index
+          ) {
+            <div class="proposal-row">
+              <input
+                [(ngModel)]="row.title"
+                [name]="'transportInvoiceRowTitle' + i"
+                placeholder="Послуга"
+              />
+              <input
+                [(ngModel)]="row.details"
+                [name]="'transportInvoiceRowDetails' + i"
+                placeholder="Деталі"
+              />
+              <input
+                type="number"
+                [(ngModel)]="row.amount"
+                [name]="'transportInvoiceRowAmount' + i"
+              />
+              <label class="inline-check">
+                <input
+                  type="checkbox"
+                  [(ngModel)]="row.negative"
+                  [name]="'transportInvoiceRowNegative' + i"
+                />
+                минус
+              </label>
+              <button
+                type="button"
+                class="btn ghost danger"
+                (click)="removeInvoiceRow(i)"
+              >
+                Удалить
+              </button>
+            </div>
+          }
+        </div>
+
+        <div class="proposal-total">
+          <span>Итого к оплате</span>
+          <strong>{{ utils.money(invoiceTotal(draft)) }}</strong>
+        </div>
+
+        <div class="field">
+          <label>Комментарий</label>
+          <textarea
+            [(ngModel)]="draft.notes"
+            name="transportInvoiceNotes"
+          ></textarea>
+        </div>
+
+        <div class="proposal-section-head">
+          <h4>Условия</h4>
+          <button type="button" class="btn ghost" (click)="addInvoiceTerm()">
+            + Условие
+          </button>
+        </div>
+        <div class="proposal-terms">
+          @for (term of draft.terms; track $index; let i = $index) {
+            <div class="proposal-term">
+              <input
+                [(ngModel)]="draft.terms[i]"
+                [name]="'transportInvoiceTerm' + i"
+              />
+              <button
+                type="button"
+                class="btn ghost danger"
+                (click)="removeInvoiceTerm(i)"
+              >
+                Удалить
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+}
