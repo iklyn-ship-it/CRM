@@ -5,21 +5,87 @@
       Заявки на перевозки тралами: отправитель, получатель, маршрут и стоимость.
     </p>
   </div>
-  <button type="button" class="btn primary" (click)="openCreate()">
-    + Новая перевозка
-  </button>
+  @if (!formOpen()) {
+    <button type="button" class="btn primary" (click)="openCreate()">
+      + Новая перевозка
+    </button>
+  }
 </div>
 
 @if (formOpen()) {
-  <div class="form-backdrop" (click)="closeForm()">
-    <div class="card panel form-modal" (click)="$event.stopPropagation()">
-      <div class="modal-head">
-        <h3 style="margin: 0">
-          {{ editingId ? "Редактирование перевозки" : "Создать перевозку" }}
-        </h3>
-        <button type="button" class="btn ghost" (click)="closeForm()">
-          Закрыть
+  <section class="transport-workspace">
+    <div class="workspace-topbar">
+      <button type="button" class="btn ghost" (click)="closeTransport()">
+        ← К перевозкам
+      </button>
+      <div class="topbar-actions">
+        @if (selectedTransport(); as selected) {
+          <button
+            type="button"
+            class="btn info"
+            (click)="openInvoiceEditor(selected)"
+          >
+            Счет
+          </button>
+          <button
+            type="button"
+            class="btn ghost danger"
+            (click)="remove(selected.id)"
+          >
+            Удалить перевозку
+          </button>
+        }
+        <button type="button" class="btn primary" (click)="save()">
+          {{ editingId ? "Сохранить изменения" : "Сохранить перевозку" }}
         </button>
+      </div>
+    </div>
+
+    <div class="card panel transport-full-card">
+      <div class="transport-hero">
+        <div>
+          <div class="eyebrow">
+            {{ editingId ? "Карточка перевозки" : "Новая перевозка" }}
+          </div>
+          <h3>
+            {{ form.loadingPoint || "Погрузка" }} →
+            {{ form.unloadingPoint || "Выгрузка" }}
+          </h3>
+          <p>
+            {{ shipperName(formDraftTransport()) }} →
+            {{ consigneeName(formDraftTransport()) }}
+          </p>
+        </div>
+        <span class="badge" [ngClass]="statusBadgeClass(form.status)">
+          {{ statusLabel(form.status) }}
+        </span>
+      </div>
+
+      <div class="transport-work-summary">
+        <div class="metric">
+          <span>Итого перевозка</span>
+          <strong>{{ utils.money(transportTotal()) }}</strong>
+        </div>
+        <div class="metric">
+          <span>Подача</span>
+          <strong>{{ utils.money(form.pickupCost) }}</strong>
+          <small>{{ form.pickupKm || 0 }} км</small>
+        </div>
+        <div class="metric">
+          <span>Доставка</span>
+          <strong>{{ utils.money(form.deliveryCost) }}</strong>
+          <small>{{ form.deliveryKm || 0 }} км</small>
+        </div>
+        <div class="metric">
+          <span>Период</span>
+          <strong
+            >{{ utils.daysInclusive(form.startDate, form.endDate) }} дн.</strong
+          >
+          <small
+            >{{ utils.fmtDate(form.startDate) }} -
+            {{ utils.fmtDate(form.endDate) }}</small
+          >
+        </div>
       </div>
 
       <form (ngSubmit)="save()">
@@ -201,114 +267,119 @@
           <button type="submit" class="btn primary">
             {{ editingId ? "Сохранить изменения" : "Сохранить перевозку" }}
           </button>
-          <button type="button" class="btn ghost" (click)="closeForm()">
+          <button type="button" class="btn ghost" (click)="closeTransport()">
             Отмена
           </button>
         </div>
       </form>
     </div>
+  </section>
+} @else {
+  <div class="card panel internal-scroll-panel">
+    <div class="toolbar">
+      <input
+        type="text"
+        [value]="search()"
+        (input)="search.set($any($event.target).value)"
+        placeholder="Поиск: отправитель, получатель, маршрут, груз..."
+      />
+      <select
+        [value]="filterStatus()"
+        (change)="filterStatus.set($any($event.target).value)"
+      >
+        <option value="">Все статусы</option>
+        @for (status of statuses; track status.value) {
+          <option [value]="status.value">{{ status.label }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="table-wrap internal-scroll-body">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Период</th>
+            <th>Маршрут</th>
+            <th>Стороны</th>
+            <th>Трал / водитель</th>
+            <th>Груз</th>
+            <th>Стоимость</th>
+            <th>Статус</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of filteredTransports(); track item.id) {
+            <tr class="clickable-row" (click)="edit(item)">
+              <td>{{ item.id | slice: -5 }}</td>
+              <td>
+                {{ utils.fmtDate(item.startDate) }}
+                <div class="small">
+                  {{ utils.fmtDate(item.endDate) }} •
+                  {{ utils.daysInclusive(item.startDate, item.endDate) }} дн.
+                </div>
+              </td>
+              <td>
+                {{ item.loadingPoint || "—" }}
+                <div class="small">→ {{ item.unloadingPoint || "—" }}</div>
+              </td>
+              <td>
+                {{ shipperName(item) }}
+                <div class="small">{{ consigneeName(item) }}</div>
+              </td>
+              <td>
+                {{ equipmentName(item.equipmentId) }}
+                <div class="small">{{ driverName(item.driverId) }}</div>
+                @if (transportEquipmentConflictSet().has(item.id)) {
+                  <div class="small text-danger">Конфликт по тралу</div>
+                }
+                @if (transportOperatorConflictSet().has(item.id)) {
+                  <div class="small text-danger">Конфликт по водителю</div>
+                }
+              </td>
+              <td>
+                {{ item.cargoName || "—" }}
+                <div class="small">{{ item.notes || "—" }}</div>
+              </td>
+              <td>
+                <strong>{{ utils.money(transportTotal(item)) }}</strong>
+                <div class="small">
+                  подача {{ utils.money(item.pickupCost || 0) }} • доставка
+                  {{ utils.money(item.deliveryCost || 0) }}
+                </div>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="statusBadgeClass(item.status)">
+                  {{ statusLabel(item.status) }}
+                </span>
+              </td>
+              <td>
+                <button
+                  class="btn ghost"
+                  (click)="openInvoiceEditor(item); $event.stopPropagation()"
+                >
+                  Счет
+                </button>
+                <button
+                  class="btn ghost"
+                  (click)="remove(item.id); $event.stopPropagation()"
+                >
+                  Удалить
+                </button>
+              </td>
+            </tr>
+          }
+          @if (!filteredTransports().length) {
+            <tr>
+              <td colspan="9"><div class="empty">Перевозок пока нет.</div></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
   </div>
 }
-
-<div class="card panel internal-scroll-panel">
-  <div class="toolbar">
-    <input
-      type="text"
-      [value]="search()"
-      (input)="search.set($any($event.target).value)"
-      placeholder="Поиск: отправитель, получатель, маршрут, груз..."
-    />
-    <select
-      [value]="filterStatus()"
-      (change)="filterStatus.set($any($event.target).value)"
-    >
-      <option value="">Все статусы</option>
-      @for (status of statuses; track status.value) {
-        <option [value]="status.value">{{ status.label }}</option>
-      }
-    </select>
-  </div>
-
-  <div class="table-wrap internal-scroll-body">
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Период</th>
-          <th>Маршрут</th>
-          <th>Стороны</th>
-          <th>Трал / водитель</th>
-          <th>Груз</th>
-          <th>Стоимость</th>
-          <th>Статус</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (item of filteredTransports(); track item.id) {
-          <tr>
-            <td>{{ item.id | slice: -5 }}</td>
-            <td>
-              {{ utils.fmtDate(item.startDate) }}
-              <div class="small">
-                {{ utils.fmtDate(item.endDate) }} •
-                {{ utils.daysInclusive(item.startDate, item.endDate) }} дн.
-              </div>
-            </td>
-            <td>
-              {{ item.loadingPoint || "—" }}
-              <div class="small">→ {{ item.unloadingPoint || "—" }}</div>
-            </td>
-            <td>
-              {{ shipperName(item) }}
-              <div class="small">{{ consigneeName(item) }}</div>
-            </td>
-            <td>
-              {{ equipmentName(item.equipmentId) }}
-              <div class="small">{{ driverName(item.driverId) }}</div>
-              @if (transportEquipmentConflictSet().has(item.id)) {
-                <div class="small text-danger">Конфликт по тралу</div>
-              }
-              @if (transportOperatorConflictSet().has(item.id)) {
-                <div class="small text-danger">Конфликт по водителю</div>
-              }
-            </td>
-            <td>
-              {{ item.cargoName || "—" }}
-              <div class="small">{{ item.notes || "—" }}</div>
-            </td>
-            <td>
-              <strong>{{ utils.money(transportTotal(item)) }}</strong>
-              <div class="small">
-                подача {{ utils.money(item.pickupCost || 0) }} • доставка
-                {{ utils.money(item.deliveryCost || 0) }}
-              </div>
-            </td>
-            <td>
-              <span class="badge" [ngClass]="statusBadgeClass(item.status)">
-                {{ statusLabel(item.status) }}
-              </span>
-            </td>
-            <td>
-              <button class="btn ghost" (click)="openInvoiceEditor(item)">
-                Счет
-              </button>
-              <button class="btn ghost" (click)="edit(item)">Ред.</button>
-              <button class="btn ghost" (click)="remove(item.id)">
-                Удалить
-              </button>
-            </td>
-          </tr>
-        }
-        @if (!filteredTransports().length) {
-          <tr>
-            <td colspan="9"><div class="empty">Перевозок пока нет.</div></td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-</div>
 
 @if (invoiceEditorOpen()) {
   @if (invoiceDraft; as draft) {

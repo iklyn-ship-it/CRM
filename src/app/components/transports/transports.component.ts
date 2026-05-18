@@ -27,6 +27,7 @@ export class TransportsComponent {
   search = signal("");
   filterStatus = signal("");
   formOpen = signal(false);
+  selectedTransportId = signal("");
   invoiceEditorOpen = signal(false);
   documentPreviewHtml = signal("");
   editingId = "";
@@ -67,6 +68,10 @@ export class TransportsComponent {
     }
     return rows.sort((a, b) => b.startDate.localeCompare(a.startDate));
   });
+
+  readonly selectedTransport = computed(() =>
+    this.state.byId(this.state.transports(), this.selectedTransportId()),
+  );
 
   readonly transportEquipmentConflictSet = computed(() => {
     const orderConflicts = this.state
@@ -163,15 +168,18 @@ export class TransportsComponent {
 
   openCreate(): void {
     this.clearForm();
+    this.selectedTransportId.set("");
     this.formOpen.set(true);
   }
 
   closeForm(): void {
     this.clearForm();
     this.formOpen.set(false);
+    this.selectedTransportId.set("");
   }
 
   edit(item: Transport): void {
+    this.selectedTransportId.set(item.id);
     this.editingId = item.id;
     this.form = {
       shipperClientId: item.shipperClientId || "",
@@ -195,6 +203,11 @@ export class TransportsComponent {
       deliveryCost: Number(item.deliveryCost || 0),
     };
     this.formOpen.set(true);
+  }
+
+  closeTransport(): void {
+    this.closeInvoiceEditor();
+    this.closeForm();
   }
 
   async save(): Promise<void> {
@@ -232,6 +245,9 @@ export class TransportsComponent {
     if (!confirm("Удалить перевозку?")) return;
     try {
       await this.db.remove("transports", id);
+      if (this.selectedTransportId() === id) {
+        this.closeTransport();
+      }
     } catch (error) {
       alert(this.saveErrorMessage(error));
     }
@@ -396,7 +412,7 @@ export class TransportsComponent {
     return warnings;
   }
 
-  private formDraftTransport(): Transport {
+  formDraftTransport(): Transport {
     return {
       id: this.editingId || "draft",
       createdAt: "",
