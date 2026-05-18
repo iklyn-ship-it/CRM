@@ -270,8 +270,8 @@ export class TransportsComponent {
     return this.proposal.total(draft);
   }
 
-  async downloadInvoiceDraft(draft: CommercialProposalDraft): Promise<void> {
-    await this.proposal.downloadDraft(draft);
+  openInvoicePreview(draft: CommercialProposalDraft): void {
+    this.proposal.openDraftPreview(draft);
   }
 
   trackInvoiceRow(index: number, row: ProposalRow): string {

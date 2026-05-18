@@ -350,6 +350,19 @@ export class CommercialProposalService {
     this.downloadBlob(blob, this.fileName(draft));
   }
 
+  openDraftPreview(draft: CommercialProposalDraft): void {
+    const preview = window.open("", "_blank", "noopener,noreferrer");
+    if (!preview) {
+      alert(
+        "Браузер заблокировал новую вкладку. Разреши всплывающие окна для CRM.",
+      );
+      return;
+    }
+    preview.document.open();
+    preview.document.write(this.previewHtml(draft));
+    preview.document.close();
+  }
+
   total(draft: CommercialProposalDraft): number {
     return draft.rows.reduce(
       (sum, row) =>
@@ -424,6 +437,273 @@ export class CommercialProposalService {
     </w:sectPr>
   </w:body>
 </w:document>`;
+  }
+
+  private previewHtml(draft: CommercialProposalDraft): string {
+    const rows = draft.rows
+      .map(
+        (row) => `<tr>
+          <td><strong>${this.html(row.title)}</strong></td>
+          <td>${this.html(row.details || "—")}</td>
+          <td class="money">${row.negative ? "-" : ""}${this.html(this.money(row.amount))}</td>
+        </tr>`,
+      )
+      .join("");
+    const infoRows = [
+      ["Клієнт", draft.client],
+      ["Об'єкт / локація", draft.location],
+      ["Період робіт", draft.period],
+      ["Техніка", draft.equipment],
+      ["Оператор", draft.operator],
+      ...(draft.cargo ? ([["Вантаж", draft.cargo]] as [string, string][]) : []),
+      ["Статус заявки", draft.status],
+    ]
+      .map(
+        ([label, value]) => `<tr>
+          <th>${this.html(label)}</th>
+          <td>${this.html(value)}</td>
+        </tr>`,
+      )
+      .join("");
+    const terms = draft.terms
+      .filter(Boolean)
+      .map((term) => `<li>${this.html(term)}</li>`)
+      .join("");
+    const notes = draft.notes?.trim()
+      ? `<section><h2>Коментар</h2><p>${this.html(draft.notes)}</p></section>`
+      : "";
+
+    return `<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${this.html(draft.title)} ${this.html(this.shortId(draft.orderId))}</title>
+  <style>
+    :root {
+      --blue: #0b2a5b;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --line: #d6e0ee;
+      --soft: #eef5ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e5e7eb;
+      color: var(--text);
+      font-family: Arial, sans-serif;
+      line-height: 1.35;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px;
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+    }
+    .toolbar button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 18px;
+      background: #22c55e;
+      color: #03110a;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .page {
+      width: min(210mm, calc(100vw - 24px));
+      min-height: 297mm;
+      margin: 18px auto;
+      padding: 24mm 14mm 18mm;
+      background: #fff;
+      box-shadow: 0 18px 60px rgba(15, 23, 42, 0.18);
+    }
+    header {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 24px;
+      align-items: end;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #cbd5e1;
+      color: #9ca3af;
+      font-weight: 700;
+    }
+    .logo {
+      color: #b9c2d1;
+      font-size: 54px;
+      line-height: 0.8;
+      letter-spacing: -7px;
+      font-weight: 900;
+    }
+    .logo span {
+      color: #d5e0f5;
+    }
+    .company-small {
+      margin-top: 16px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+    }
+    .address {
+      text-align: right;
+      font-size: 13px;
+    }
+    h1 {
+      margin: 34px 0 4px;
+      color: var(--blue);
+      text-align: center;
+      font-size: 30px;
+    }
+    .subtitle {
+      margin: 0 0 22px;
+      text-align: center;
+      color: #4b5563;
+      font-size: 19px;
+    }
+    h2 {
+      margin: 24px 0 10px;
+      color: var(--blue);
+      font-size: 22px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 7px 9px;
+      vertical-align: top;
+      overflow-wrap: anywhere;
+    }
+    .info th {
+      width: 34%;
+      background: #f2f6fc;
+      text-align: left;
+    }
+    .cost th {
+      background: var(--blue);
+      color: #fff;
+      text-align: left;
+    }
+    .cost th:nth-child(1), .cost td:nth-child(1) { width: 38%; }
+    .cost th:nth-child(2), .cost td:nth-child(2) { width: 40%; }
+    .cost th:nth-child(3), .cost td:nth-child(3) { width: 22%; }
+    .money {
+      text-align: right;
+      white-space: nowrap;
+      font-weight: 800;
+    }
+    .total-row td {
+      background: var(--soft);
+      font-weight: 900;
+      color: #111827;
+    }
+    p {
+      margin: 0 0 10px;
+    }
+    ul {
+      margin: 0;
+      padding-left: 22px;
+      font-size: 17px;
+    }
+    footer {
+      margin-top: 44px;
+      padding-top: 14px;
+      border-top: 2px solid #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      color: #b8c0cc;
+      font-weight: 800;
+    }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .page {
+        width: auto;
+        min-height: auto;
+        margin: 0;
+        padding: 18mm 12mm 14mm;
+        box-shadow: none;
+      }
+    }
+    @media (max-width: 720px) {
+      .page {
+        width: 100%;
+        margin: 0;
+        padding: 18px;
+        min-height: 100vh;
+      }
+      header {
+        grid-template-columns: 1fr;
+      }
+      .address {
+        text-align: left;
+      }
+      .cost th, .cost td {
+        font-size: 12px;
+        padding: 6px;
+      }
+      .money {
+        white-space: normal;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button type="button" onclick="window.print()">Печать / сохранить PDF</button>
+    <button type="button" onclick="window.close()">Закрыть</button>
+  </div>
+  <main class="page">
+    <header>
+      <div>
+        <div class="logo">R<span>B</span>T</div>
+        <div class="company-small">ТОВ «РБТ-ГРУП»<br />код ЄДРПОУ 37360626</div>
+      </div>
+      <div class="address">
+        Місцезнаходження: 08292, Київська обл.,<br />
+        Бучанський р-н, м. Буча, вул. Тячівська, буд.1
+      </div>
+    </header>
+    <h1>${this.html(draft.title)}</h1>
+    <p class="subtitle">${this.html(draft.subtitle)}</p>
+    <table class="info">${infoRows}</table>
+    <section>
+      <h2>${this.html(draft.costHeading)}</h2>
+      <table class="cost">
+        <thead>
+          <tr><th>Послуга</th><th>Деталі</th><th>Сума</th></tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td colspan="2" class="money">Разом до сплати</td>
+            <td class="money">${this.html(this.money(this.total(draft)))}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+    ${notes}
+    <section>
+      <h2>${this.html(draft.termsHeading)}</h2>
+      <ul>${terms}</ul>
+    </section>
+    <section>
+      <p style="margin-top: 34px;">З повагою,</p>
+      <p><strong>ТОВ «РБТ-ГРУП»</strong></p>
+    </section>
+    <footer>
+      <span>trans@rbt-group.com.ua</span>
+      <span>+38(068) 968 44 28</span>
+    </footer>
+  </main>
+</body>
+</html>`;
   }
 
   private proposalRows(order: Order): ProposalRow[] {
@@ -1121,5 +1401,14 @@ export class CommercialProposalService {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  private html(value: string): string {
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 }

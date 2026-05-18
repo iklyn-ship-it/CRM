@@ -744,8 +744,8 @@ export class ProjectsComponent {
     return this.proposal.total(draft);
   }
 
-  async downloadProposalDraft(draft: CommercialProposalDraft): Promise<void> {
-    await this.proposal.downloadDraft(draft);
+  openProposalPreview(draft: CommercialProposalDraft): void {
+    this.proposal.openDraftPreview(draft);
   }
 
   trackProposalRow(index: number, row: ProposalRow): string {
