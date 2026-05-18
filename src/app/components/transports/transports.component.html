@@ -565,7 +565,7 @@
             <iframe
               #documentPreviewFrame
               class="document-preview-frame"
-              [srcdoc]="previewHtml"
+              [attr.srcdoc]="previewHtml"
               title="Предпросмотр счета"
             ></iframe>
           </div>
@@ -573,4 +573,39 @@
       </div>
     </div>
   }
+}
+
+@if (documentPreviewHtml(); as previewHtml) {
+  <div class="document-preview-backdrop" (click)="closeDocumentPreview()">
+    <div class="document-preview-modal" (click)="$event.stopPropagation()">
+      <div class="document-preview-head">
+        <div>
+          <div class="eyebrow">Предпросмотр PDF</div>
+          <h4>Счет внутри CRM</h4>
+        </div>
+        <div class="actions">
+          <button
+            type="button"
+            class="btn primary"
+            (click)="printDocumentPreview(documentOverlayFrame)"
+          >
+            Печать / PDF
+          </button>
+          <button
+            type="button"
+            class="btn ghost"
+            (click)="closeDocumentPreview()"
+          >
+            Закрыть
+          </button>
+        </div>
+      </div>
+      <iframe
+        #documentOverlayFrame
+        class="document-preview-frame"
+        [attr.srcdoc]="previewHtml"
+        title="Предпросмотр счета"
+      ></iframe>
+    </div>
+  </div>
 }

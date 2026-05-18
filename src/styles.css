@@ -542,6 +542,35 @@ th {
   background: rgba(2, 6, 23, 0.5);
 }
 
+.document-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 130;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.document-preview-modal {
+  width: min(1180px, 100%);
+  height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 100% 0,
+      rgba(56, 189, 248, 0.13),
+      transparent 34%
+    ),
+    #0b1220;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
+}
+
 .document-preview-head {
   display: flex;
   justify-content: space-between;
@@ -557,6 +586,7 @@ th {
 
 .document-preview-frame {
   width: 100%;
+  flex: 1;
   min-height: min(76vh, 920px);
   border: 1px solid rgba(148, 163, 184, 0.28);
   border-radius: 16px;
