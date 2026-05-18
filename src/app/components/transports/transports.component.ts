@@ -271,7 +271,7 @@ export class TransportsComponent {
   }
 
   openInvoicePreview(draft: CommercialProposalDraft): void {
-    this.proposal.openDraftPreview(draft);
+    this.proposal.openPdfPreview(draft);
   }
 
   trackInvoiceRow(index: number, row: ProposalRow): string {

@@ -745,7 +745,7 @@ export class ProjectsComponent {
   }
 
   openProposalPreview(draft: CommercialProposalDraft): void {
-    this.proposal.openDraftPreview(draft);
+    this.proposal.openPdfPreview(draft);
   }
 
   trackProposalRow(index: number, row: ProposalRow): string {

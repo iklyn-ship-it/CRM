@@ -58,7 +58,7 @@ export class CommercialProposalService {
   ];
 
   async generateForOrder(order: Order): Promise<void> {
-    await this.downloadDraft(this.createDraft(order));
+    this.openPdfPreview(this.createDraft(order));
   }
 
   createDraft(
@@ -350,7 +350,7 @@ export class CommercialProposalService {
     this.downloadBlob(blob, this.fileName(draft));
   }
 
-  openDraftPreview(draft: CommercialProposalDraft): void {
+  openPdfPreview(draft: CommercialProposalDraft): void {
     const preview = window.open("", "_blank", "noopener,noreferrer");
     if (!preview) {
       alert(
@@ -359,7 +359,7 @@ export class CommercialProposalService {
       return;
     }
     preview.document.open();
-    preview.document.write(this.previewHtml(draft));
+    preview.document.write(this.previewHtml(draft, true));
     preview.document.close();
   }
 
@@ -439,7 +439,10 @@ export class CommercialProposalService {
 </w:document>`;
   }
 
-  private previewHtml(draft: CommercialProposalDraft): string {
+  private previewHtml(
+    draft: CommercialProposalDraft,
+    autoPrint = false,
+  ): string {
     const rows = draft.rows
       .map(
         (row) => `<tr>
@@ -654,9 +657,9 @@ export class CommercialProposalService {
     }
   </style>
 </head>
-<body>
+<body${autoPrint ? ' onload="setTimeout(function(){ window.print(); }, 350)"' : ""}>
   <div class="toolbar">
-    <button type="button" onclick="window.print()">Печать / сохранить PDF</button>
+    <button type="button" onclick="window.print()">Сохранить PDF / печать</button>
     <button type="button" onclick="window.close()">Закрыть</button>
   </div>
   <main class="page">
