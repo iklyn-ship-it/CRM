@@ -622,7 +622,7 @@ export class ProjectsComponent {
       operatorIdleDates: idlePatch.operatorIdleDates,
     };
     try {
-      await this.db.update("orders", order.id, patch);
+      const savedOrder = await this.db.update("orders", order.id, patch);
       await this.syncEquipmentEngineHours(patch as Order);
       await this.syncBreakdownRepair(
         order.id,
@@ -631,6 +631,7 @@ export class ProjectsComponent {
       const updated = {
         ...order,
         ...patch,
+        ...savedOrder,
         id: order.id,
         createdAt: order.createdAt,
       };
