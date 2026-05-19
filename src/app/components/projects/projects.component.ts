@@ -469,7 +469,13 @@ export class ProjectsComponent {
       vatEnabled: Boolean(this.orderForm.vatEnabled),
       operatorShifts: this.normalizeOperatorShifts(
         this.orderForm.operatorShifts,
-        order,
+        {
+          ...order,
+          operatorId: this.orderForm.operatorId,
+          startDate: this.orderForm.startDate,
+          endDate: this.orderForm.endDate,
+          operatorIdleDates: idlePatch.operatorIdleDates,
+        },
         this.orderForm.primaryOperatorStartDate,
         this.orderForm.primaryOperatorEndDate,
       ),
@@ -622,9 +628,11 @@ export class ProjectsComponent {
         order.id,
         patch as Omit<Order, "id" | "createdAt">,
       );
-      const updated = this.state.byId(this.state.orders(), order.id) || {
+      const updated = {
         ...order,
         ...patch,
+        id: order.id,
+        createdAt: order.createdAt,
       };
       this.orderForm = this.orderToForm(updated as Order);
     } catch (error) {
