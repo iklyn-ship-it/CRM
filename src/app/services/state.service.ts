@@ -664,22 +664,11 @@ export class StateService {
     if (!this.orderBlocksSchedule(a) || !this.orderBlocksSchedule(b)) {
       return false;
     }
-    const from = this.maxDate(
-      this.minDateForOrderOperator(a, operatorId),
-      this.minDateForOrderOperator(b, operatorId),
+    const aDates = new Set(this.orderOperatorWorkDates(a, operatorId));
+    if (!aDates.size) return false;
+    return this.orderOperatorWorkDates(b, operatorId).some((date) =>
+      aDates.has(date),
     );
-    const to = this.minDate(
-      this.maxDateForOrderOperator(a, operatorId),
-      this.maxDateForOrderOperator(b, operatorId),
-    );
-    if (from > to) return false;
-    return this.utils
-      .datesInclusive(from, to)
-      .some(
-        (date) =>
-          this.orderOperatorWorksOnDate(a, operatorId, date) &&
-          this.orderOperatorWorksOnDate(b, operatorId, date),
-      );
   }
 
   orderTransportOverlapByEquipment(
@@ -718,18 +707,14 @@ export class StateService {
     ) {
       return false;
     }
-    const from = this.maxDate(
-      this.minDateForOrderOperator(order, operatorId),
-      transport.startDate,
+    return (
+      this.orderOperatorWorkDates(
+        order,
+        operatorId,
+        transport.startDate,
+        transport.endDate,
+      ).length > 0
     );
-    const to = this.minDate(
-      this.maxDateForOrderOperator(order, operatorId),
-      transport.endDate,
-    );
-    if (from > to) return false;
-    return this.utils
-      .datesInclusive(from, to)
-      .some((date) => this.orderOperatorWorksOnDate(order, operatorId, date));
   }
 
   transportsOverlap(a: Transport, b: Transport): boolean {
@@ -807,11 +792,32 @@ export class StateService {
     date: string,
   ): boolean {
     if (!this.orderBlocksSchedule(order)) return false;
-    return this.orderOperatorAssignments(order)
-      .filter((assignment) => assignment.operatorId === operatorId)
-      .some((assignment) =>
-        this.operatorAssignmentWorkDates(order, assignment).includes(date),
-      );
+    return this.orderOperatorWorkDates(order, operatorId, date, date).includes(
+      date,
+    );
+  }
+
+  orderOperatorWorkDates(
+    order: Order,
+    operatorId: string,
+    fromDate = "",
+    toDate = "",
+  ): string[] {
+    if (!this.orderBlocksSchedule(order) || !operatorId) return [];
+    return [
+      ...new Set(
+        this.orderOperatorAssignments(order)
+          .filter((assignment) => assignment.operatorId === operatorId)
+          .flatMap((assignment) =>
+            this.operatorAssignmentWorkDates(
+              order,
+              assignment,
+              fromDate,
+              toDate,
+            ),
+          ),
+      ),
+    ].sort();
   }
 
   private orderWorkDates(
@@ -991,22 +997,5 @@ export class StateService {
     return this.utils
       .datesInclusive(startDate, endDate)
       .filter((date) => !idle.has(date));
-  }
-
-  private minDateForOrderOperator(order: Order, operatorId: string): string {
-    return (
-      this.orderOperatorAssignments(order)
-        .filter((assignment) => assignment.operatorId === operatorId)
-        .map((assignment) => assignment.startDate)
-        .sort()[0] || order.startDate
-    );
-  }
-
-  private maxDateForOrderOperator(order: Order, operatorId: string): string {
-    const dates = this.orderOperatorAssignments(order)
-      .filter((assignment) => assignment.operatorId === operatorId)
-      .map((assignment) => assignment.endDate)
-      .sort();
-    return dates[dates.length - 1] || order.endDate;
   }
 }
