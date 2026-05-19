@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from "@angular/core";
-import { NgClass, SlicePipe } from "@angular/common";
+import { NgClass } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import {
@@ -15,7 +15,7 @@ import { Transport, TransportStatus } from "../../models/crm.models";
 @Component({
   selector: "app-transports",
   standalone: true,
-  imports: [FormsModule, NgClass, SlicePipe],
+  imports: [FormsModule, NgClass],
   templateUrl: "./transports.component.html",
   styleUrl: "./transports.component.css",
 })
@@ -276,7 +276,10 @@ export class TransportsComponent {
         await this.db.update("transports", this.editingId, this.form);
       } else {
         await this.db.insert("transports", {
-          id: this.utils.uid("trn"),
+          id: this.utils.sequentialId(
+            "P",
+            this.state.transports().map((transport) => transport.id),
+          ),
           ...this.form,
         });
       }

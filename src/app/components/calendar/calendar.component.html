@@ -1,7 +1,7 @@
 <div class="card panel">
   <div class="calendar-controls">
     <div>
-      <h3 style="margin:0 0 6px">Календарь занятости техники</h3>
+      <h3 style="margin: 0 0 6px">Календарь занятости техники</h3>
       <div class="small">Выбери удобный режим просмотра.</div>
     </div>
     <div class="actions">
@@ -14,32 +14,54 @@
           <option [value]="type">{{ type }}</option>
         }
       </select>
-      <select [ngModel]="state.calendarMode()" (ngModelChange)="onModeChange($event)">
+      <select
+        [ngModel]="state.calendarMode()"
+        (ngModelChange)="onModeChange($event)"
+      >
         <option value="month">1) Календарь на 3 месяца</option>
         <option value="timeline">2) Техника слева + полосы резерва</option>
       </select>
       <button class="btn" (click)="prevMonth()">← 3 месяца назад</button>
       <div class="chip">{{ monthLabel }}</div>
       <button class="btn" (click)="nextMonth()">3 месяца вперёд →</button>
-      <button class="btn ghost" (click)="currentMonth()">Текущие 3 месяца</button>
+      <button class="btn ghost" (click)="currentMonth()">
+        Текущие 3 месяца
+      </button>
     </div>
   </div>
 
   <div class="legend">
-    <div class="chip"><span class="dot" style="background:rgba(56,189,248,.8)"></span> аренда</div>
-    <div class="chip"><span class="dot" style="background:rgba(34,197,94,.85)"></span> перевозка</div>
-    <div class="chip"><span class="dot" style="background:rgba(168,85,247,.85)"></span> сборка/разборка</div>
-    <div class="chip"><span class="dot" style="background:rgba(249,115,22,.85)"></span> ремонт</div>
-    <div class="chip"><span class="dot" style="background:rgba(239,68,68,.85)"></span> конфликт</div>
+    <div class="chip">
+      <span class="dot" style="background: rgba(56, 189, 248, 0.8)"></span>
+      аренда
+    </div>
+    <div class="chip">
+      <span class="dot" style="background: rgba(34, 197, 94, 0.85)"></span>
+      перевозка
+    </div>
+    <div class="chip">
+      <span class="dot" style="background: rgba(168, 85, 247, 0.85)"></span>
+      сборка/разборка
+    </div>
+    <div class="chip">
+      <span class="dot" style="background: rgba(249, 115, 22, 0.85)"></span>
+      ремонт
+    </div>
+    <div class="chip">
+      <span class="dot" style="background: rgba(239, 68, 68, 0.85)"></span>
+      конфликт
+    </div>
     <div class="chip"><span class="dot weekend-dot"></span> выходные</div>
-    <div class="chip chip-muted">тип: {{ equipmentTypeFilter() || 'все' }}</div>
+    <div class="chip chip-muted">тип: {{ equipmentTypeFilter() || "все" }}</div>
     <div class="chip chip-muted">отменённые заявки не показываются</div>
   </div>
 
-  @if (state.calendarMode() === 'month') {
+  @if (state.calendarMode() === "month") {
     <div class="cal">
       @for (day of weekDays; track day) {
-        <div class="cal-h" [class.weekend]="day === 'Сб' || day === 'Вс'">{{ day }}</div>
+        <div class="cal-h" [class.weekend]="day === 'Сб' || day === 'Вс'">
+          {{ day }}
+        </div>
       }
       @for (cell of calendarCells(); track cell.ds) {
         <div
@@ -47,38 +69,57 @@
           [class.weekend]="cell.weekend"
           [style.opacity]="cell.inMonth ? 1 : 0.45"
         >
-          <div><strong>{{ cell.date.getDate() }}</strong> <span class="small">{{ cell.date.toLocaleDateString('ru-RU', { month: 'short' }) }}</span></div>
+          <div>
+            <strong>{{ cell.date.getDate() }}</strong>
+            <span class="small">{{
+              cell.date.toLocaleDateString("ru-RU", { month: "short" })
+            }}</span>
+          </div>
           @for (e of cell.entries; track $index) {
             <button
               type="button"
               class="event"
-              [class.clickable-event]="e.type === 'rent' || e.type === 'logistics' || e.type === 'transport' || e.type === 'assembly'"
+              [class.clickable-event]="
+                e.type === 'rent' ||
+                e.type === 'logistics' ||
+                e.type === 'transport' ||
+                e.type === 'assembly'
+              "
               [ngClass]="[
                 e.type === 'repair'
                   ? 'repair'
                   : e.type === 'transport'
                     ? 'transport'
-                  : e.type === 'assembly'
-                    ? 'assembly'
-                  : e.type === 'logistics'
-                    ? 'logistics'
-                    : e.statusClass,
-                e.conflict ? 'conflict' : ''
-              ]"
-              (click)="e.type === 'transport' ? openTransport(e.id) : (e.type === 'rent' || e.type === 'logistics' || e.type === 'assembly' ? openOrder(e.id) : null)"
-            >
-              {{ e.eq }}<br><span class="small">
-                {{
-                  e.type === 'repair'
-                    ? 'Ремонт: '
-                    : e.type === 'transport'
-                    ? 'Перевозка: '
                     : e.type === 'assembly'
-                      ? 'Сборка/разборка: '
-                    : e.type === 'logistics'
-                      ? 'Логистика: '
-                      : 'Аренда: '
-                }}{{ e.cl }}</span>
+                      ? 'assembly'
+                      : e.type === 'logistics'
+                        ? 'logistics'
+                        : e.statusClass,
+                e.conflict ? 'conflict' : '',
+              ]"
+              (click)="
+                e.type === 'transport'
+                  ? openTransport(e.id)
+                  : e.type === 'rent' ||
+                      e.type === 'logistics' ||
+                      e.type === 'assembly'
+                    ? openOrder(e.id)
+                    : null
+              "
+            >
+              {{ e.eq }}<br /><span class="small">
+                {{
+                  e.type === "repair"
+                    ? "Ремонт: "
+                    : e.type === "transport"
+                      ? "Перевозка: "
+                      : e.type === "assembly"
+                        ? "Сборка/разборка: "
+                        : e.type === "logistics"
+                          ? "Логистика: "
+                          : "Аренда: "
+                }}{{ e.cl }}</span
+              >
             </button>
           }
         </div>
@@ -86,11 +127,15 @@
     </div>
   } @else {
     <div class="timeline-wrap">
-      <div class="timeline-head" [style.gridTemplateColumns]="timelineGridColumns()">
+      <div
+        class="timeline-head"
+        [style.gridTemplateColumns]="timelineGridColumns()"
+      >
         <div class="timeline-left"><strong>Техника</strong></div>
         @for (d of timelineDays(); track d.ds) {
           <div class="timeline-day" [class.weekend]="d.weekend">
-            {{ d.day }}<span class="small">{{ d.month }} • {{ d.weekday }}</span>
+            {{ d.day
+            }}<span class="small">{{ d.month }} • {{ d.weekday }}</span>
           </div>
         }
       </div>
@@ -98,9 +143,12 @@
         <div
           class="timeline-row"
           [style.gridTemplateColumns]="timelineGridColumns()"
-          style="position:relative"
+          style="position: relative"
         >
-          <div class="timeline-left"><strong>{{ row.eq.name }}</strong><div class="timeline-note">{{ row.eq.type || '—' }}</div></div>
+          <div class="timeline-left">
+            <strong>{{ row.eq.name }}</strong>
+            <div class="timeline-note">{{ row.eq.type || "—" }}</div>
+          </div>
           @for (d of timelineDays(); track d.ds) {
             <div class="timeline-cell" [class.weekend]="d.weekend"></div>
           }
@@ -109,44 +157,59 @@
               <button
                 type="button"
                 class="reserve-bar"
-                [class.clickable-event]="ev.type === 'rent' || ev.type === 'logistics' || ev.type === 'transport' || ev.type === 'assembly'"
+                [class.clickable-event]="
+                  ev.type === 'rent' ||
+                  ev.type === 'logistics' ||
+                  ev.type === 'transport' ||
+                  ev.type === 'assembly'
+                "
                 [ngClass]="[
                   ev.type,
                   ev.type === 'rent' ? 'status-' + ev.status : '',
-                  ev.conflict ? 'conflict' : ''
+                  ev.conflict ? 'conflict' : '',
                 ]"
                 [style.left.px]="barLeft(ev.startIndex)"
                 [style.width.px]="ev.span * 34 - 4"
-                style="position:absolute; top:9px"
-                (click)="ev.type === 'transport' ? openTransport(ev.id) : (ev.type === 'rent' || ev.type === 'logistics' || ev.type === 'assembly' ? openOrder(ev.id) : null)"
+                style="position: absolute; top: 9px"
+                (click)="
+                  ev.type === 'transport'
+                    ? openTransport(ev.id)
+                    : ev.type === 'rent' ||
+                        ev.type === 'logistics' ||
+                        ev.type === 'assembly'
+                      ? openOrder(ev.id)
+                      : null
+                "
               >
                 {{
-                  ev.type === 'repair'
-                    ? 'Ремонт'
-                    : ev.type === 'transport'
-                    ? 'Перевозка'
-                    : ev.type === 'assembly'
-                      ? 'Сборка/разборка'
-                    : ev.type === 'logistics'
-                      ? 'Логистика'
-                      : 'Аренда'
-                }} • {{ ev.title }}
+                  ev.type === "repair"
+                    ? "Ремонт"
+                    : ev.type === "transport"
+                      ? "Перевозка"
+                      : ev.type === "assembly"
+                        ? "Сборка/разборка"
+                        : ev.type === "logistics"
+                          ? "Логистика"
+                          : "Аренда"
+                }}
+                • {{ ev.title }}
               </button>
             }
           }
         </div>
       }
       @if (!timelineEquipment().length) {
-        <div class="timeline-empty">
-          Нет техники по выбранному типу.
-        </div>
+        <div class="timeline-empty">Нет техники по выбранному типу.</div>
       }
     </div>
   }
 
   @if (formOpen()) {
     <div class="calendar-modal-backdrop" (click)="closeForm()">
-      <div class="card panel calendar-order-modal" (click)="$event.stopPropagation()">
+      <div
+        class="card panel calendar-order-modal"
+        (click)="$event.stopPropagation()"
+      >
         <div class="modal-head">
           <h3 style="margin: 0">Заявка {{ editingId | slice: -5 }}</h3>
           <button type="button" class="btn ghost" (click)="closeForm()">
@@ -311,7 +374,9 @@
               </div>
               <div class="assembly-summary">
                 Скидка: {{ utils.money(orderDraftDiscountAmount()) }}
-                <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
+                <strong
+                  >Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong
+                >
               </div>
             }
           </div>
@@ -506,9 +571,13 @@
               </div>
               <div class="logistics-total">
                 Итого логистика: {{ utils.money(logisticsTotal()) }}
-                <strong>Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong>
+                <strong
+                  >Итого к заявке: {{ utils.money(orderDraftTotal()) }}</strong
+                >
                 @if (form.logisticsProvider === "own_trawl") {
-                  <span>Резерв трала появится в календаре на даты логистики.</span>
+                  <span
+                    >Резерв трала появится в календаре на даты логистики.</span
+                  >
                 }
               </div>
             }
@@ -545,14 +614,18 @@
             <span>Сумма заявки к сохранению</span>
             <strong>{{ utils.money(orderDraftTotal()) }}</strong>
             @if (form.discountEnabled) {
-              <small>Скидка: {{ utils.money(orderDraftDiscountAmount()) }}</small>
+              <small
+                >Скидка: {{ utils.money(orderDraftDiscountAmount()) }}</small
+              >
             }
             @if (form.vatEnabled) {
               <small>НДС включен в стоимость техники</small>
             }
           </div>
           <div class="actions">
-            <button type="submit" class="btn primary">Сохранить изменения</button>
+            <button type="submit" class="btn primary">
+              Сохранить изменения
+            </button>
             <button type="button" class="btn ghost" (click)="closeForm()">
               Отмена
             </button>
@@ -564,9 +637,12 @@
 
   @if (selectedTransport(); as transport) {
     <div class="calendar-modal-backdrop" (click)="closeTransport()">
-      <div class="card panel calendar-order-modal" (click)="$event.stopPropagation()">
+      <div
+        class="card panel calendar-order-modal"
+        (click)="$event.stopPropagation()"
+      >
         <div class="modal-head">
-          <h3 style="margin: 0">Перевозка {{ transport.id | slice: -5 }}</h3>
+          <h3 style="margin: 0">Перевозка {{ utils.shortId(transport.id) }}</h3>
           <button type="button" class="btn ghost" (click)="closeTransport()">
             Закрыть
           </button>
@@ -599,7 +675,10 @@
           </div>
           <div>
             <span>Маршрут</span>
-            <strong>{{ transport.loadingPoint || "—" }} → {{ transport.unloadingPoint || "—" }}</strong>
+            <strong
+              >{{ transport.loadingPoint || "—" }} →
+              {{ transport.unloadingPoint || "—" }}</strong
+            >
           </div>
           <div>
             <span>Груз</span>

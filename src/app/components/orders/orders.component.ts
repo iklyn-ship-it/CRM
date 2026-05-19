@@ -564,7 +564,10 @@ export class OrdersComponent {
         await this.db.update("orders", this.editingId, orderPatch);
         await this.syncBreakdownRepair(this.editingId, orderPatch);
       } else {
-        const orderId = this.utils.uid("ord");
+        const orderId = this.utils.sequentialId(
+          "Z",
+          this.state.orders().map((order) => order.id),
+        );
         const orderPatch = this.prepareForm();
         await this.db.insert("orders", {
           id: orderId,
@@ -1394,7 +1397,7 @@ export class OrdersComponent {
       laborCost: Number(order.breakdownLaborCost || 0),
       partsCost: Number(order.breakdownPartsCost || 0),
       responsible: order.breakdownResponsible,
-      tasks: `Поломка по заявке ${orderId.slice(-5)}: ${order.breakdownDescription || "без описания"}`,
+      tasks: `Поломка по заявке ${this.utils.shortId(orderId)}: ${order.breakdownDescription || "без описания"}`,
       notes: [
         order.breakdownReporter ? `Сообщил: ${order.breakdownReporter}` : "",
         `Ответственность: ${this.breakdownFaultPartyLabel(order.breakdownFaultParty)}`,

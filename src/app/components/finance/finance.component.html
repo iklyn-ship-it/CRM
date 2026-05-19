@@ -91,7 +91,7 @@
             <option value="">— без привязки —</option>
             @for (o of availableOrderLinks(); track o.id) {
               <option [value]="o.id">
-                {{ o.id | slice: -5 }} •
+                {{ utils.shortId(o.id) }} •
                 {{ state.byId(state.clients(), o.clientId)?.name || "Клиент" }}
                 @if (o.status === "completed") {
                   • завершена
@@ -129,7 +129,7 @@
             <option value="">— без привязки —</option>
             @for (transport of availableTransportLinks(); track transport.id) {
               <option [value]="transport.id">
-                {{ transport.id | slice: -5 }} •
+                {{ utils.shortId(transport.id) }} •
                 {{ transport.loadingPoint || "Погрузка" }} →
                 {{ transport.unloadingPoint || "Выгрузка" }}
               </option>
@@ -349,7 +349,7 @@
                     <div class="order-finance-head">
                       <div>
                         <div class="order-finance-title">
-                          Заявка {{ row.order.id | slice: -5 }}
+                          Заявка {{ utils.shortId(row.order.id) }}
                           <span class="badge" [ngClass]="row.order.status">
                             {{ statusLabel(row.order.status) }}
                           </span>
@@ -476,7 +476,7 @@
             <div class="order-finance-head transport-finance-card-head">
               <div>
                 <div class="order-finance-title">
-                  Перевозка {{ row.transport.id | slice: -5 }}
+                  Перевозка {{ utils.shortId(row.transport.id) }}
                   <span class="badge" [ngClass]="row.transport.status">
                     {{ transportStatusLabel(row.transport.status) }}
                   </span>

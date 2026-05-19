@@ -365,7 +365,7 @@
         <tbody>
           @for (item of filteredTransports(); track item.id) {
             <tr class="clickable-row" (click)="edit(item)">
-              <td>{{ item.id | slice: -5 }}</td>
+              <td>{{ utils.shortId(item.id) }}</td>
               <td>
                 {{ utils.fmtDate(item.startDate) }}
                 <div class="small">

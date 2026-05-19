@@ -366,7 +366,7 @@ export class FinanceComponent {
     if (op.orderId) {
       const ord = this.state.byId(this.state.orders(), op.orderId);
       if (ord)
-        return `Аренда ${ord.id.slice(-5)} • ${this.state.byId(this.state.clients(), ord.clientId)?.name || ""}`;
+        return `Аренда ${this.utils.shortId(ord.id)} • ${this.state.byId(this.state.clients(), ord.clientId)?.name || ""}`;
     }
     if (op.repairId) {
       const rep = this.state.byId(this.state.repairs(), op.repairId);
@@ -379,7 +379,7 @@ export class FinanceComponent {
         op.transportId,
       );
       if (transport) {
-        return `Перевозка ${transport.id.slice(-5)} • ${transport.loadingPoint || "—"} → ${transport.unloadingPoint || "—"}`;
+        return `Перевозка ${this.utils.shortId(transport.id)} • ${transport.loadingPoint || "—"} → ${transport.unloadingPoint || "—"}`;
       }
     }
     if (op.equipmentId) {

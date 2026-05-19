@@ -1,5 +1,4 @@
 import { Component, computed, signal } from "@angular/core";
-import { SlicePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
@@ -43,7 +42,7 @@ type DashboardChart = "orders" | "money" | "cashflow" | "equipment";
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [FormsModule, SlicePipe],
+  imports: [FormsModule],
   templateUrl: "./dashboard.component.html",
   styleUrl: "./dashboard.component.css",
 })
@@ -962,7 +961,7 @@ export class DashboardComponent {
     clientId: string;
     equipmentId: string;
   }): string {
-    return `${order.id.slice(-5)} • ${this.clientName(order.clientId)} • ${this.equipmentName(order.equipmentId)}`;
+    return `${this.utils.shortId(order.id)} • ${this.clientName(order.clientId)} • ${this.equipmentName(order.equipmentId)}`;
   }
 
   private transportTitle(transport: Transport): string {
@@ -974,7 +973,7 @@ export class DashboardComponent {
       this.clientName(transport.consigneeClientId) ||
       transport.consignee ||
       "Получатель";
-    return `${transport.id.slice(-5)} • ${shipper} → ${consignee}`;
+    return `${this.utils.shortId(transport.id)} • ${shipper} → ${consignee}`;
   }
 
   private periodText(startDate: string, endDate: string): string {

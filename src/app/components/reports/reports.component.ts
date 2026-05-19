@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from "@angular/core";
-import { NgClass, SlicePipe } from "@angular/common";
+import { NgClass } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
@@ -24,7 +24,7 @@ interface LocationClientReport {
 @Component({
   selector: "app-reports",
   standalone: true,
-  imports: [FormsModule, NgClass, SlicePipe],
+  imports: [FormsModule, NgClass],
   templateUrl: "./reports.component.html",
   styleUrl: "./reports.component.css",
 })

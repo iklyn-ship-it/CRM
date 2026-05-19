@@ -782,7 +782,7 @@ export class DbService {
       return record["name"] || record["id"] || "без имени";
     }
     if (table === "orders") {
-      return record["id"] ? String(record["id"]).slice(-5) : "без ID";
+      return record["id"] || "без ID";
     }
     if (table === "repairs") {
       return record["tasks"] || record["id"] || "без описания";

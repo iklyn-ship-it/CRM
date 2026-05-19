@@ -1054,7 +1054,7 @@
         (click)="$event.stopPropagation()"
       >
         <div class="modal-head">
-          <h3 style="margin: 0">Заявка {{ selected.id | slice: -5 }}</h3>
+          <h3 style="margin: 0">Заявка {{ utils.shortId(selected.id) }}</h3>
           <button type="button" class="btn ghost" (click)="closeDetails()">
             Закрыть
           </button>
@@ -1397,7 +1397,7 @@
                       class="clickable-row order-child-row"
                       (click)="viewOrder(o)"
                     >
-                      <td>{{ o.id | slice: -5 }}</td>
+                      <td>{{ utils.shortId(o.id) }}</td>
                       <td>
                         {{
                           o.createdAt

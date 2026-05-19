@@ -1382,7 +1382,7 @@ export class CommercialProposalService {
   }
 
   private shortId(id: string): string {
-    return id.slice(-5);
+    return this.utils.shortId(id);
   }
 
   private todayUk(): string {

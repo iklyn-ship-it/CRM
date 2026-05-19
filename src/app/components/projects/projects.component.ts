@@ -370,7 +370,10 @@ export class ProjectsComponent {
     if (!this.validatePrimaryOperatorPeriod(this.createForm)) return;
     if (!this.validateOperatorShifts(this.createForm)) return;
     if (!this.validateDraftConflicts(draft)) return;
-    const id = this.utils.uid("ord");
+    const id = this.utils.sequentialId(
+      "Z",
+      this.state.orders().map((order) => order.id),
+    );
     const order = this.createDraftOrder(id);
     try {
       await this.db.insert("orders", {
@@ -2169,7 +2172,7 @@ export class ProjectsComponent {
       laborCost: Number(order.breakdownLaborCost || 0),
       partsCost: Number(order.breakdownPartsCost || 0),
       responsible: order.breakdownResponsible,
-      tasks: `Поломка по заявке ${orderId.slice(-5)}: ${order.breakdownDescription || "без описания"}`,
+      tasks: `Поломка по заявке ${this.utils.shortId(orderId)}: ${order.breakdownDescription || "без описания"}`,
       notes: [
         order.breakdownReporter ? `Сообщил: ${order.breakdownReporter}` : "",
         `Ответственность: ${this.breakdownFaultPartyLabel(order.breakdownFaultParty)}`,
@@ -2378,7 +2381,7 @@ export class ProjectsComponent {
       billClient: false,
       markup: 0,
       paid: false,
-      comment: order ? `Заявка ${order.id.slice(-5)}` : "",
+      comment: order ? `Заявка ${this.utils.shortId(order.id)}` : "",
     };
   }
 

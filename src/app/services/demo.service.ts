@@ -80,8 +80,18 @@ export class DemoService {
       rate: 3000,
     });
 
+    const demoOrderIds: string[] = [];
+    const nextDemoOrderId = () => {
+      const id = this.utils.sequentialId("Z", [
+        ...this.db.orders().map((order) => order.id),
+        ...demoOrderIds,
+      ]);
+      demoOrderIds.push(id);
+      return id;
+    };
+
     const ord1 = await this.db.insert("orders", {
-      id: this.utils.uid("ord"),
+      id: nextDemoOrderId(),
       clientId: c1.id,
       equipmentId: e1.id,
       operatorId: o1.id,
@@ -93,7 +103,7 @@ export class DemoService {
       notes: "Котлован",
     });
     const ord2 = await this.db.insert("orders", {
-      id: this.utils.uid("ord"),
+      id: nextDemoOrderId(),
       clientId: c2.id,
       equipmentId: e2.id,
       operatorId: o2.id,
@@ -105,7 +115,7 @@ export class DemoService {
       notes: "Монтаж плит",
     });
     await this.db.insert("orders", {
-      id: this.utils.uid("ord"),
+      id: nextDemoOrderId(),
       clientId: c3.id,
       equipmentId: e3.id,
       operatorId: "",
@@ -117,7 +127,7 @@ export class DemoService {
       notes: "Вывоз грунта",
     });
     await this.db.insert("orders", {
-      id: this.utils.uid("ord"),
+      id: nextDemoOrderId(),
       clientId: c1.id,
       equipmentId: e1.id,
       operatorId: o1.id,

@@ -99,6 +99,7 @@ export class GoogleFormsService {
       skipped = 0,
       equipmentCreated = 0;
     const importedIds = [...this.db.integrations().importedResponseIds];
+    const generatedOrderIds: string[] = [];
 
     for (const record of records) {
       const responseId = (record.responseId || "").trim();
@@ -106,7 +107,7 @@ export class GoogleFormsService {
       const endDate = (record.endDate || "").slice(0, 10);
       const hasEquipmentDetails = Boolean(
         (record.equipmentName || "").trim() ||
-          (record.equipmentCode || "").trim(),
+        (record.equipmentCode || "").trim(),
       );
       const equipmentAlreadyExists = Boolean(this.findEquipmentId(record));
       const alreadyImported = Boolean(
@@ -135,8 +136,12 @@ export class GoogleFormsService {
         .filter(Boolean)
         .join("\n");
 
+      const orderId = this.utils.sequentialId("Z", [
+        ...this.db.orders().map((order) => order.id),
+        ...generatedOrderIds,
+      ]);
       await this.db.insert("orders", {
-        id: this.utils.uid("ord"),
+        id: orderId,
         clientId,
         equipmentId,
         operatorId,
@@ -147,6 +152,7 @@ export class GoogleFormsService {
         status: "new",
         notes,
       });
+      generatedOrderIds.push(orderId);
       if (responseId) importedIds.push(responseId);
       imported++;
     }

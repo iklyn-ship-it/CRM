@@ -1230,7 +1230,7 @@
       <div class="card panel order-full-card">
         <div class="order-hero">
           <div>
-            <div class="eyebrow">Заявка {{ order.id | slice: -5 }}</div>
+            <div class="eyebrow">Заявка {{ utils.shortId(order.id) }}</div>
             <h3>{{ clientName(order.clientId) }}</h3>
             <p>
               {{ order.location || "локация не указана" }} •
@@ -2038,7 +2038,7 @@
           <tbody>
             @for (order of location.orders; track order.id) {
               <tr class="clickable-row" (click)="openOrder(order)">
-                <td>{{ order.id | slice: -5 }}</td>
+                <td>{{ utils.shortId(order.id) }}</td>
                 <td>
                   <strong>{{ equipmentName(order.equipmentId) }}</strong>
                   <div class="small">{{ operatorName(order.operatorId) }}</div>
