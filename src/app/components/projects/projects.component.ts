@@ -2106,18 +2106,9 @@ export class ProjectsComponent {
     equipmentIdleDates: string[];
     operatorIdleDates: string[];
   } {
-    const previousBreakdownDates = new Set(this.breakdownDatesFromOrder(order));
     const currentBreakdownDates = this.breakdownDatesFromForm(order);
-    const equipmentIdleDates = new Set(
-      (this.orderForm.equipmentIdleDates || []).filter(
-        (date) => !previousBreakdownDates.has(date),
-      ),
-    );
-    const operatorIdleDates = new Set(
-      (this.orderForm.operatorIdleDates || []).filter(
-        (date) => !previousBreakdownDates.has(date),
-      ),
-    );
+    const equipmentIdleDates = new Set(this.orderForm.equipmentIdleDates || []);
+    const operatorIdleDates = new Set(this.orderForm.operatorIdleDates || []);
 
     if (
       this.orderForm.breakdownEnabled &&
@@ -2157,15 +2148,6 @@ export class ProjectsComponent {
         (date) =>
           date >= this.orderForm.startDate && date <= this.orderForm.endDate,
       );
-  }
-
-  private breakdownDatesFromOrder(order: Order): string[] {
-    if (!order.breakdownEnabled || !order.breakdownDate) return [];
-    const endDate = order.breakdownEndDate || order.breakdownDate;
-    if (order.breakdownDate > endDate) return [];
-    return this.utils
-      .datesInclusive(order.breakdownDate, endDate)
-      .filter((date) => date >= order.startDate && date <= order.endDate);
   }
 
   private async syncBreakdownRepair(
