@@ -664,9 +664,16 @@ export class StateService {
     if (!this.orderBlocksSchedule(a) || !this.orderBlocksSchedule(b)) {
       return false;
     }
+    return this.orderOperatorConflictDates(a, b, operatorId).length > 0;
+  }
+
+  orderOperatorConflictDates(a: Order, b: Order, operatorId: string): string[] {
+    if (!this.orderBlocksSchedule(a) || !this.orderBlocksSchedule(b)) {
+      return [];
+    }
     const aDates = new Set(this.orderOperatorWorkDates(a, operatorId));
-    if (!aDates.size) return false;
-    return this.orderOperatorWorkDates(b, operatorId).some((date) =>
+    if (!aDates.size) return [];
+    return this.orderOperatorWorkDates(b, operatorId).filter((date) =>
       aDates.has(date),
     );
   }

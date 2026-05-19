@@ -901,8 +901,15 @@ export class ProjectsComponent {
       ignoreOrderId,
     );
     if (operatorConflict) {
+      const conflictDates = this.orderOperatorConflictDates(
+        draft,
+        operatorConflict,
+      );
+      const conflictDateLabel = conflictDates.length
+        ? ` Даты конфликта: ${this.formatConflictDates(conflictDates)}.`
+        : "";
       alert(
-        `Оператор занят в другой заявке: ${this.equipmentName(operatorConflict.equipmentId)}, ${this.utils.fmtDate(operatorConflict.startDate)} - ${this.utils.fmtDate(operatorConflict.endDate)}.`,
+        `Оператор занят в другой заявке: ${this.equipmentName(operatorConflict.equipmentId)}, ${this.utils.fmtDate(operatorConflict.startDate)} - ${this.utils.fmtDate(operatorConflict.endDate)}.${conflictDateLabel}`,
       );
       return false;
     }
@@ -983,6 +990,26 @@ export class ProjectsComponent {
         );
       }) || null
     );
+  }
+
+  private orderOperatorConflictDates(draft: Order, conflict: Order): string[] {
+    return this.state
+      .orderOperatorIds(draft)
+      .flatMap((operatorId) =>
+        this.state.orderOperatorConflictDates(draft, conflict, operatorId),
+      )
+      .filter((date, index, dates) => dates.indexOf(date) === index)
+      .sort();
+  }
+
+  private formatConflictDates(dates: string[]): string {
+    const visibleDates = dates
+      .slice(0, 8)
+      .map((date) => this.utils.fmtDate(date));
+    const rest = dates.length - visibleDates.length;
+    return rest > 0
+      ? `${visibleDates.join(", ")} и еще ${rest}`
+      : visibleDates.join(", ");
   }
 
   private findTransportOperatorConflict(draft: Order): Transport | null {
