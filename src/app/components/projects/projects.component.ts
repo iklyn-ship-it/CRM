@@ -444,7 +444,7 @@ export class ProjectsComponent {
     if (!this.validateEngineHours(this.orderForm)) return;
     if (!this.validatePrimaryOperatorPeriod(this.orderForm)) return;
     if (!this.validateOperatorShifts(this.orderForm)) return;
-    if (!this.validateDraftConflicts(draft, order.id)) return;
+    if (!this.validateDraftConflicts(draft, order.id, order)) return;
     const idlePatch = this.breakdownIdlePatch(order);
     const patch: Record<string, any> = {
       status: this.orderForm.status,
@@ -877,7 +877,11 @@ export class ProjectsComponent {
     }
   }
 
-  private validateDraftConflicts(draft: Order, ignoreOrderId = ""): boolean {
+  private validateDraftConflicts(
+    draft: Order,
+    ignoreOrderId = "",
+    savedOrder?: Order,
+  ): boolean {
     const equipmentConflict = this.findOrderEquipmentConflict(
       draft,
       ignoreOrderId,
@@ -901,6 +905,12 @@ export class ProjectsComponent {
       ignoreOrderId,
     );
     if (operatorConflict) {
+      if (
+        savedOrder &&
+        this.operatorScheduleOnlyFreesDates(savedOrder, draft)
+      ) {
+        return true;
+      }
       const conflictDates = this.orderOperatorConflictDates(
         draft,
         operatorConflict,
@@ -915,6 +925,12 @@ export class ProjectsComponent {
     }
     const transportOperatorConflict = this.findTransportOperatorConflict(draft);
     if (transportOperatorConflict) {
+      if (
+        savedOrder &&
+        this.operatorScheduleOnlyFreesDates(savedOrder, draft)
+      ) {
+        return true;
+      }
       alert(
         `Оператор занят в перевозке: ${this.utils.fmtDate(transportOperatorConflict.startDate)} - ${this.utils.fmtDate(transportOperatorConflict.endDate)}.`,
       );
@@ -1000,6 +1016,26 @@ export class ProjectsComponent {
       )
       .filter((date, index, dates) => dates.indexOf(date) === index)
       .sort();
+  }
+
+  private operatorScheduleOnlyFreesDates(
+    savedOrder: Order,
+    draft: Order,
+  ): boolean {
+    const operatorIds = [
+      ...new Set([
+        ...this.state.orderOperatorIds(savedOrder),
+        ...this.state.orderOperatorIds(draft),
+      ]),
+    ];
+    return operatorIds.every((operatorId) => {
+      const savedDates = new Set(
+        this.state.orderOperatorWorkDates(savedOrder, operatorId),
+      );
+      return this.state
+        .orderOperatorWorkDates(draft, operatorId)
+        .every((date) => savedDates.has(date));
+    });
   }
 
   private formatConflictDates(dates: string[]): string {
@@ -2086,10 +2122,16 @@ export class ProjectsComponent {
 
     return {
       equipmentIdleDates: [...equipmentIdleDates]
-        .filter((date) => date >= order.startDate && date <= order.endDate)
+        .filter(
+          (date) =>
+            date >= this.orderForm.startDate && date <= this.orderForm.endDate,
+        )
         .sort(),
       operatorIdleDates: [...operatorIdleDates]
-        .filter((date) => date >= order.startDate && date <= order.endDate)
+        .filter(
+          (date) =>
+            date >= this.orderForm.startDate && date <= this.orderForm.endDate,
+        )
         .sort(),
     };
   }
@@ -2102,7 +2144,10 @@ export class ProjectsComponent {
     if (this.orderForm.breakdownDate > endDate) return [];
     return this.utils
       .datesInclusive(this.orderForm.breakdownDate, endDate)
-      .filter((date) => date >= order.startDate && date <= order.endDate);
+      .filter(
+        (date) =>
+          date >= this.orderForm.startDate && date <= this.orderForm.endDate,
+      );
   }
 
   private breakdownDatesFromOrder(order: Order): string[] {
