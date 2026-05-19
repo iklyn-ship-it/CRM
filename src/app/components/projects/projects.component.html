@@ -1246,6 +1246,16 @@
 
         <div class="editable-strip">
           <label class="edit-chip">
+            <span>Клиент</span>
+            <select [(ngModel)]="orderForm.clientId" name="orderClientId">
+              <option value="">— клиент —</option>
+              @for (client of state.clients(); track client.id) {
+                <option [value]="client.id">{{ client.name }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="edit-chip">
             <span>Статус</span>
             <select [(ngModel)]="orderForm.status" name="status">
               @for (status of editableStatuses; track status.value) {

@@ -450,6 +450,7 @@ export class ProjectsComponent {
     if (!this.validateDraftConflicts(draft, order.id, order)) return;
     const idlePatch = this.breakdownIdlePatch(order);
     const patch: Record<string, any> = {
+      clientId: this.orderForm.clientId,
       status: this.orderForm.status,
       equipmentId: this.orderForm.equipmentId,
       operatorId: this.orderForm.operatorId,
@@ -1745,6 +1746,7 @@ export class ProjectsComponent {
 
   private emptyOrderForm() {
     return {
+      clientId: "",
       status: "new" as OrderStatus,
       equipmentId: "",
       operatorId: "",
@@ -1831,6 +1833,7 @@ export class ProjectsComponent {
 
   private orderToForm(order: Order) {
     return {
+      clientId: order.clientId || "",
       status: order.status || ("new" as OrderStatus),
       equipmentId: order.equipmentId || "",
       operatorId: order.operatorId || "",
@@ -1935,6 +1938,7 @@ export class ProjectsComponent {
     const idlePatch = this.breakdownIdlePatch(order);
     return {
       ...order,
+      clientId: this.orderForm.clientId,
       status: this.orderForm.status,
       equipmentId: this.orderForm.equipmentId,
       operatorId: this.orderForm.operatorId,
