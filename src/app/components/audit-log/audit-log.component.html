@@ -44,7 +44,7 @@
 
         <div class="journal-summary">{{ log.summary }}</div>
 
-        @if (log.changes?.length) {
+        @if (log.changes.length) {
           <div class="changes-list">
             @for (change of log.changes; track change.field) {
               <div class="change-row">
