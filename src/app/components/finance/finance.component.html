@@ -138,16 +138,13 @@
         </div>
         <div class="field">
           <label>Привязать к технике</label>
-          <select
-            [(ngModel)]="form.equipmentId"
+          <app-equipment-picker
             name="equipmentId"
-            (ngModelChange)="onEquipmentLinkChange()"
-          >
-            <option value="">— без привязки —</option>
-            @for (eq of state.equipment(); track eq.id) {
-              <option [value]="eq.id">{{ eq.name }}</option>
-            }
-          </select>
+            placeholder="— без привязки —"
+            [equipment]="state.equipment()"
+            [(value)]="form.equipmentId"
+            (valueChange)="onEquipmentLinkChange()"
+          />
           <div class="small">
             Можно указать технику даже без заявки, например для топлива, мойки
             или прочих расходов.

@@ -4,6 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
 import { Order } from "../../models/crm.models";
+import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 interface ReportSummary {
   orders: number;
@@ -24,7 +25,7 @@ interface LocationClientReport {
 @Component({
   selector: "app-reports",
   standalone: true,
-  imports: [FormsModule, NgClass],
+  imports: [FormsModule, NgClass, EquipmentPickerComponent],
   templateUrl: "./reports.component.html",
   styleUrl: "./reports.component.css",
 })

@@ -242,15 +242,13 @@
     <h3>Отчет по технике</h3>
     <div class="field">
       <label>Техника</label>
-      <select
-        [ngModel]="selectedEquipmentId()"
-        (ngModelChange)="selectEquipment($event)"
-      >
-        <option value="">— выбрать технику —</option>
-        @for (item of state.equipment(); track item.id) {
-          <option [value]="item.id">{{ item.name }}</option>
-        }
-      </select>
+      <app-equipment-picker
+        name="reportEquipmentId"
+        placeholder="— выбрать технику —"
+        [equipment]="state.equipment()"
+        [value]="selectedEquipmentId()"
+        (valueChange)="selectEquipment($event)"
+      />
     </div>
 
     @if (selectedEquipmentId()) {

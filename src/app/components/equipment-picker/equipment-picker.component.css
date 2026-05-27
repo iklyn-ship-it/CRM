@@ -1,0 +1,26 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.equipment-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.equipment-picker-filters {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.45fr) minmax(180px, 1fr);
+  gap: 8px;
+}
+
+.equipment-picker select,
+.equipment-picker input {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .equipment-picker-filters {
+    grid-template-columns: 1fr;
+  }
+}

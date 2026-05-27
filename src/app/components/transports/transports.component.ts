@@ -11,11 +11,12 @@ import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
 import { Transport, TransportStatus } from "../../models/crm.models";
+import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 @Component({
   selector: "app-transports",
   standalone: true,
-  imports: [FormsModule, NgClass],
+  imports: [FormsModule, NgClass, EquipmentPickerComponent],
   templateUrl: "./transports.component.html",
   styleUrl: "./transports.component.css",
 })

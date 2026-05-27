@@ -86,16 +86,12 @@
             <div class="cost-fields">
               <div class="field wide">
                 <label>Техника</label>
-                <select
-                  [(ngModel)]="createForm.equipmentId"
+                <app-equipment-picker
                   name="createCostEquipmentId"
-                  (ngModelChange)="onCreateEquipmentChange()"
-                >
-                  <option value="">— техника —</option>
-                  @for (item of state.equipment(); track item.id) {
-                    <option [value]="item.id">{{ item.name }}</option>
-                  }
-                </select>
+                  [equipment]="state.equipment()"
+                  [(value)]="createForm.equipmentId"
+                  (valueChange)="onCreateEquipmentChange()"
+                />
               </div>
               <div class="field">
                 <label>Дата начала резерва</label>
@@ -372,16 +368,12 @@
 
           <label class="edit-chip">
             <span>Техника</span>
-            <select
-              [(ngModel)]="createForm.equipmentId"
+            <app-equipment-picker
               name="createEquipmentId"
-              (ngModelChange)="onCreateEquipmentChange()"
-            >
-              <option value="">— техника —</option>
-              @for (item of state.equipment(); track item.id) {
-                <option [value]="item.id">{{ item.name }}</option>
-              }
-            </select>
+              [equipment]="state.equipment()"
+              [(value)]="createForm.equipmentId"
+              (valueChange)="onCreateEquipmentChange()"
+            />
           </label>
 
           <label class="edit-chip">
@@ -542,16 +534,12 @@
             <div class="cost-fields">
               <div class="field wide">
                 <label>Техника</label>
-                <select
-                  [(ngModel)]="orderForm.equipmentId"
+                <app-equipment-picker
                   name="costEquipmentId"
-                  (ngModelChange)="onOrderEquipmentChange()"
-                >
-                  <option value="">— техника —</option>
-                  @for (item of state.equipment(); track item.id) {
-                    <option [value]="item.id">{{ item.name }}</option>
-                  }
-                </select>
+                  [equipment]="state.equipment()"
+                  [(value)]="orderForm.equipmentId"
+                  (valueChange)="onOrderEquipmentChange()"
+                />
               </div>
               <div class="field">
                 <label>Дата начала резерва</label>
@@ -964,15 +952,14 @@
                     @if (orderForm.logisticsProvider === "own_trawl") {
                       <div class="field">
                         <label>Трал</label>
-                        <select
-                          [(ngModel)]="orderForm.logisticsTrailerId"
+                        <app-equipment-picker
                           name="logisticsTrailerId"
-                        >
-                          <option value="">— не выбран —</option>
-                          @for (item of state.equipment(); track item.id) {
-                            <option [value]="item.id">{{ item.name }}</option>
-                          }
-                        </select>
+                          placeholder="— не выбран —"
+                          typePlaceholder="Тип трала"
+                          searchPlaceholder="Поиск трала..."
+                          [equipment]="trawlEquipment()"
+                          [(value)]="orderForm.logisticsTrailerId"
+                        />
                       </div>
                     }
                     <div class="field">
@@ -1071,15 +1058,14 @@
                     @if (orderForm.logisticsReturnProvider === "own_trawl") {
                       <div class="field">
                         <label>Трал</label>
-                        <select
-                          [(ngModel)]="orderForm.logisticsReturnTrailerId"
+                        <app-equipment-picker
                           name="logisticsReturnTrailerId"
-                        >
-                          <option value="">— не выбран —</option>
-                          @for (item of state.equipment(); track item.id) {
-                            <option [value]="item.id">{{ item.name }}</option>
-                          }
-                        </select>
+                          placeholder="— не выбран —"
+                          typePlaceholder="Тип трала"
+                          searchPlaceholder="Поиск трала..."
+                          [equipment]="trawlEquipment()"
+                          [(value)]="orderForm.logisticsReturnTrailerId"
+                        />
                       </div>
                     }
                     <div class="field">
@@ -1266,12 +1252,12 @@
 
           <label class="edit-chip">
             <span>Наименование техники</span>
-            <select [(ngModel)]="orderForm.equipmentId" name="equipmentId">
-              <option value="">— техника —</option>
-              @for (item of state.equipment(); track item.id) {
-                <option [value]="item.id">{{ item.name }}</option>
-              }
-            </select>
+            <app-equipment-picker
+              name="equipmentId"
+              [equipment]="state.equipment()"
+              [(value)]="orderForm.equipmentId"
+              (valueChange)="onOrderEquipmentChange()"
+            />
           </label>
 
           <label class="edit-chip">

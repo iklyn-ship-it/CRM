@@ -19,11 +19,12 @@ import {
   OrderStatus,
   Transport,
 } from "../../models/crm.models";
+import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 @Component({
   selector: "app-orders",
   standalone: true,
-  imports: [FormsModule, NgClass, SlicePipe],
+  imports: [FormsModule, NgClass, SlicePipe, EquipmentPickerComponent],
   templateUrl: "./orders.component.html",
   styleUrl: "./orders.component.css",
 })

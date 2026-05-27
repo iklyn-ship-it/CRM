@@ -13,11 +13,13 @@ import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
 import {
   FinanceOperation,
+  Equipment,
   OperatorShift,
   Order,
   OrderStatus,
   Transport,
 } from "../../models/crm.models";
+import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 interface LocationGroup {
   key: string;
@@ -65,7 +67,7 @@ interface ClientGroup {
 @Component({
   selector: "app-projects",
   standalone: true,
-  imports: [FormsModule, NgClass, SlicePipe],
+  imports: [FormsModule, NgClass, SlicePipe, EquipmentPickerComponent],
   templateUrl: "./projects.component.html",
   styleUrl: "./projects.component.css",
 })
@@ -117,6 +119,12 @@ export class ProjectsComponent {
     "Прочее",
   ];
   readonly documentTypes = this.proposal.documentTypes;
+
+  readonly trawlEquipment = computed<Equipment[]>(() =>
+    this.state
+      .equipment()
+      .filter((eq) => (eq.type || "").trim().toLowerCase().includes("трал")),
+  );
 
   readonly conflictSet = computed(() => {
     const orderConflicts = this.state

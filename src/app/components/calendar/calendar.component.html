@@ -247,15 +247,12 @@
           </div>
           <div class="field">
             <label>Техника</label>
-            <select
-              [(ngModel)]="form.equipmentId"
+            <app-equipment-picker
               name="equipmentId"
-              (ngModelChange)="onEquipmentChange()"
-            >
-              @for (e of state.equipment(); track e.id) {
-                <option [value]="e.id">{{ e.name }}</option>
-              }
-            </select>
+              [equipment]="state.equipment()"
+              [(value)]="form.equipmentId"
+              (valueChange)="onEquipmentChange()"
+            />
             @if (formTransportEquipmentConflict(); as conflict) {
               <div class="calendar-busy-warning">
                 Техника занята в перевозке:
@@ -481,15 +478,14 @@
                 @if (form.logisticsProvider === "own_trawl") {
                   <div class="field">
                     <label>Выбрать трал</label>
-                    <select
-                      [(ngModel)]="form.logisticsTrailerId"
+                    <app-equipment-picker
                       name="logisticsTrailerId"
-                    >
-                      <option value="">— выбрать трал —</option>
-                      @for (trawl of trawlEquipment(); track trawl.id) {
-                        <option [value]="trawl.id">{{ trawl.name }}</option>
-                      }
-                    </select>
+                      placeholder="— выбрать трал —"
+                      typePlaceholder="Тип трала"
+                      searchPlaceholder="Поиск трала..."
+                      [equipment]="trawlEquipment()"
+                      [(value)]="form.logisticsTrailerId"
+                    />
                   </div>
                 }
                 <div class="field">

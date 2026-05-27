@@ -5,11 +5,12 @@ import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
 import { Repair, RepairStatus } from "../../models/crm.models";
+import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 @Component({
   selector: "app-repairs",
   standalone: true,
-  imports: [FormsModule, NgClass, SlicePipe],
+  imports: [FormsModule, NgClass, SlicePipe, EquipmentPickerComponent],
   templateUrl: "./repairs.component.html",
   styleUrl: "./repairs.component.css",
 })

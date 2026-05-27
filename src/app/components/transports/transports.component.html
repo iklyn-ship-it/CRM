@@ -173,12 +173,14 @@
           </div>
           <div class="field">
             <label>Техника (трал)</label>
-            <select [(ngModel)]="form.equipmentId" name="equipmentId">
-              <option value="">— выбрать трал —</option>
-              @for (item of trawlEquipment(); track item.id) {
-                <option [value]="item.id">{{ item.name }}</option>
-              }
-            </select>
+            <app-equipment-picker
+              name="equipmentId"
+              placeholder="— выбрать трал —"
+              typePlaceholder="Тип трала"
+              searchPlaceholder="Поиск трала..."
+              [equipment]="trawlEquipment()"
+              [(value)]="form.equipmentId"
+            />
           </div>
           <div class="field">
             <label>Водитель</label>

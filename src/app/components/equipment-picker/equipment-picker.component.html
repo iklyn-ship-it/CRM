@@ -1,0 +1,27 @@
+<div class="equipment-picker">
+  <div class="equipment-picker-filters">
+    <select [(ngModel)]="typeFilter" [name]="name + 'TypeFilter'">
+      <option value="">{{ typePlaceholder }}</option>
+      @for (type of types(); track type) {
+        <option [value]="type">{{ type }}</option>
+      }
+    </select>
+    <input
+      type="search"
+      [(ngModel)]="search"
+      [name]="name + 'Search'"
+      [placeholder]="searchPlaceholder"
+    />
+  </div>
+  <select [ngModel]="value" (ngModelChange)="select($event)" [name]="name">
+    <option value="">{{ placeholder }}</option>
+    @for (item of filteredEquipment(); track item.id) {
+      <option [value]="item.id">
+        {{ item.name }}
+        @if (item.type) {
+          · {{ item.type }}
+        }
+      </option>
+    }
+  </select>
+</div>

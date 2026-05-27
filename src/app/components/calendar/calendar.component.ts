@@ -12,6 +12,7 @@ import {
   OrderStatus,
   Transport,
 } from "../../models/crm.models";
+import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 interface CalCell {
   date: Date;
@@ -33,7 +34,7 @@ interface CalCell {
 @Component({
   selector: "app-calendar",
   standalone: true,
-  imports: [NgClass, FormsModule, SlicePipe],
+  imports: [NgClass, FormsModule, SlicePipe, EquipmentPickerComponent],
   templateUrl: "./calendar.component.html",
   styleUrl: "./calendar.component.css",
 })

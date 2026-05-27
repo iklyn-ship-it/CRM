@@ -3,7 +3,9 @@
     <h2>Ремонты</h2>
     <p>Планирование ремонтов, статусы и пересечения с арендой.</p>
   </div>
-  <button type="button" class="btn primary" (click)="openCreate()">+ Новый ремонт</button>
+  <button type="button" class="btn primary" (click)="openCreate()">
+    + Новый ремонт
+  </button>
 </div>
 
 @if (formOpen()) {
@@ -13,17 +15,19 @@
         <h3 style="margin: 0">
           {{ editingId ? "Редактирование ремонта" : "Запланировать ремонт" }}
         </h3>
-        <button type="button" class="btn ghost" (click)="closeForm()">Закрыть</button>
+        <button type="button" class="btn ghost" (click)="closeForm()">
+          Закрыть
+        </button>
       </div>
       <form (ngSubmit)="save()">
         <div class="field">
           <label>Техника</label>
-          <select [(ngModel)]="form.equipmentId" name="equipmentId">
-            <option value="">— выбрать —</option>
-            @for (e of state.equipment(); track e.id) {
-              <option [value]="e.id">{{ e.name }}</option>
-            }
-          </select>
+          <app-equipment-picker
+            name="equipmentId"
+            placeholder="— выбрать —"
+            [equipment]="state.equipment()"
+            [(value)]="form.equipmentId"
+          />
         </div>
         <div class="field">
           <label>Дата начала</label
