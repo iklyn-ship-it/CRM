@@ -1,5 +1,18 @@
 :host {
   display: block;
+  min-height: 0;
+}
+
+:host .internal-scroll-panel {
+  height: calc(100dvh - 40px);
+  max-height: none;
+  overflow: hidden;
+}
+
+:host .client-tree.internal-scroll-body {
+  align-content: start;
+  padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .client-tree {
@@ -834,6 +847,10 @@ button.edit-chip:hover {
 }
 
 @media (max-width: 1180px) {
+  :host .internal-scroll-panel {
+    height: calc(100dvh - 24px);
+  }
+
   .client-head,
   .location-row,
   .location-head,
