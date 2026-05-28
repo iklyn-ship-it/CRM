@@ -3,22 +3,48 @@
     <h2>Операторы</h2>
     <p>Сотрудники, ставки, занятость и журнал работы.</p>
   </div>
-  <button type="button" class="btn primary" (click)="openCreate()">+ Новый оператор</button>
+  <button type="button" class="btn primary" (click)="openCreate()">
+    + Новый оператор
+  </button>
 </div>
 
 @if (formOpen()) {
   <div class="form-backdrop" (click)="closeForm()">
     <div class="card panel form-modal" (click)="$event.stopPropagation()">
       <div class="modal-head">
-        <h3 style="margin:0">{{ editingId ? 'Редактирование оператора' : 'Добавить оператора' }}</h3>
-        <button type="button" class="btn ghost" (click)="closeForm()">Закрыть</button>
+        <h3 style="margin: 0">
+          {{ editingId ? "Редактирование оператора" : "Добавить оператора" }}
+        </h3>
+        <button type="button" class="btn ghost" (click)="closeForm()">
+          Закрыть
+        </button>
       </div>
       <form (ngSubmit)="save()">
-        <div class="field"><label>ФИО</label><input type="text" [(ngModel)]="form.name" name="name" required></div>
-        <div class="field"><label>Телефон</label><input type="text" [(ngModel)]="form.phone" name="phone"></div>
-        <div class="field"><label>Специализация</label><input type="text" [(ngModel)]="form.skill" name="skill"></div>
-        <div class="field"><label>Ставка, ₴/день</label><input type="number" [(ngModel)]="form.rate" name="rate" min="0"></div>
-        <div class="field"><label>Стоимость 1 часа работы, ₴/час</label><input type="number" [(ngModel)]="form.hourlyRate" name="hourlyRate" min="0"></div>
+        <div class="field">
+          <label>ФИО</label
+          ><input type="text" [(ngModel)]="form.name" name="name" required />
+        </div>
+        <div class="field">
+          <label>Телефон</label
+          ><input type="text" [(ngModel)]="form.phone" name="phone" />
+        </div>
+        <div class="field">
+          <label>Специализация</label
+          ><input type="text" [(ngModel)]="form.skill" name="skill" />
+        </div>
+        <div class="field">
+          <label>Ставка, ₴/день</label
+          ><input type="number" [(ngModel)]="form.rate" name="rate" min="0" />
+        </div>
+        <div class="field">
+          <label>Стоимость 1 часа работы, ₴/час</label
+          ><input
+            type="number"
+            [(ngModel)]="form.hourlyRate"
+            name="hourlyRate"
+            min="0"
+          />
+        </div>
         <div class="field">
           <label>Состояние сотрудника</label>
           <select [(ngModel)]="form.workStatus" name="workStatus">
@@ -28,8 +54,12 @@
           </select>
         </div>
         <div class="actions">
-          <button type="submit" class="btn primary">{{ editingId ? 'Сохранить изменения' : 'Сохранить оператора' }}</button>
-          <button type="button" class="btn ghost" (click)="closeForm()">Отмена</button>
+          <button type="submit" class="btn primary">
+            {{ editingId ? "Сохранить изменения" : "Сохранить оператора" }}
+          </button>
+          <button type="button" class="btn ghost" (click)="closeForm()">
+            Отмена
+          </button>
         </div>
       </form>
     </div>
@@ -39,31 +69,59 @@
 <div class="row">
   <div class="col-12">
     <div class="card panel internal-scroll-panel">
-      <h3 style="margin-top:0">Операторы</h3>
+      <h3 style="margin-top: 0">Операторы</h3>
       <div class="table-wrap internal-scroll-body">
         <table>
-          <thead><tr><th>ФИО</th><th>Телефон</th><th>Специализация</th><th>₴/час</th><th>Занятость</th><th>Состояние</th><th>Смены</th><th>Начислено</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>ФИО</th>
+              <th>Телефон</th>
+              <th>Специализация</th>
+              <th>₴/час</th>
+              <th>Занятость</th>
+              <th>Состояние</th>
+              <th>Смены</th>
+              <th>Начислено</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
-            @for (op of state.operators(); track op.id) {
+            @for (op of state.operators(); track op.id; let index = $index) {
               <tr>
-                <td>{{ op.name }}</td><td>{{ op.phone || '—' }}</td><td>{{ op.skill || '—' }}</td>
+                <td class="row-number">{{ index + 1 }}</td>
+                <td>{{ op.name }}</td>
+                <td>{{ op.phone || "—" }}</td>
+                <td>{{ op.skill || "—" }}</td>
                 <td>{{ utils.money(op.hourlyRate || 0) }}</td>
                 <td>
-                  <span class="badge" [ngClass]="operatorBadgeClass(state.runtimeOperatorStatus(op.id))">
+                  <span
+                    class="badge"
+                    [ngClass]="
+                      operatorBadgeClass(state.runtimeOperatorStatus(op.id))
+                    "
+                  >
                     {{ operatorBadgeLabel(state.runtimeOperatorStatus(op.id)) }}
                   </span>
                 </td>
                 <td>
                   <div class="work-status-cell">
-                    <span class="badge" [ngClass]="workStatusBadgeClass(op.workStatus || 'active')">
-                      {{ workStatusLabel(op.workStatus || 'active') }}
+                    <span
+                      class="badge"
+                      [ngClass]="
+                        workStatusBadgeClass(op.workStatus || 'active')
+                      "
+                    >
+                      {{ workStatusLabel(op.workStatus || "active") }}
                     </span>
                     <div class="status-buttons">
                       @for (item of workStatuses; track item.value) {
                         <button
                           type="button"
                           class="mini-status-btn"
-                          [class.active]="(op.workStatus || 'active') === item.value"
+                          [class.active]="
+                            (op.workStatus || 'active') === item.value
+                          "
                           [class.confirmed]="item.className === 'confirmed'"
                           [class.repairplan]="item.className === 'repairplan'"
                           [class.cancelled]="item.className === 'cancelled'"
@@ -76,14 +134,28 @@
                   </div>
                 </td>
                 <td>{{ opShifts(op.id) }}</td>
-                <td>{{ utils.money(op.hourlyRate ? opShifts(op.id) * 8 * op.hourlyRate : opShifts(op.id) * (op.rate || 0)) }}</td>
+                <td>
+                  {{
+                    utils.money(
+                      op.hourlyRate
+                        ? opShifts(op.id) * 8 * op.hourlyRate
+                        : opShifts(op.id) * (op.rate || 0)
+                    )
+                  }}
+                </td>
                 <td>
                   <button class="btn ghost" (click)="edit(op)">Ред.</button>
-                  <button class="btn ghost" (click)="remove(op.id)">Удалить</button>
+                  <button class="btn ghost" (click)="remove(op.id)">
+                    Удалить
+                  </button>
                 </td>
               </tr>
             }
-            @if (!state.operators().length) { <tr><td colspan="9"><div class="empty">Нет операторов.</div></td></tr> }
+            @if (!state.operators().length) {
+              <tr>
+                <td colspan="10"><div class="empty">Нет операторов.</div></td>
+              </tr>
+            }
           </tbody>
         </table>
       </div>
@@ -94,8 +166,10 @@
 <div class="card panel operator-journal-panel">
   <div class="operator-journal-head">
     <div>
-      <h3 style="margin-top:0">Журнал работы операторов</h3>
-      <div class="small">Кто, где, когда, сколько работал и на какой технике.</div>
+      <h3 style="margin-top: 0">Журнал работы операторов</h3>
+      <div class="small">
+        Кто, где, когда, сколько работал и на какой технике.
+      </div>
     </div>
     <div class="journal-filters">
       <div class="field compact-field">
