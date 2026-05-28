@@ -144,6 +144,29 @@ td.operator-col {
   color: rgba(148, 163, 184, 0.42);
 }
 
+.hour-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 30px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #e5e7eb;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 900;
+}
+
+.hour-link:hover,
+.hour-link:focus-visible {
+  border-color: rgba(250, 204, 21, 0.65);
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+  outline: none;
+}
+
 .empty-row {
   opacity: 0.62;
 }
@@ -160,6 +183,66 @@ td.operator-col {
   background: #111827;
 }
 
+.day-details-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.72);
+  backdrop-filter: blur(8px);
+}
+
+.day-details-modal {
+  width: min(920px, 100%);
+  max-height: min(760px, calc(100vh - 36px));
+  overflow: auto;
+  border-color: rgba(250, 204, 21, 0.24);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.day-details-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.day-details-head h3 {
+  margin: 4px 0;
+}
+
+.day-details-head p {
+  margin: 0;
+  color: #fde68a;
+  font-weight: 900;
+}
+
+.day-detail-list {
+  display: grid;
+  gap: 10px;
+}
+
+.day-detail-card {
+  display: grid;
+  grid-template-columns:
+    minmax(90px, 0.6fr) minmax(160px, 1fr) minmax(220px, 1.4fr)
+    minmax(180px, 1fr) minmax(80px, 0.5fr) minmax(120px, 0.6fr);
+  gap: 10px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.78);
+}
+
+.day-detail-card strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 980px) {
   .timesheet-controls,
   .timesheet-summary {
@@ -168,5 +251,13 @@ td.operator-col {
 
   .timesheet-actions {
     justify-content: flex-start;
+  }
+
+  .day-detail-card {
+    grid-template-columns: 1fr;
+  }
+
+  .day-details-head {
+    display: grid;
   }
 }

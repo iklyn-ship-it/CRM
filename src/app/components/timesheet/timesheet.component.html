@@ -112,7 +112,21 @@
             @for (day of days(); track day.date) {
               <td class="day-col" [class.weekend]="day.weekend">
                 @if (row.dayHours[day.date]) {
-                  <strong>{{ row.dayHours[day.date] }}</strong>
+                  <button
+                    type="button"
+                    class="hour-link"
+                    (click)="openDayDetails(row, day.date)"
+                    [title]="
+                      row.operator.name +
+                      ' • ' +
+                      utils.fmtDate(day.date) +
+                      ' • ' +
+                      fmtHours(row.dayHours[day.date]) +
+                      ' ч'
+                    "
+                  >
+                    {{ fmtHours(row.dayHours[day.date]) }}
+                  </button>
                 } @else {
                   <span class="muted-dot">·</span>
                 }
@@ -145,6 +159,61 @@
     </table>
   </div>
 </div>
+
+@if (selectedDayDetails(); as selected) {
+  <div class="day-details-backdrop" (click)="closeDayDetails()">
+    <div
+      class="card panel day-details-modal"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="day-details-head">
+        <div>
+          <div class="small">Детали табеля</div>
+          <h3>
+            {{ selected.operatorName }} • {{ utils.fmtDate(selected.date) }}
+          </h3>
+          <p>{{ fmtHours(selected.hours) }} ч за день</p>
+        </div>
+        <button type="button" class="btn ghost" (click)="closeDayDetails()">
+          Закрыть
+        </button>
+      </div>
+
+      <div class="day-detail-list">
+        @for (item of selected.items; track item.key) {
+          <div class="day-detail-card">
+            <div>
+              <span class="small">Заявка</span>
+              <strong>{{ item.orderShortId }}</strong>
+            </div>
+            <div>
+              <span class="small">Клиент</span>
+              <strong>{{ item.clientName }}</strong>
+            </div>
+            <div>
+              <span class="small">Техника</span>
+              <strong>{{ item.equipmentName }}</strong>
+            </div>
+            <div>
+              <span class="small">Локация</span>
+              <strong>{{ item.location }}</strong>
+            </div>
+            <div>
+              <span class="small">Часы</span>
+              <strong>{{ fmtHours(item.hours) }} ч</strong>
+            </div>
+            <div>
+              <span class="small">Статус</span>
+              <span class="badge" [ngClass]="item.status">
+                {{ orderStatusLabel(item.status) }}
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}
 
 <div class="card panel timesheet-details">
   <h3>Расшифровка по заявкам</h3>

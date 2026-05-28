@@ -25,10 +25,23 @@ interface TimesheetOrderDetail {
   status: Order["status"];
 }
 
+interface TimesheetDayDetail {
+  key: string;
+  date: string;
+  orderId: string;
+  orderShortId: string;
+  clientName: string;
+  equipmentName: string;
+  location: string;
+  hours: number;
+  status: Order["status"];
+}
+
 interface TimesheetRow {
   index: number;
   operator: Operator;
   dayHours: Record<string, number>;
+  dayDetails: Record<string, TimesheetDayDetail[]>;
   totalDays: number;
   regularHours: number;
   extraHours: number;
@@ -37,6 +50,13 @@ interface TimesheetRow {
   dailyRate: number;
   amount: number;
   details: TimesheetOrderDetail[];
+}
+
+interface SelectedDayDetails {
+  operatorName: string;
+  date: string;
+  hours: number;
+  items: TimesheetDayDetail[];
 }
 
 @Component({
@@ -52,6 +72,7 @@ export class TimesheetComponent {
 
   selectedYear = signal(new Date().getFullYear());
   selectedMonth = signal(new Date().getMonth() + 1);
+  selectedDayDetails = signal<SelectedDayDetails | null>(null);
 
   readonly months = [
     { value: 1, label: "Январь" },
@@ -157,6 +178,21 @@ export class TimesheetComponent {
     this.selectedMonth.set(today.getMonth() + 1);
   }
 
+  openDayDetails(row: TimesheetRow, date: string): void {
+    const items = row.dayDetails[date] || [];
+    if (!items.length) return;
+    this.selectedDayDetails.set({
+      operatorName: row.operator.name,
+      date,
+      hours: row.dayHours[date] || 0,
+      items,
+    });
+  }
+
+  closeDayDetails(): void {
+    this.selectedDayDetails.set(null);
+  }
+
   orderStatusLabel(status: Order["status"]): string {
     const labels: Record<Order["status"], string> = {
       new: "Новая",
@@ -176,6 +212,7 @@ export class TimesheetComponent {
 
   private buildOperatorRow(operator: Operator, index: number): TimesheetRow {
     const dayHours: Record<string, number> = {};
+    const dayDetails: Record<string, TimesheetDayDetail[]> = {};
     const details: TimesheetOrderDetail[] = [];
     const extraHoursByOrder = new Map<string, number>();
 
@@ -210,6 +247,24 @@ export class TimesheetComponent {
           const hoursPerDay = this.orderStandardWorkHours(order);
           dates.forEach((date) => {
             dayHours[date] = (dayHours[date] || 0) + hoursPerDay;
+            dayDetails[date] = [
+              ...(dayDetails[date] || []),
+              {
+                key: `${order.id}-${assignment.id}-${operator.id}-${date}`,
+                date,
+                orderId: order.id,
+                orderShortId: this.utils.shortId(order.id),
+                clientName:
+                  this.state.byId(this.state.clients(), order.clientId)?.name ||
+                  "—",
+                equipmentName:
+                  this.state.byId(this.state.equipment(), order.equipmentId)
+                    ?.name || "—",
+                location: order.location || "—",
+                hours: hoursPerDay,
+                status: order.status,
+              },
+            ];
           });
 
           const extraShare =
@@ -266,6 +321,7 @@ export class TimesheetComponent {
       index,
       operator,
       dayHours,
+      dayDetails,
       totalDays,
       regularHours,
       extraHours,
