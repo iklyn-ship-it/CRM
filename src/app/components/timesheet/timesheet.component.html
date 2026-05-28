@@ -1,0 +1,201 @@
+<div class="section-heading">
+  <div>
+    <h2>Табель</h2>
+    <p>
+      Автоматический учет дней и часов операторов по заявкам. Архив доступен
+      через выбор месяца и года.
+    </p>
+  </div>
+  <div class="timesheet-actions">
+    <button type="button" class="btn ghost" (click)="previousMonth()">
+      ← Предыдущий
+    </button>
+    <button type="button" class="btn ghost" (click)="setCurrentMonth()">
+      Текущий месяц
+    </button>
+    <button type="button" class="btn ghost" (click)="nextMonth()">
+      Следующий →
+    </button>
+  </div>
+</div>
+
+<div class="card panel timesheet-controls">
+  <div class="field">
+    <label>Месяц</label>
+    <select
+      [ngModel]="selectedMonth()"
+      (ngModelChange)="selectedMonth.set(+$event)"
+      name="timesheetMonth"
+    >
+      @for (month of months; track month.value) {
+        <option [value]="month.value">{{ month.label }}</option>
+      }
+    </select>
+  </div>
+  <div class="field">
+    <label>Год</label>
+    <select
+      [ngModel]="selectedYear()"
+      (ngModelChange)="selectedYear.set(+$event)"
+      name="timesheetYear"
+    >
+      @for (year of years(); track year) {
+        <option [value]="year">{{ year }}</option>
+      }
+    </select>
+  </div>
+  <div class="archive-note">
+    <strong>{{ monthLabel() }}</strong>
+    <span>
+      Период {{ utils.fmtDate(periodStart()) }} -
+      {{ utils.fmtDate(periodEnd()) }}
+    </span>
+  </div>
+</div>
+
+<div class="timesheet-summary">
+  <div>
+    <span>Операторов</span>
+    <strong>{{ totals().operators }}</strong>
+  </div>
+  <div>
+    <span>Рабочих дней</span>
+    <strong>{{ totals().days }}</strong>
+  </div>
+  <div>
+    <span>Часов</span>
+    <strong>{{ fmtHours(totals().hours) }}</strong>
+  </div>
+  <div>
+    <span>Начислено</span>
+    <strong>{{ utils.money(totals().amount) }}</strong>
+  </div>
+</div>
+
+<div class="card panel timesheet-panel">
+  <div class="timesheet-head">
+    <div>
+      <h3>Табель операторов за {{ monthLabel() }}</h3>
+      <div class="small">
+        В ячейках указаны часы за день. Выходные выделены мягким фоном.
+      </div>
+    </div>
+  </div>
+
+  <div class="table-wrap timesheet-scroll">
+    <table class="timesheet-table">
+      <thead>
+        <tr>
+          <th class="sticky-col number-col">№</th>
+          <th class="sticky-col operator-col">Оператор</th>
+          @for (day of days(); track day.date) {
+            <th class="day-col" [class.weekend]="day.weekend">
+              <span>{{ day.day }}</span>
+            </th>
+          }
+          <th>Дней</th>
+          <th>Часов</th>
+          <th>Доп. ч</th>
+          <th>Тариф</th>
+          <th>Сумма</th>
+          <th>Телефон</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.operator.id) {
+          <tr [class.empty-row]="!row.totalHours">
+            <td class="sticky-col number-col row-number">{{ row.index }}</td>
+            <td class="sticky-col operator-col">
+              <strong>{{ row.operator.name }}</strong>
+              <span>{{ row.operator.skill || "—" }}</span>
+            </td>
+            @for (day of days(); track day.date) {
+              <td class="day-col" [class.weekend]="day.weekend">
+                @if (row.dayHours[day.date]) {
+                  <strong>{{ row.dayHours[day.date] }}</strong>
+                } @else {
+                  <span class="muted-dot">·</span>
+                }
+              </td>
+            }
+            <td>{{ row.totalDays }}</td>
+            <td>{{ fmtHours(row.totalHours) }}</td>
+            <td>{{ row.extraHours ? fmtHours(row.extraHours) : "—" }}</td>
+            <td>
+              @if (row.hourlyRate) {
+                {{ utils.money(row.hourlyRate) }}/ч
+              } @else {
+                {{ utils.money(row.dailyRate) }}/день
+              }
+            </td>
+            <td>
+              <strong>{{ utils.money(row.amount) }}</strong>
+            </td>
+            <td>{{ row.operator.phone || "—" }}</td>
+          </tr>
+        }
+        @if (!rows().length) {
+          <tr>
+            <td [attr.colspan]="days().length + 8">
+              <div class="empty">Нет данных за выбранный месяц.</div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card panel timesheet-details">
+  <h3>Расшифровка по заявкам</h3>
+  <div class="table-wrap details-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Оператор</th>
+          <th>Заявка</th>
+          <th>Период</th>
+          <th>Дней</th>
+          <th>Часов</th>
+          <th>Клиент</th>
+          <th>Техника</th>
+          <th>Локация</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.operator.id) {
+          @for (detail of row.details; track detail.key) {
+            <tr>
+              <td>{{ row.operator.name }}</td>
+              <td>{{ detail.orderShortId }}</td>
+              <td>
+                {{ utils.fmtDate(detail.startDate) }} -
+                {{ utils.fmtDate(detail.endDate) }}
+              </td>
+              <td>{{ detail.days }}</td>
+              <td>{{ fmtHours(detail.hours) }}</td>
+              <td>{{ detail.clientName }}</td>
+              <td>{{ detail.equipmentName }}</td>
+              <td>{{ detail.location }}</td>
+              <td>
+                <span class="badge" [ngClass]="detail.status">
+                  {{ orderStatusLabel(detail.status) }}
+                </span>
+              </td>
+            </tr>
+          }
+        }
+        @if (!totals().hours) {
+          <tr>
+            <td colspan="9">
+              <div class="empty">
+                Нет заявок с работой операторов за период.
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -81,6 +81,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: "timesheet",
+        loadComponent: () =>
+          import("./components/timesheet/timesheet.component").then(
+            (m) => m.TimesheetComponent,
+          ),
+      },
+      {
         path: "projects",
         redirectTo: "orders",
         pathMatch: "full",
