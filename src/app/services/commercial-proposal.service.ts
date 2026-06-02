@@ -422,7 +422,7 @@ export class CommercialProposalService {
       .filter(Boolean)
       .map((term) => this.bullet(term))
       .join("")}
-    ${this.signatureBlock()}
+    ${this.signatureBlock(draft)}
     <w:sectPr>
       <w:headerReference w:type="default" r:id="rId3"/>
       <w:footerReference w:type="default" r:id="rId4"/>
@@ -618,6 +618,35 @@ export class CommercialProposalService {
       color: #b8c0cc;
       font-weight: 800;
     }
+    .signature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin-top: 34px;
+      page-break-inside: avoid;
+    }
+    .signature-box {
+      min-height: 92px;
+      padding-top: 6px;
+    }
+    .signature-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .signature-name {
+      font-weight: 800;
+      min-height: 34px;
+    }
+    .signature-line {
+      margin-top: 24px;
+      border-top: 1px solid #1f2937;
+      padding-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
     @media print {
       body { background: #fff; }
       .toolbar { display: none; }
@@ -648,6 +677,9 @@ export class CommercialProposalService {
       }
       .money {
         white-space: normal;
+      }
+      .signature-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -695,10 +727,7 @@ export class CommercialProposalService {
       <h2>${this.html(draft.termsHeading)}</h2>
       <ul>${terms}</ul>
     </section>
-    <section>
-      <p style="margin-top: 34px;">З повагою,</p>
-      <p><strong>ТОВ «РБТ-ГРУП»</strong></p>
-    </section>
+    ${this.signatureBlockHtml(draft)}
     <footer>
       <span>trans@rbt-group.com.ua</span>
       <span>+38(068) 968 44 28</span>
@@ -997,10 +1026,73 @@ export class CommercialProposalService {
     </w:tblPr>`;
   }
 
-  private signatureBlock(): string {
-    return `<w:p><w:pPr><w:spacing w:before="360" w:after="80"/></w:pPr></w:p>
-    ${this.paragraph("З повагою,", "Normal")}
-    ${this.paragraph("ТОВ «РБТ-ГРУП»", "NormalBold")}`;
+  private signatureBlock(draft: CommercialProposalDraft): string {
+    if (!this.needsClientSignature(draft)) {
+      return `<w:p><w:pPr><w:spacing w:before="360" w:after="80"/></w:pPr></w:p>
+      ${this.paragraph("З повагою,", "Normal")}
+      ${this.paragraph("ТОВ «РБТ-ГРУП»", "NormalBold")}`;
+    }
+
+    return `<w:p><w:pPr><w:spacing w:before="420" w:after="80"/></w:pPr></w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:w="9630" w:type="dxa"/>
+        <w:tblLayout w:type="fixed"/>
+        <w:tblBorders>
+          <w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/>
+          <w:insideH w:val="nil"/><w:insideV w:val="nil"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid><w:gridCol w:w="4650"/><w:gridCol w:w="4650"/></w:tblGrid>
+      <w:tr>
+        ${this.signatureCell("Виконавець", "ТОВ «РБТ-ГРУП»", "підпис / печатка")}
+        ${this.signatureCell("Замовник / клієнт", draft.client, "підпис клієнта")}
+      </w:tr>
+    </w:tbl>`;
+  }
+
+  private signatureCell(label: string, name: string, caption: string): string {
+    return `<w:tc>
+      <w:tcPr>
+        <w:tcW w:w="4650" w:type="dxa"/>
+        <w:tcMar><w:top w:w="80" w:type="dxa"/><w:left w:w="0" w:type="dxa"/><w:bottom w:w="80" w:type="dxa"/><w:right w:w="300" w:type="dxa"/></w:tcMar>
+        <w:tcBorders>
+          <w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/>
+        </w:tcBorders>
+      </w:tcPr>
+      ${this.paragraph(label, "TableText", { color: "6B7280" })}
+      ${this.paragraph(name || "—", "NormalBold")}
+      ${this.paragraph("____________________________", "Normal", { align: "center" })}
+      ${this.paragraph(caption, "TableText", { color: "6B7280", align: "center" })}
+    </w:tc>`;
+  }
+
+  private signatureBlockHtml(draft: CommercialProposalDraft): string {
+    if (!this.needsClientSignature(draft)) {
+      return `<section>
+        <p style="margin-top: 34px;">З повагою,</p>
+        <p><strong>ТОВ «РБТ-ГРУП»</strong></p>
+      </section>`;
+    }
+
+    return `<section class="signature-grid">
+      <div class="signature-box">
+        <div class="signature-label">Виконавець</div>
+        <div class="signature-name">ТОВ «РБТ-ГРУП»</div>
+        <div class="signature-line">підпис / печатка</div>
+      </div>
+      <div class="signature-box">
+        <div class="signature-label">Замовник / клієнт</div>
+        <div class="signature-name">${this.html(draft.client || "—")}</div>
+        <div class="signature-line">підпис клієнта</div>
+      </div>
+    </section>`;
+  }
+
+  private needsClientSignature(draft: CommercialProposalDraft): boolean {
+    return (
+      draft.documentType === "serviceAct" || draft.documentType === "returnAct"
+    );
   }
 
   private paragraph(
