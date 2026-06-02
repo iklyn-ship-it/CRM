@@ -4,7 +4,7 @@
 }
 
 :host .internal-scroll-panel {
-  height: calc(100dvh - 40px);
+  height: calc(100dvh - 138px);
   max-height: none;
   min-width: 0;
   overflow: hidden;
@@ -12,6 +12,8 @@
 
 :host .client-tree.internal-scroll-body {
   align-content: start;
+  max-height: 100%;
+  overflow: auto;
   padding-right: 4px;
   overscroll-behavior: contain;
 }
@@ -904,7 +906,7 @@ button.edit-chip:hover {
 
 @media (max-width: 1180px) {
   :host .internal-scroll-panel {
-    height: calc(100dvh - 24px);
+    height: calc(100dvh - 124px);
   }
 
   .client-head,
@@ -938,5 +940,27 @@ button.edit-chip:hover {
 
   .order-hero {
     display: grid;
+  }
+}
+
+@media (max-height: 820px) {
+  :host .internal-scroll-panel {
+    height: calc(100dvh - 112px);
+  }
+
+  .client-tree {
+    gap: 8px;
+  }
+
+  .client-head {
+    padding: 11px 12px;
+  }
+
+  .location-list {
+    padding: 8px 10px 10px;
+  }
+
+  .location-row {
+    padding: 10px;
   }
 }
