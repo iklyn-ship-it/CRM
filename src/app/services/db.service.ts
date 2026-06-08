@@ -134,6 +134,10 @@ export class DbService {
       operatorAdditionalWorkHours: Number(
         order.operatorAdditionalWorkHours || 0,
       ),
+      operatorSalaryMode: this.normalizeOperatorSalaryMode(
+        order.operatorSalaryMode,
+      ),
+      operatorSalaryRate: Number(order.operatorSalaryRate || 0),
       vatEnabled: Boolean(order.vatEnabled),
       discountEnabled: Boolean(order.discountEnabled),
       discountType: order.discountType || "percent",
@@ -152,6 +156,8 @@ export class DbService {
             startDate: shift.startDate || "",
             endDate: shift.endDate || "",
             idleDates: Array.isArray(shift.idleDates) ? shift.idleDates : [],
+            salaryMode: this.normalizeOperatorSalaryMode(shift.salaryMode),
+            salaryRate: Number(shift.salaryRate || 0),
           }))
         : [],
       logisticsEnabled: Boolean(order.logisticsEnabled),
@@ -229,6 +235,12 @@ export class DbService {
       breakdownCreateRepair: Boolean(order.breakdownCreateRepair),
       breakdownRepairId: order.breakdownRepairId || "",
     } as Order;
+  }
+
+  private normalizeOperatorSalaryMode(mode: any) {
+    return ["auto", "hourly", "daily", "fixed"].includes(mode)
+      ? mode
+      : "auto";
   }
 
   private normalizeOperation(row: any): FinanceOperation {

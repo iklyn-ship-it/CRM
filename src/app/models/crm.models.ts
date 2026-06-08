@@ -29,6 +29,7 @@ export interface Operator {
 }
 
 export type OperatorWorkStatus = "active" | "sick_leave" | "dismissed";
+export type OperatorSalaryMode = "auto" | "hourly" | "daily" | "fixed";
 
 export interface OperatorShift {
   id: string;
@@ -36,6 +37,8 @@ export interface OperatorShift {
   startDate: string;
   endDate: string;
   idleDates: string[];
+  salaryMode?: OperatorSalaryMode;
+  salaryRate?: number;
 }
 
 export interface Order {
@@ -53,6 +56,8 @@ export interface Order {
   standardWorkHours: number;
   additionalWorkHours: number;
   operatorAdditionalWorkHours: number;
+  operatorSalaryMode?: OperatorSalaryMode;
+  operatorSalaryRate?: number;
   vatEnabled: boolean;
   discountEnabled: boolean;
   discountType: "percent" | "amount";

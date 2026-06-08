@@ -15,6 +15,7 @@ import {
   FinanceOperation,
   Equipment,
   OperatorShift,
+  OperatorSalaryMode,
   Order,
   OrderStatus,
   Transport,
@@ -108,6 +109,15 @@ export class ProjectsComponent {
   readonly editableStatuses = this.statuses.filter(
     (status) => status.value !== "completed",
   );
+  readonly operatorSalaryModes: {
+    value: OperatorSalaryMode;
+    label: string;
+  }[] = [
+    { value: "auto", label: "Авто из карточки" },
+    { value: "hourly", label: "₴/час" },
+    { value: "daily", label: "₴/день" },
+    { value: "fixed", label: "Фикс" },
+  ];
 
   readonly operationCategories = [
     "Оплата клиента",
@@ -478,6 +488,8 @@ export class ProjectsComponent {
       operatorAdditionalWorkHours: Number(
         this.orderForm.operatorAdditionalWorkHours || 0,
       ),
+      operatorSalaryMode: this.orderForm.operatorSalaryMode,
+      operatorSalaryRate: Number(this.orderForm.operatorSalaryRate || 0),
       vatEnabled: Boolean(this.orderForm.vatEnabled),
       operatorShifts: this.normalizeOperatorShifts(
         this.orderForm.operatorShifts,
@@ -1495,6 +1507,8 @@ export class ProjectsComponent {
         startDate: target.primaryOperatorStartDate || target.startDate,
         endDate: target.primaryOperatorEndDate || target.endDate,
         idleDates: [],
+        salaryMode: "auto",
+        salaryRate: 0,
       },
     ];
   }
@@ -1527,15 +1541,11 @@ export class ProjectsComponent {
     shift: OperatorShift,
     fallback: { startDate: string; endDate: string; standardWorkHours: number },
   ): number {
-    const operator = this.state.byId(this.state.operators(), shift.operatorId);
-    if (operator?.hourlyRate) {
-      return (
-        this.shiftWorkDays(shift, fallback) *
-        Number(fallback.standardWorkHours || 8) *
-        Number(operator.hourlyRate || 0)
-      );
-    }
-    return this.shiftWorkDays(shift, fallback) * Number(operator?.rate || 0);
+    return this.operatorPayrollFor(
+      shift,
+      this.shiftWorkDays(shift, fallback),
+      Number(fallback.standardWorkHours || 8),
+    );
   }
 
   primaryOperatorWorkDays(
@@ -1554,15 +1564,51 @@ export class ProjectsComponent {
   primaryOperatorPayroll(
     form: typeof this.orderForm | typeof this.createForm,
   ): number {
-    const operator = this.state.byId(this.state.operators(), form.operatorId);
+    return this.operatorPayrollFor(
+      {
+        id: "main",
+        operatorId: form.operatorId,
+        startDate: form.primaryOperatorStartDate || form.startDate,
+        endDate: form.primaryOperatorEndDate || form.endDate,
+        idleDates: form.operatorIdleDates,
+        salaryMode: form.operatorSalaryMode,
+        salaryRate: Number(form.operatorSalaryRate || 0),
+      },
+      this.primaryOperatorWorkDays(form),
+      Number(form.standardWorkHours || 8),
+    );
+  }
+
+  operatorSalaryRateLabel(mode?: OperatorSalaryMode): string {
+    return (
+      {
+        auto: "Сумма не нужна",
+        hourly: "Ставка, ₴/час",
+        daily: "Ставка, ₴/день",
+        fixed: "Фикс, ₴",
+      }[mode || "auto"] || "Сумма"
+    );
+  }
+
+  private operatorPayrollFor(
+    assignment: Partial<OperatorShift> & { operatorId: string },
+    days: number,
+    standardWorkHours: number,
+  ): number {
+    if (!days) return 0;
+    const mode = assignment.salaryMode || "auto";
+    const rate = Number(assignment.salaryRate || 0);
+    if (mode === "hourly") return days * standardWorkHours * rate;
+    if (mode === "daily") return days * rate;
+    if (mode === "fixed") return rate;
+    const operator = this.state.byId(
+      this.state.operators(),
+      assignment.operatorId,
+    );
     if (operator?.hourlyRate) {
-      return (
-        this.primaryOperatorWorkDays(form) *
-        Number(form.standardWorkHours || 8) *
-        Number(operator.hourlyRate || 0)
-      );
+      return days * standardWorkHours * Number(operator.hourlyRate || 0);
     }
-    return this.primaryOperatorWorkDays(form) * Number(operator?.rate || 0);
+    return days * Number(operator?.rate || 0);
   }
 
   isShiftIdleDate(shift: OperatorShift, date: string): boolean {
@@ -1771,6 +1817,8 @@ export class ProjectsComponent {
       standardWorkHours: 8,
       additionalWorkHours: 0,
       operatorAdditionalWorkHours: 0,
+      operatorSalaryMode: "auto" as OperatorSalaryMode,
+      operatorSalaryRate: 0,
       vatEnabled: false,
       equipmentIdleDates: [] as string[],
       operatorIdleDates: [] as string[],
@@ -1860,6 +1908,9 @@ export class ProjectsComponent {
       operatorAdditionalWorkHours: Number(
         order.operatorAdditionalWorkHours || 0,
       ),
+      operatorSalaryMode:
+        order.operatorSalaryMode || ("auto" as OperatorSalaryMode),
+      operatorSalaryRate: Number(order.operatorSalaryRate || 0),
       vatEnabled: Boolean(order.vatEnabled),
       equipmentIdleDates: [...(order.equipmentIdleDates || [])],
       operatorIdleDates: [...(order.operatorIdleDates || [])],
@@ -1972,6 +2023,8 @@ export class ProjectsComponent {
       operatorAdditionalWorkHours: Number(
         this.orderForm.operatorAdditionalWorkHours || 0,
       ),
+      operatorSalaryMode: this.orderForm.operatorSalaryMode,
+      operatorSalaryRate: Number(this.orderForm.operatorSalaryRate || 0),
       vatEnabled: Boolean(this.orderForm.vatEnabled),
       discountEnabled: this.orderForm.discountEnabled,
       discountType: this.orderForm.discountType,
@@ -2242,6 +2295,8 @@ export class ProjectsComponent {
       operatorAdditionalWorkHours: Number(
         this.createForm.operatorAdditionalWorkHours || 0,
       ),
+      operatorSalaryMode: this.createForm.operatorSalaryMode,
+      operatorSalaryRate: Number(this.createForm.operatorSalaryRate || 0),
       vatEnabled: Boolean(this.createForm.vatEnabled),
       discountEnabled: Boolean(this.createForm.discountEnabled),
       discountType: this.createForm.discountType,
@@ -2312,7 +2367,12 @@ export class ProjectsComponent {
     shifts: OperatorShift[],
     order: Pick<
       Order,
-      "operatorId" | "startDate" | "endDate" | "operatorIdleDates"
+      | "operatorId"
+      | "startDate"
+      | "endDate"
+      | "operatorIdleDates"
+      | "operatorSalaryMode"
+      | "operatorSalaryRate"
     >,
     primaryStartDate = "",
     primaryEndDate = "",
@@ -2337,6 +2397,8 @@ export class ProjectsComponent {
             idleDates: [...new Set(order.operatorIdleDates || [])]
               .filter((date) => periodDates.has(date))
               .sort(),
+            salaryMode: order.operatorSalaryMode || "auto",
+            salaryRate: Number(order.operatorSalaryRate || 0),
           },
         ];
       }
@@ -2355,6 +2417,8 @@ export class ProjectsComponent {
           idleDates: [...new Set(shift.idleDates || [])]
             .filter((date) => dates.has(date))
             .sort(),
+          salaryMode: shift.salaryMode || "auto",
+          salaryRate: Number(shift.salaryRate || 0),
         };
       });
   }
@@ -2366,6 +2430,8 @@ export class ProjectsComponent {
       startDate: shift.startDate || "",
       endDate: shift.endDate || "",
       idleDates: [...(shift.idleDates || [])],
+      salaryMode: shift.salaryMode || "auto",
+      salaryRate: Number(shift.salaryRate || 0),
     }));
   }
 
@@ -2416,6 +2482,8 @@ export class ProjectsComponent {
       standardWorkHours: 8,
       additionalWorkHours: 0,
       operatorAdditionalWorkHours: 0,
+      operatorSalaryMode: "auto" as OperatorSalaryMode,
+      operatorSalaryRate: 0,
       vatEnabled: false,
       operatorIdleDates: [] as string[],
       operatorShifts: [] as OperatorShift[],
@@ -2481,6 +2549,9 @@ export class ProjectsComponent {
     }
     if (message.includes("operator_additional_work_hours")) {
       return "База Supabase еще не готова для дополнительных часов оператора. Выполни SQL-файл supabase-operator-additional-hours.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("operator_salary_")) {
+      return "База Supabase еще не готова для зарплаты операторов в заявке. Выполни SQL-файл supabase-order-operator-salary.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (message.includes("deferred")) {
       return "База Supabase еще не готова для отложенных заявок. Выполни SQL-файл supabase-order-deferred.sql в Supabase SQL Editor и попробуй снова.";

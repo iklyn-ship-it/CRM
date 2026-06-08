@@ -6,6 +6,7 @@ import {
   Equipment,
   Order,
   OperatorShift,
+  OperatorSalaryMode,
   FinanceOperation,
   Transport,
 } from "../models/crm.models";
@@ -379,35 +380,25 @@ export class StateService {
 
   orderOperatorCost(order: Order, fromDate = "", toDate = ""): number {
     if (order.status === "cancelled") return 0;
-    const totalOperatorDays = this.orderOperatorAssignments(order).reduce(
+    const assignments = this.orderOperatorAssignments(order);
+    const totalOperatorDays = assignments.reduce(
       (sum, assignment) =>
         sum +
         this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
       0,
     );
-    return this.orderOperatorAssignments(order).reduce((sum, assignment) => {
-      const operator = this.byId(this.operators(), assignment.operatorId);
-      if (!operator?.rate && !operator?.hourlyRate) return sum;
-      const days = this.operatorAssignmentWorkDays(
-        order,
-        assignment,
-        fromDate,
-        toDate,
-      );
-      const hourlyRate = Number(operator.hourlyRate || 0);
-      if (hourlyRate > 0) {
-        const extraHours =
-          totalOperatorDays > 0
-            ? Number(order.operatorAdditionalWorkHours || 0) *
-              (days / totalOperatorDays)
-            : 0;
-        return (
-          sum +
-          (days * this.orderStandardWorkHours(order) + extraHours) * hourlyRate
-        );
-      }
-      return sum + days * Number(operator.rate || 0);
-    }, 0);
+    return assignments.reduce(
+      (sum, assignment) =>
+        sum +
+        this.operatorAssignmentCost(
+          order,
+          assignment,
+          fromDate,
+          toDate,
+          totalOperatorDays,
+        ),
+      0,
+    );
   }
 
   orderLogisticsCost(order: Order): number {
@@ -601,19 +592,76 @@ export class StateService {
     fromDate = "",
     toDate = "",
   ): number {
-    const operator = this.byId(this.operators(), operatorId);
+    const assignments = this.orderOperatorAssignments(order);
+    const totalOperatorDays = assignments.reduce(
+      (sum, assignment) =>
+        sum +
+        this.operatorAssignmentWorkDays(order, assignment, fromDate, toDate),
+      0,
+    );
+    return assignments
+      .filter((assignment) => assignment.operatorId === operatorId)
+      .reduce(
+        (sum, assignment) =>
+          sum +
+          this.operatorAssignmentCost(
+            order,
+            assignment,
+            fromDate,
+            toDate,
+            totalOperatorDays,
+          ),
+        0,
+      );
+  }
+
+  operatorAssignmentCost(
+    order: Order,
+    assignment: OperatorShift,
+    fromDate = "",
+    toDate = "",
+    totalOperatorDays = 0,
+  ): number {
+    const days = this.operatorAssignmentWorkDays(
+      order,
+      assignment,
+      fromDate,
+      toDate,
+    );
+    if (!days) return 0;
+    const operator = this.byId(this.operators(), assignment.operatorId);
+    const mode = this.operatorSalaryMode(assignment.salaryMode);
+    const rate = Number(assignment.salaryRate || 0);
+    const extraHours =
+      totalOperatorDays > 0
+        ? Number(order.operatorAdditionalWorkHours || 0) *
+          (days / totalOperatorDays)
+        : 0;
+    if (mode === "hourly") {
+      return (days * this.orderStandardWorkHours(order) + extraHours) * rate;
+    }
+    if (mode === "daily") {
+      const standardHours = this.orderStandardWorkHours(order);
+      const extraAsDays = standardHours > 0 ? extraHours / standardHours : 0;
+      return (days + extraAsDays) * rate;
+    }
+    if (mode === "fixed") {
+      const allDays = this.operatorAssignmentWorkDays(order, assignment);
+      return allDays > 0 ? rate * (days / allDays) : rate;
+    }
     const hourlyRate = Number(operator?.hourlyRate || 0);
     if (hourlyRate > 0) {
       return (
-        this.orderOperatorWorkDaysFor(order, operatorId, fromDate, toDate) *
-        this.orderStandardWorkHours(order) *
-        hourlyRate
+        (days * this.orderStandardWorkHours(order) + extraHours) * hourlyRate
       );
     }
-    return (
-      this.orderOperatorWorkDaysFor(order, operatorId, fromDate, toDate) *
-      Number(operator?.rate || 0)
-    );
+    return days * Number(operator?.rate || 0);
+  }
+
+  private operatorSalaryMode(mode?: OperatorSalaryMode): OperatorSalaryMode {
+    return ["hourly", "daily", "fixed"].includes(mode || "")
+      ? (mode as OperatorSalaryMode)
+      : "auto";
   }
 
   orderWorksOnDate(
@@ -776,6 +824,8 @@ export class StateService {
               ...globalIdleDates,
             ]),
           ],
+          salaryMode: this.operatorSalaryMode(shift.salaryMode),
+          salaryRate: Number(shift.salaryRate || 0),
         }))
         .filter(
           (shift) =>
@@ -793,6 +843,8 @@ export class StateService {
         startDate: order.startDate,
         endDate: order.endDate,
         idleDates: order.operatorIdleDates || [],
+        salaryMode: this.operatorSalaryMode(order.operatorSalaryMode),
+        salaryRate: Number(order.operatorSalaryRate || 0),
       },
     ];
   }

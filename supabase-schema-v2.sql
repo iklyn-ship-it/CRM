@@ -58,6 +58,8 @@ create table if not exists public.orders (
   standard_work_hours numeric not null default 8,
   additional_work_hours numeric not null default 0,
   operator_additional_work_hours numeric not null default 0,
+  operator_salary_mode text not null default 'auto',
+  operator_salary_rate numeric not null default 0,
   vat_enabled boolean not null default false,
   discount_enabled boolean not null default false,
   discount_type text not null default 'percent',

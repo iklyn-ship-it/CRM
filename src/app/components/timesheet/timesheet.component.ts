@@ -215,6 +215,7 @@ export class TimesheetComponent {
     const dayDetails: Record<string, TimesheetDayDetail[]> = {};
     const details: TimesheetOrderDetail[] = [];
     const extraHoursByOrder = new Map<string, number>();
+    let payrollAmount = 0;
 
     this.state
       .orders()
@@ -223,6 +224,14 @@ export class TimesheetComponent {
         const assignments = this.operatorAssignmentsForTimesheet(order).filter(
           (assignment) => assignment.operatorId === operator.id,
         );
+        if (assignments.length) {
+          payrollAmount += this.state.orderOperatorCostFor(
+            order,
+            operator.id,
+            this.periodStart(),
+            this.periodEnd(),
+          );
+        }
         const totalAssignmentDays = assignments.reduce(
           (sum, assignment) =>
             sum +
@@ -311,11 +320,7 @@ export class TimesheetComponent {
     ).length;
     const hourlyRate = Number(operator.hourlyRate || 0);
     const dailyRate = Number(operator.rate || 0);
-    const amount =
-      hourlyRate > 0
-        ? totalHours * hourlyRate
-        : totalDays * dailyRate +
-          (extraHours > 0 ? extraHours * (dailyRate / 8) : 0);
+    const amount = payrollAmount;
 
     return {
       index,
@@ -343,39 +348,7 @@ export class TimesheetComponent {
   }
 
   private operatorAssignmentsForTimesheet(order: Order): OperatorShift[] {
-    if (order.operatorShifts?.length) {
-      const globalIdleDates = new Set(order.operatorIdleDates || []);
-      return order.operatorShifts
-        .map((shift) => ({
-          id: shift.id || "",
-          operatorId: shift.operatorId || "",
-          startDate: shift.startDate || order.startDate,
-          endDate: shift.endDate || shift.startDate || order.endDate,
-          idleDates: [
-            ...new Set([
-              ...(Array.isArray(shift.idleDates) ? shift.idleDates : []),
-              ...globalIdleDates,
-            ]),
-          ],
-        }))
-        .filter(
-          (shift) =>
-            shift.operatorId &&
-            shift.startDate &&
-            shift.endDate &&
-            shift.startDate <= shift.endDate,
-        );
-    }
-    if (!order.operatorId) return [];
-    return [
-      {
-        id: "main",
-        operatorId: order.operatorId,
-        startDate: order.startDate,
-        endDate: order.endDate,
-        idleDates: order.operatorIdleDates || [],
-      },
-    ];
+    return this.state.orderOperatorAssignments(order);
   }
 
   private assignmentDates(

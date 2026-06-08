@@ -226,6 +226,29 @@
                   name="createPrimaryOperatorEndDate"
                 />
               </div>
+              <div class="field">
+                <label>Зарплата оператора</label>
+                <select
+                  [(ngModel)]="createForm.operatorSalaryMode"
+                  name="createOperatorSalaryMode"
+                >
+                  @for (mode of operatorSalaryModes; track mode.value) {
+                    <option [value]="mode.value">{{ mode.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>{{
+                  operatorSalaryRateLabel(createForm.operatorSalaryMode)
+                }}</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="createForm.operatorSalaryRate"
+                  name="createOperatorSalaryRate"
+                  [disabled]="createForm.operatorSalaryMode === 'auto'"
+                />
+              </div>
               <div class="field wide">
                 <label>Дополнительные часы оператора</label>
                 <input
@@ -300,6 +323,29 @@
                         {{ shiftWorkDays(shift, createForm) }} дн. •
                         {{ utils.money(shiftPayroll(shift, createForm)) }}
                       </div>
+                    </div>
+                    <div class="field">
+                      <label>Зарплата смены</label>
+                      <select
+                        [(ngModel)]="shift.salaryMode"
+                        [name]="'createShiftSalaryMode' + i"
+                      >
+                        @for (mode of operatorSalaryModes; track mode.value) {
+                          <option [value]="mode.value">
+                            {{ mode.label }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>{{ operatorSalaryRateLabel(shift.salaryMode) }}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        [(ngModel)]="shift.salaryRate"
+                        [name]="'createShiftSalaryRate' + i"
+                        [disabled]="shift.salaryMode === 'auto'"
+                      />
                     </div>
                   </div>
                   <button
@@ -757,6 +803,29 @@
                   name="primaryOperatorEndDate"
                 />
               </div>
+              <div class="field">
+                <label>Зарплата оператора</label>
+                <select
+                  [(ngModel)]="orderForm.operatorSalaryMode"
+                  name="operatorSalaryMode"
+                >
+                  @for (mode of operatorSalaryModes; track mode.value) {
+                    <option [value]="mode.value">{{ mode.label }}</option>
+                  }
+                </select>
+              </div>
+              <div class="field">
+                <label>{{
+                  operatorSalaryRateLabel(orderForm.operatorSalaryMode)
+                }}</label>
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="orderForm.operatorSalaryRate"
+                  name="operatorSalaryRate"
+                  [disabled]="orderForm.operatorSalaryMode === 'auto'"
+                />
+              </div>
               <div class="field wide">
                 <label>Дополнительные часы оператора</label>
                 <input
@@ -837,6 +906,29 @@
                         {{ shiftWorkDays(shift, orderForm) }} дн. •
                         {{ utils.money(shiftPayroll(shift, orderForm)) }}
                       </div>
+                    </div>
+                    <div class="field">
+                      <label>Зарплата смены</label>
+                      <select
+                        [(ngModel)]="shift.salaryMode"
+                        [name]="'orderShiftSalaryMode' + i"
+                      >
+                        @for (mode of operatorSalaryModes; track mode.value) {
+                          <option [value]="mode.value">
+                            {{ mode.label }}
+                          </option>
+                        }
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>{{ operatorSalaryRateLabel(shift.salaryMode) }}</label>
+                      <input
+                        type="number"
+                        min="0"
+                        [(ngModel)]="shift.salaryRate"
+                        [name]="'orderShiftSalaryRate' + i"
+                        [disabled]="shift.salaryMode === 'auto'"
+                      />
                     </div>
                   </div>
                   <details class="idle-date-picker shift-idle-picker">
