@@ -3,9 +3,14 @@
     <h2>Ремонты</h2>
     <p>Планирование ремонтов, статусы и пересечения с арендой.</p>
   </div>
-  <button type="button" class="btn primary" (click)="openCreate()">
-    + Новый ремонт
-  </button>
+  <div class="heading-actions">
+    <button type="button" class="btn ghost" (click)="openRepairDocument()">
+      ⎙ Документ по ремонтам
+    </button>
+    <button type="button" class="btn primary" (click)="openCreate()">
+      + Новый ремонт
+    </button>
+  </div>
 </div>
 
 @if (formOpen()) {
@@ -204,3 +209,38 @@
     </div>
   </div>
 </div>
+
+@if (documentPreviewUrl(); as previewUrl) {
+  <div class="document-preview-backdrop" (click)="closeDocumentPreview()">
+    <div class="document-preview-modal" (click)="$event.stopPropagation()">
+      <div class="document-preview-head">
+        <div>
+          <h3>Документ по ремонтам</h3>
+          <p>Проверь данные и отправь на печать или сохрани в PDF.</p>
+        </div>
+        <div class="document-preview-actions">
+          <button
+            type="button"
+            class="btn primary"
+            (click)="printDocumentPreview(documentPreviewFrame)"
+          >
+            Печать / PDF
+          </button>
+          <button
+            type="button"
+            class="btn ghost"
+            (click)="closeDocumentPreview()"
+          >
+            Закрыть
+          </button>
+        </div>
+      </div>
+      <iframe
+        #documentPreviewFrame
+        class="document-preview-frame"
+        title="Документ по ремонтам"
+        [src]="previewUrl"
+      ></iframe>
+    </div>
+  </div>
+}
