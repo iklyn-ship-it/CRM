@@ -26,6 +26,13 @@ export class RepairsComponent {
   formOpen = signal(false);
   documentPreviewUrl = signal<SafeResourceUrl | null>(null);
   private documentPreviewObjectUrl = "";
+  documentResponsibleFilter = "";
+  documentStatusSelection: Record<RepairStatus, boolean> = {
+    planned: true,
+    active: true,
+    completed: true,
+    cancelled: true,
+  };
   editingId = "";
   form = {
     equipmentId: "",
@@ -42,6 +49,13 @@ export class RepairsComponent {
   readonly conflictSet = computed(
     () => new Set(this.state.repairConflicts().flatMap((x) => [x[0], x[1]])),
   );
+
+  readonly repairStatuses: { value: RepairStatus; label: string }[] = [
+    { value: "planned", label: "Запланирован" },
+    { value: "active", label: "В ремонте" },
+    { value: "completed", label: "Завершён" },
+    { value: "cancelled", label: "Отменён" },
+  ];
 
   readonly filteredRepairs = computed(() => {
     const q = this.search().toLowerCase(),
@@ -61,6 +75,16 @@ export class RepairsComponent {
         );
       });
     return list.sort((a, b) => b.startDate.localeCompare(a.startDate));
+  });
+
+  readonly documentResponsibleOptions = computed(() => {
+    return [
+      ...new Set(
+        this.documentBaseRepairs()
+          .map((repair) => (repair.responsible || "").trim())
+          .filter(Boolean),
+      ),
+    ].sort((a, b) => a.localeCompare(b));
   });
 
   eqName(id: string): string {
@@ -92,8 +116,13 @@ export class RepairsComponent {
   }
 
   openRepairDocument(): void {
-    const html = this.repairDocumentHtml(this.filteredRepairs());
-    this.closeDocumentPreview();
+    this.resetDocumentFilters();
+    this.refreshRepairDocument();
+  }
+
+  refreshRepairDocument(): void {
+    const html = this.repairDocumentHtml(this.documentFilteredRepairs());
+    this.releaseDocumentUrl();
     this.documentPreviewObjectUrl = URL.createObjectURL(
       new Blob([html], { type: "text/html;charset=utf-8" }),
     );
@@ -105,11 +134,15 @@ export class RepairsComponent {
   }
 
   closeDocumentPreview(): void {
+    this.releaseDocumentUrl();
+    this.documentPreviewUrl.set(null);
+  }
+
+  private releaseDocumentUrl(): void {
     if (this.documentPreviewObjectUrl) {
       URL.revokeObjectURL(this.documentPreviewObjectUrl);
       this.documentPreviewObjectUrl = "";
     }
-    this.documentPreviewUrl.set(null);
   }
 
   printDocumentPreview(frame: HTMLIFrameElement): void {
@@ -180,12 +213,67 @@ export class RepairsComponent {
     };
   }
 
+  private resetDocumentFilters(): void {
+    this.documentResponsibleFilter = "";
+    this.documentStatusSelection = {
+      planned: true,
+      active: true,
+      completed: true,
+      cancelled: true,
+    };
+  }
+
+  private documentBaseRepairs(): Repair[] {
+    const q = this.search().toLowerCase();
+    let list = [...this.state.repairs()];
+    if (q) {
+      list = list.filter((r) => {
+        const eq = (
+          this.state.byId(this.state.equipment(), r.equipmentId)?.name || ""
+        ).toLowerCase();
+        return (
+          eq.includes(q) ||
+          (r.responsible || "").toLowerCase().includes(q) ||
+          (r.tasks || "").toLowerCase().includes(q) ||
+          (r.notes || "").toLowerCase().includes(q)
+        );
+      });
+    }
+    return list;
+  }
+
+  private documentFilteredRepairs(): Repair[] {
+    const statuses = new Set(
+      this.repairStatuses
+        .filter((status) => this.documentStatusSelection[status.value])
+        .map((status) => status.value),
+    );
+    const responsible = this.documentResponsibleFilter.trim();
+    return this.documentBaseRepairs()
+      .filter((repair) => statuses.has(repair.status))
+      .filter(
+        (repair) =>
+          !responsible || (repair.responsible || "").trim() === responsible,
+      )
+      .sort((a, b) => b.startDate.localeCompare(a.startDate));
+  }
+
   private repairDocumentHtml(repairs: Repair[]): string {
-    const totalLabor = repairs.reduce((sum, r) => sum + Number(r.laborCost || 0), 0);
-    const totalParts = repairs.reduce((sum, r) => sum + Number(r.partsCost || 0), 0);
+    const totalLabor = repairs.reduce(
+      (sum, r) => sum + Number(r.laborCost || 0),
+      0,
+    );
+    const totalParts = repairs.reduce(
+      (sum, r) => sum + Number(r.partsCost || 0),
+      0,
+    );
     const total = totalLabor + totalParts;
-    const statusText =
-      this.filterStatus() ? this.statusLabel(this.filterStatus()) : "Все статусы";
+    const statusText = this.repairStatuses
+      .filter((status) => this.documentStatusSelection[status.value])
+      .map((status) => status.label)
+      .join(", ");
+    const responsibleText =
+      this.documentResponsibleFilter.trim() || "Все ответственные";
     const rows = repairs
       .map(
         (r, index) => `<tr>
@@ -266,7 +354,7 @@ export class RepairsComponent {
       <div class="address">Місцезнаходження: 08292, Київська обл.,<br />Бучанський р-н, м. Буча, вул. Тячівська, буд.1</div>
     </header>
     <h1>Звіт по ремонтах</h1>
-    <p class="subtitle">Сформовано ${this.html(this.utils.fmtDate(this.utils.todayStr()))} • Фільтр: ${this.html(statusText)}</p>
+    <p class="subtitle">Сформовано ${this.html(this.utils.fmtDate(this.utils.todayStr()))} • Статуси: ${this.html(statusText || "Не выбраны")} • Відповідальний: ${this.html(responsibleText)}</p>
     <section class="summary">
       <div class="summary-card"><div class="label">Ремонтів у документі</div><div class="value">${repairs.length}</div></div>
       <div class="summary-card"><div class="label">Вартість робіт</div><div class="value">${this.html(this.utils.money(totalLabor))}</div></div>

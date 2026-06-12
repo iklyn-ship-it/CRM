@@ -218,22 +218,49 @@
           <h3>Документ по ремонтам</h3>
           <p>Проверь данные и отправь на печать или сохрани в PDF.</p>
         </div>
-        <div class="document-preview-actions">
-          <button
-            type="button"
-            class="btn primary"
-            (click)="printDocumentPreview(documentPreviewFrame)"
-          >
-            Печать / PDF
-          </button>
-          <button
-            type="button"
-            class="btn ghost"
-            (click)="closeDocumentPreview()"
-          >
-            Закрыть
-          </button>
+        <button
+          type="button"
+          class="btn ghost"
+          (click)="closeDocumentPreview()"
+        >
+          Закрыть
+        </button>
+      </div>
+      <div class="document-editor-bar">
+        <div class="document-filter-group">
+          <span>Статусы:</span>
+          @for (status of repairStatuses; track status.value) {
+            <label class="document-check">
+              <input
+                type="checkbox"
+                [(ngModel)]="documentStatusSelection[status.value]"
+                [name]="'documentStatus' + status.value"
+                (ngModelChange)="refreshRepairDocument()"
+              />
+              {{ status.label }}
+            </label>
+          }
         </div>
+        <label class="document-responsible-filter">
+          Ответственный
+          <select
+            [(ngModel)]="documentResponsibleFilter"
+            name="documentResponsibleFilter"
+            (ngModelChange)="refreshRepairDocument()"
+          >
+            <option value="">Все ответственные</option>
+            @for (responsible of documentResponsibleOptions(); track responsible) {
+              <option [value]="responsible">{{ responsible }}</option>
+            }
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn primary"
+          (click)="printDocumentPreview(documentPreviewFrame)"
+        >
+          Печать / PDF
+        </button>
       </div>
       <iframe
         #documentPreviewFrame
