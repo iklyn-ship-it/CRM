@@ -264,6 +264,7 @@ export class DbService {
       ...repair,
       laborCost: Number(repair.laborCost || 0),
       partsCost: Number(repair.partsCost || 0),
+      subcontractor: Boolean(repair.subcontractor),
       responsible: repair.responsible || "",
     } as Repair;
   }
@@ -901,6 +902,7 @@ export class DbService {
       standardWorkHours: "Стандарт часов",
       additionalWorkHours: "Дополнительные часы",
       operatorAdditionalWorkHours: "Дополнительные часы оператора",
+      subcontractor: "Подрядная организация",
       vatEnabled: "НДС",
       discountEnabled: "Скидка",
       discountType: "Тип скидки",

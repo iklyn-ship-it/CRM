@@ -87,6 +87,14 @@
             readonly
           />
         </div>
+        <label class="form-check">
+          <input
+            type="checkbox"
+            [(ngModel)]="form.subcontractor"
+            name="subcontractor"
+          />
+          Подрядная организация
+        </label>
         <div class="field">
           <label>Ответственный за ремонт</label>
           <input
@@ -151,6 +159,7 @@
               <th>Период</th>
               <th>Техника</th>
               <th>Работы</th>
+              <th>Подрядчик</th>
               <th>Ответственный</th>
               <th>Сумма</th>
               <th>Комментарий</th>
@@ -176,6 +185,7 @@
                 </td>
                 <td>{{ eqName(r.equipmentId) }}</td>
                 <td>{{ r.tasks || "—" }}</td>
+                <td>{{ r.subcontractor ? "Да" : "Нет" }}</td>
                 <td>{{ r.responsible || "—" }}</td>
                 <td>
                   <strong>{{ utils.money(repairTotal(r)) }}</strong>
@@ -200,7 +210,7 @@
             }
             @if (!filteredRepairs().length) {
               <tr>
-                <td colspan="9"><div class="empty">Ремонтов пока нет.</div></td>
+                <td colspan="10"><div class="empty">Ремонтов пока нет.</div></td>
               </tr>
             }
           </tbody>
@@ -253,6 +263,15 @@
               <option [value]="responsible">{{ responsible }}</option>
             }
           </select>
+        </label>
+        <label class="document-check">
+          <input
+            type="checkbox"
+            [(ngModel)]="documentShowTotals"
+            name="documentShowTotals"
+            (ngModelChange)="refreshRepairDocument()"
+          />
+          Показывать итоговые цифры
         </label>
         <button
           type="button"

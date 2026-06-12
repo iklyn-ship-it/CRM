@@ -135,6 +135,7 @@ export interface Repair {
   status: RepairStatus;
   laborCost: number;
   partsCost: number;
+  subcontractor: boolean;
   responsible: string;
   tasks: string;
   notes: string;

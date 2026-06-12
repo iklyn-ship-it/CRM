@@ -126,6 +126,7 @@ create table if not exists public.repairs (
   status       text not null default 'planned',
   labor_cost   numeric not null default 0,
   parts_cost   numeric not null default 0,
+  subcontractor boolean not null default false,
   responsible  text not null default '',
   tasks        text not null default '',
   notes        text not null default '',

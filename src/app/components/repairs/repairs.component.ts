@@ -33,6 +33,7 @@ export class RepairsComponent {
     completed: true,
     cancelled: true,
   };
+  documentShowTotals = true;
   editingId = "";
   form = {
     equipmentId: "",
@@ -41,6 +42,7 @@ export class RepairsComponent {
     status: "planned" as RepairStatus,
     laborCost: 0,
     partsCost: 0,
+    subcontractor: false,
     responsible: "",
     tasks: "",
     notes: "",
@@ -182,6 +184,7 @@ export class RepairsComponent {
       status: r.status,
       laborCost: Number(r.laborCost || 0),
       partsCost: Number(r.partsCost || 0),
+      subcontractor: Boolean(r.subcontractor),
       responsible: r.responsible || "",
       tasks: r.tasks,
       notes: r.notes,
@@ -207,6 +210,7 @@ export class RepairsComponent {
       status: "planned",
       laborCost: 0,
       partsCost: 0,
+      subcontractor: false,
       responsible: "",
       tasks: "",
       notes: "",
@@ -221,6 +225,7 @@ export class RepairsComponent {
       completed: true,
       cancelled: true,
     };
+    this.documentShowTotals = true;
   }
 
   private documentBaseRepairs(): Repair[] {
@@ -285,6 +290,7 @@ export class RepairsComponent {
           </td>
           <td>${this.html(this.utils.fmtDate(r.startDate))}<br /><span class="muted">${this.html(this.utils.fmtDate(r.endDate))} • ${this.utils.daysInclusive(r.startDate, r.endDate)} дн.</span></td>
           <td>${this.html(r.tasks || "—")}</td>
+          <td class="nowrap">${r.subcontractor ? "Так" : "Ні"}</td>
           <td>${this.html(r.responsible || "—")}</td>
           <td class="money">${this.html(this.utils.money(r.laborCost || 0))}</td>
           <td class="money">${this.html(this.utils.money(r.partsCost || 0))}</td>
@@ -323,7 +329,8 @@ export class RepairsComponent {
     th, td { border: 1px solid var(--line); padding: 8px; vertical-align: top; font-size: 12px; overflow-wrap: anywhere; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
     .muted { color: var(--muted); font-size: 11px; }
-    .money { text-align: right; white-space: nowrap; }
+    .money, .nowrap { text-align: right; white-space: nowrap; }
+    th { white-space: nowrap; }
     .empty { padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
     footer { margin-top: 22px; padding-top: 12px; border-top: 2px solid #c7ceda; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
     @media print {
@@ -355,12 +362,16 @@ export class RepairsComponent {
     </header>
     <h1>Звіт по ремонтах</h1>
     <p class="subtitle">Сформовано ${this.html(this.utils.fmtDate(this.utils.todayStr()))} • Статуси: ${this.html(statusText || "Не выбраны")} • Відповідальний: ${this.html(responsibleText)}</p>
-    <section class="summary">
+    ${
+      this.documentShowTotals
+        ? `<section class="summary">
       <div class="summary-card"><div class="label">Ремонтів у документі</div><div class="value">${repairs.length}</div></div>
       <div class="summary-card"><div class="label">Вартість робіт</div><div class="value">${this.html(this.utils.money(totalLabor))}</div></div>
       <div class="summary-card"><div class="label">Вартість запчастин</div><div class="value">${this.html(this.utils.money(totalParts))}</div></div>
       <div class="summary-card"><div class="label">Разом</div><div class="value">${this.html(this.utils.money(total))}</div></div>
-    </section>
+    </section>`
+        : ""
+    }
     ${
       repairs.length
         ? `<table>
@@ -371,9 +382,10 @@ export class RepairsComponent {
           <th style="width: 180px">Техніка</th>
           <th style="width: 105px">Період</th>
           <th>Роботи</th>
-          <th style="width: 130px">Відповідальний</th>
+          <th style="width: 96px">Підрядник</th>
+          <th style="width: 150px">Відповідальний</th>
           <th style="width: 95px">Роботи</th>
-          <th style="width: 95px">Запчастини</th>
+          <th style="width: 110px">Запчастини</th>
           <th style="width: 95px">Сума</th>
           <th>Коментар</th>
         </tr>
