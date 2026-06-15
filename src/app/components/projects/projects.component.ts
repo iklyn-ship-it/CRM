@@ -84,6 +84,7 @@ export class ProjectsComponent {
   search = signal("");
   filterStatus = signal("");
   ordersScope = signal<"active" | "deferred" | "completed">("active");
+  completedPaymentFilter = signal<"all" | "paid" | "unpaid">("all");
   expandedClientIds = signal<string[]>([]);
   selectedLocationKey = signal("");
   selectedOrderId = signal("");
@@ -170,6 +171,7 @@ export class ProjectsComponent {
     const q = this.search().trim().toLowerCase();
     const status = this.filterStatus();
     const scope = this.ordersScope();
+    const completedPaymentFilter = this.completedPaymentFilter();
     let rows = this.state.orders().filter((order) => {
       if (scope === "deferred") return order.deferred;
       if (scope === "completed") {
@@ -178,6 +180,13 @@ export class ProjectsComponent {
       return !order.deferred && order.status !== "completed";
     });
     if (status) rows = rows.filter((order) => order.status === status);
+    if (scope === "completed" && completedPaymentFilter !== "all") {
+      rows = rows.filter((order) =>
+        completedPaymentFilter === "paid"
+          ? this.isOrderPaid(order)
+          : !this.isOrderPaid(order),
+      );
+    }
     if (q) {
       rows = rows.filter((order) =>
         [
@@ -259,8 +268,8 @@ export class ProjectsComponent {
           overdue: orders.filter(
             (order) => this.orderEndingKind(order) === "overdue",
           ).length,
-          unpaidCompleted: orders.filter((order) =>
-            this.orderPaymentKind(order),
+          unpaidCompleted: orders.filter(
+            (order) => this.orderPaymentKind(order) === "unpaid",
           ).length,
           newOrders: orders.filter((order) => order.status === "new").length,
           equipmentConflicts: orders.filter((order) =>
@@ -321,6 +330,7 @@ export class ProjectsComponent {
 
   switchOrdersScope(scope: "active" | "deferred" | "completed"): void {
     this.ordersScope.set(scope);
+    if (scope !== "completed") this.completedPaymentFilter.set("all");
     this.selectedLocationKey.set("");
     this.selectedOrderId.set("");
     this.creatingOrder.set(false);
@@ -1729,15 +1739,18 @@ export class ProjectsComponent {
     return `До окончания резерва ${daysLeft} дн.`;
   }
 
-  orderPaymentKind(order: Order): "unpaid" | "" {
+  isOrderPaid(order: Order): boolean {
+    return order.status === "completed" && this.state.orderRemaining(order) <= 0;
+  }
+
+  orderPaymentKind(order: Order): "paid" | "unpaid" | "" {
     if (order.status !== "completed") return "";
-    return this.state.orderRemaining(order) > 0 ? "unpaid" : "";
+    return this.isOrderPaid(order) ? "paid" : "unpaid";
   }
 
   orderPaymentLabel(order: Order): string {
-    return `Завершена, не оплачено ${this.utils.money(
-      this.state.orderRemaining(order),
-    )}`;
+    if (this.isOrderPaid(order)) return "Завершена, оплачено";
+    return `Завершена, не оплачено ${this.utils.money(this.state.orderRemaining(order))}`;
   }
 
   orderRepairNotice(order: Order): string {
@@ -1813,8 +1826,9 @@ export class ProjectsComponent {
       overdue: sorted.filter(
         (order) => this.orderEndingKind(order) === "overdue",
       ).length,
-      unpaidCompleted: sorted.filter((order) => this.orderPaymentKind(order))
-        .length,
+      unpaidCompleted: sorted.filter(
+        (order) => this.orderPaymentKind(order) === "unpaid",
+      ).length,
       newOrders: sorted.filter((order) => order.status === "new").length,
       equipmentConflicts: sorted.filter((order) =>
         this.conflictSet().has(order.id),

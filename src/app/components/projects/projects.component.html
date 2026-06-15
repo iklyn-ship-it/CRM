@@ -2228,6 +2228,34 @@
           Завершенные
         </button>
       </div>
+      @if (ordersScope() === "completed") {
+        <div class="scope-tabs payment-subfilter">
+          <button
+            type="button"
+            class="filter-chip"
+            [class.active]="completedPaymentFilter() === 'all'"
+            (click)="completedPaymentFilter.set('all')"
+          >
+            Все
+          </button>
+          <button
+            type="button"
+            class="filter-chip"
+            [class.active]="completedPaymentFilter() === 'paid'"
+            (click)="completedPaymentFilter.set('paid')"
+          >
+            Оплаченные
+          </button>
+          <button
+            type="button"
+            class="filter-chip"
+            [class.active]="completedPaymentFilter() === 'unpaid'"
+            (click)="completedPaymentFilter.set('unpaid')"
+          >
+            Не оплаченные
+          </button>
+        </div>
+      }
       <input
         type="text"
         [value]="search()"

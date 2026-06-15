@@ -367,6 +367,13 @@
   color: #bae6fd;
 }
 
+.ending-chip.paid,
+.ending-notice.paid {
+  border: 1px solid rgba(34, 197, 94, 0.42);
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+}
+
 .ending-chip.fresh,
 .ending-notice.fresh {
   border: 1px solid rgba(34, 197, 94, 0.42);
