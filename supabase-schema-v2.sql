@@ -51,6 +51,7 @@ create table if not exists public.orders (
   start_date   text not null default '',
   end_date     text not null default '',
   location     text not null default '',
+  payment_type text not null default 'cashless',
   rate         numeric not null default 0,
   equipment_hourly_rate numeric not null default 0,
   equipment_engine_hours_start numeric not null default 0,

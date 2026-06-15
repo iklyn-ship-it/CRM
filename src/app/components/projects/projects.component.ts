@@ -19,6 +19,7 @@ import {
   Order,
   OrderStatus,
   Transport,
+  OrderPaymentType,
 } from "../../models/crm.models";
 import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
@@ -27,6 +28,7 @@ interface LocationGroup {
   clientId: string;
   clientName: string;
   location: string;
+  paymentTypes: OrderPaymentType[];
   orders: Order[];
   plan: number;
   income: number;
@@ -109,6 +111,10 @@ export class ProjectsComponent {
   readonly editableStatuses = this.statuses.filter(
     (status) => status.value !== "completed",
   );
+  readonly paymentTypes: { value: OrderPaymentType; label: string }[] = [
+    { value: "cashless", label: "Безнал" },
+    { value: "cash", label: "Нал" },
+  ];
   readonly operatorSalaryModes: {
     value: OperatorSalaryMode;
     label: string;
@@ -347,6 +353,10 @@ export class ProjectsComponent {
         location?.clientId === "no-client" ? "" : location?.clientId || "",
       location:
         location?.location === "Без локации" ? "" : location?.location || "",
+      paymentType:
+        location?.paymentTypes.length === 1
+          ? this.orderPaymentType(location.paymentTypes[0])
+          : "cashless",
       startDate: today,
       endDate: today,
     };
@@ -475,6 +485,7 @@ export class ProjectsComponent {
       startDate: this.orderForm.startDate,
       endDate: this.orderForm.endDate,
       location: this.orderForm.location,
+      paymentType: this.orderPaymentType(this.orderForm.paymentType),
       rate: Number(this.orderForm.rate || 0),
       equipmentHourlyRate: Number(this.orderForm.equipmentHourlyRate || 0),
       equipmentEngineHoursStart: Number(
@@ -1677,6 +1688,24 @@ export class ProjectsComponent {
     );
   }
 
+  orderPaymentType(type?: OrderPaymentType): OrderPaymentType {
+    return type === "cash" ? "cash" : "cashless";
+  }
+
+  paymentTypeLabel(type?: OrderPaymentType): string {
+    return this.orderPaymentType(type) === "cash" ? "Нал" : "Безнал";
+  }
+
+  locationPaymentLabel(location: LocationGroup): string {
+    const types = [
+      ...new Set(
+        location.paymentTypes.map((type) => this.orderPaymentType(type)),
+      ),
+    ];
+    if (types.length > 1) return "Нал/Безнал";
+    return this.paymentTypeLabel(types[0]);
+  }
+
   orderEndingDaysLeft(order: Order): number {
     if (!order.endDate) return 9999;
     const today = new Date(`${this.utils.todayStr()}T00:00:00`).getTime();
@@ -1752,6 +1781,11 @@ export class ProjectsComponent {
       clientId,
       clientName,
       location,
+      paymentTypes: [
+        ...new Set(
+          sorted.map((order) => this.orderPaymentType(order.paymentType)),
+        ),
+      ],
       orders: sorted,
       plan: sorted.reduce((sum, order) => sum + this.state.orderPlan(order), 0),
       income: sorted.reduce(
@@ -1807,6 +1841,7 @@ export class ProjectsComponent {
       startDate: "",
       endDate: "",
       location: "",
+      paymentType: "cashless" as OrderPaymentType,
       primaryOperatorStartDate: "",
       primaryOperatorEndDate: "",
       plan: 0,
@@ -1896,6 +1931,7 @@ export class ProjectsComponent {
       startDate: order.startDate || "",
       endDate: order.endDate || "",
       location: order.location || "",
+      paymentType: this.orderPaymentType(order.paymentType),
       primaryOperatorStartDate: this.primaryOperatorPeriod(order).startDate,
       primaryOperatorEndDate: this.primaryOperatorPeriod(order).endDate,
       plan: Math.round(this.state.orderPlan(order)),
@@ -2004,6 +2040,7 @@ export class ProjectsComponent {
       startDate: this.orderForm.startDate,
       endDate: this.orderForm.endDate,
       location: this.orderForm.location,
+      paymentType: this.orderPaymentType(this.orderForm.paymentType),
       operatorShifts: this.normalizeOperatorShifts(
         this.orderForm.operatorShifts,
         order,
@@ -2282,6 +2319,7 @@ export class ProjectsComponent {
       startDate: this.createForm.startDate,
       endDate: this.createForm.endDate,
       location: this.createForm.location,
+      paymentType: this.orderPaymentType(this.createForm.paymentType),
       rate: Number(this.createForm.rate || 0),
       equipmentHourlyRate: Number(this.createForm.equipmentHourlyRate || 0),
       equipmentEngineHoursStart: Number(
@@ -2473,6 +2511,7 @@ export class ProjectsComponent {
       startDate: "",
       endDate: "",
       location: "",
+      paymentType: "cashless" as OrderPaymentType,
       status: "new" as OrderStatus,
       plan: 0,
       rate: 0,
@@ -2552,6 +2591,9 @@ export class ProjectsComponent {
     }
     if (message.includes("operator_salary_")) {
       return "База Supabase еще не готова для зарплаты операторов в заявке. Выполни SQL-файл supabase-order-operator-salary.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("payment_type")) {
+      return "База Supabase еще не готова для типа оплаты заявок. Выполни SQL-файл supabase-order-payment-type.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (message.includes("deferred")) {
       return "База Supabase еще не готова для отложенных заявок. Выполни SQL-файл supabase-order-deferred.sql в Supabase SQL Editor и попробуй снова.";

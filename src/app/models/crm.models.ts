@@ -49,6 +49,7 @@ export interface Order {
   startDate: string;
   endDate: string;
   location: string;
+  paymentType?: OrderPaymentType;
   rate: number;
   equipmentHourlyRate: number;
   equipmentEngineHoursStart: number;
@@ -120,6 +121,7 @@ export type OrderStatus =
   | "active"
   | "completed"
   | "cancelled";
+export type OrderPaymentType = "cash" | "cashless";
 export type BreakdownStatus =
   | "reported"
   | "diagnostics"

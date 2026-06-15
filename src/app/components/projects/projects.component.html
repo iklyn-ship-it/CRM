@@ -395,6 +395,15 @@
           </label>
 
           <label class="edit-chip">
+            <span>Тип оплаты</span>
+            <select [(ngModel)]="createForm.paymentType" name="createPaymentType">
+              @for (type of paymentTypes; track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label class="edit-chip">
             <span>Дата начала</span>
             <input
               type="date"
@@ -1372,6 +1381,15 @@
             />
           </label>
 
+          <label class="edit-chip">
+            <span>Тип оплаты</span>
+            <select [(ngModel)]="orderForm.paymentType" name="paymentType">
+              @for (type of paymentTypes; track type.value) {
+                <option [value]="type.value">{{ type.label }}</option>
+              }
+            </select>
+          </label>
+
           <button
             type="button"
             class="edit-chip money-chip plan-open-chip"
@@ -2314,6 +2332,9 @@
                 >
                   <div>
                     <strong>{{ location.location }}</strong>
+                    <span class="payment-type-chip">
+                      {{ locationPaymentLabel(location) }}
+                    </span>
                     <span>{{ location.orders.length }} заявк.</span>
                     <span class="indicator-pack">
                       @if (location.newOrders) {

@@ -129,6 +129,7 @@ export class DbService {
       equipmentHourlyRate: Number(order.equipmentHourlyRate || 0),
       equipmentEngineHoursStart: Number(order.equipmentEngineHoursStart || 0),
       equipmentEngineHoursEnd: Number(order.equipmentEngineHoursEnd || 0),
+      paymentType: this.normalizeOrderPaymentType(order.paymentType),
       standardWorkHours: Number(order.standardWorkHours || 8),
       additionalWorkHours: Number(order.additionalWorkHours || 0),
       operatorAdditionalWorkHours: Number(
@@ -241,6 +242,10 @@ export class DbService {
     return ["auto", "hourly", "daily", "fixed"].includes(mode)
       ? mode
       : "auto";
+  }
+
+  private normalizeOrderPaymentType(type: any) {
+    return ["cash", "cashless"].includes(type) ? type : "cashless";
   }
 
   private normalizeOperation(row: any): FinanceOperation {
@@ -894,6 +899,7 @@ export class DbService {
       breakdownCreateRepair: "Создать ремонт",
       breakdownRepairId: "Связанный ремонт",
       location: "Локация",
+      paymentType: "Тип оплаты",
       budget: "Бюджет",
       rate: "Тариф",
       equipmentHourlyRate: "Ставка техники за час",
