@@ -3,6 +3,9 @@
     <h2>Отчеты</h2>
     <p>Сводки по клиентам, объектам, технике, операторам и деньгам.</p>
   </div>
+  <button type="button" class="btn primary" (click)="openEquipmentDocument()">
+    ⎙ Документ по технике
+  </button>
 </div>
 
 <div class="card panel report-controls">
@@ -11,7 +14,7 @@
     <input
       type="date"
       [ngModel]="periodFrom()"
-      (ngModelChange)="periodFrom.set($event)"
+      (ngModelChange)="periodFrom.set($event); refreshEquipmentDocumentIfOpen()"
     />
   </label>
   <label>
@@ -19,13 +22,97 @@
     <input
       type="date"
       [ngModel]="periodTo()"
-      (ngModelChange)="periodTo.set($event)"
+      (ngModelChange)="periodTo.set($event); refreshEquipmentDocumentIfOpen()"
     />
   </label>
   <button type="button" class="btn ghost" (click)="resetPeriod()">
     Весь период
   </button>
 </div>
+
+@if (documentPreviewUrl(); as previewUrl) {
+  <div class="document-preview-backdrop" (click)="closeDocumentPreview()">
+    <div class="document-preview-modal" (click)="$event.stopPropagation()">
+      <div class="document-preview-head">
+        <div>
+          <h3>Документ по технике</h3>
+          <p>Настрой выборку, проверь документ и отправь на печать/PDF.</p>
+        </div>
+        <button
+          type="button"
+          class="btn ghost"
+          (click)="closeDocumentPreview()"
+        >
+          Закрыть
+        </button>
+      </div>
+      <div class="document-editor-bar">
+        <label>
+          Период от
+          <input
+            type="date"
+            [ngModel]="periodFrom()"
+            (ngModelChange)="periodFrom.set($event); refreshEquipmentDocument()"
+          />
+        </label>
+        <label>
+          Период до
+          <input
+            type="date"
+            [ngModel]="periodTo()"
+            (ngModelChange)="periodTo.set($event); refreshEquipmentDocument()"
+          />
+        </label>
+        <label>
+          Выбор техники
+          <select
+            [(ngModel)]="equipmentDocumentMode"
+            name="equipmentDocumentMode"
+            (ngModelChange)="refreshEquipmentDocument()"
+          >
+            <option value="all">Вся техника</option>
+            <option value="worked">Техника, которая работала</option>
+            <option value="single">Одна единица</option>
+          </select>
+        </label>
+        @if (equipmentDocumentMode === "single") {
+          <label>
+            Техника
+            <app-equipment-picker
+              name="equipmentDocumentId"
+              placeholder="— выбрать технику —"
+              [equipment]="state.equipment()"
+              [(value)]="equipmentDocumentId"
+              (valueChange)="refreshEquipmentDocument()"
+            />
+          </label>
+        }
+        <label class="document-check">
+          <input
+            type="checkbox"
+            [(ngModel)]="equipmentDocumentShowFinance"
+            name="equipmentDocumentShowFinance"
+            (ngModelChange)="refreshEquipmentDocument()"
+          />
+          Показывать финансы
+        </label>
+        <button
+          type="button"
+          class="btn primary"
+          (click)="printDocumentPreview(documentPreviewFrame)"
+        >
+          Печать / PDF
+        </button>
+      </div>
+      <iframe
+        #documentPreviewFrame
+        class="document-preview-frame"
+        title="Документ по технике"
+        [src]="previewUrl"
+      ></iframe>
+    </div>
+  </div>
+}
 
 <div class="report-grid">
   <div class="card panel">

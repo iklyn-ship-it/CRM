@@ -1,9 +1,10 @@
 import { Component, computed, inject, signal } from "@angular/core";
 import { NgClass } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
-import { Order } from "../../models/crm.models";
+import { Equipment, Order } from "../../models/crm.models";
 import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 interface ReportSummary {
@@ -22,6 +23,20 @@ interface LocationClientReport {
   summary: ReportSummary;
 }
 
+type EquipmentDocumentMode = "all" | "worked" | "single";
+
+interface EquipmentDocumentRow {
+  equipment: Equipment;
+  orders: Order[];
+  days: number;
+  hours: number;
+  plan: number;
+  income: number;
+  expense: number;
+  profit: number;
+  remaining: number;
+}
+
 @Component({
   selector: "app-reports",
   standalone: true,
@@ -32,6 +47,7 @@ interface LocationClientReport {
 export class ReportsComponent {
   state = inject(StateService);
   utils = inject(UtilsService);
+  sanitizer = inject(DomSanitizer);
 
   selectedClientId = signal("");
   selectedLocation = signal("");
@@ -39,6 +55,11 @@ export class ReportsComponent {
   selectedOperatorId = signal("");
   periodFrom = signal("");
   periodTo = signal("");
+  documentPreviewUrl = signal<SafeResourceUrl | null>(null);
+  private documentPreviewObjectUrl = "";
+  equipmentDocumentMode: EquipmentDocumentMode = "worked";
+  equipmentDocumentId = "";
+  equipmentDocumentShowFinance = true;
 
   readonly locations = computed(() =>
     Array.from(
@@ -218,6 +239,48 @@ export class ReportsComponent {
   resetPeriod(): void {
     this.periodFrom.set("");
     this.periodTo.set("");
+    this.refreshEquipmentDocumentIfOpen();
+  }
+
+  openEquipmentDocument(): void {
+    this.equipmentDocumentMode = this.selectedEquipmentId() ? "single" : "worked";
+    this.equipmentDocumentId = this.selectedEquipmentId();
+    this.equipmentDocumentShowFinance = true;
+    this.refreshEquipmentDocument();
+  }
+
+  refreshEquipmentDocumentIfOpen(): void {
+    if (this.documentPreviewUrl()) this.refreshEquipmentDocument();
+  }
+
+  refreshEquipmentDocument(): void {
+    const html = this.equipmentDocumentHtml(this.equipmentDocumentRows());
+    this.releaseDocumentUrl();
+    this.documentPreviewObjectUrl = URL.createObjectURL(
+      new Blob([html], { type: "text/html;charset=utf-8" }),
+    );
+    this.documentPreviewUrl.set(
+      this.sanitizer.bypassSecurityTrustResourceUrl(
+        this.documentPreviewObjectUrl,
+      ),
+    );
+  }
+
+  closeDocumentPreview(): void {
+    this.releaseDocumentUrl();
+    this.documentPreviewUrl.set(null);
+  }
+
+  printDocumentPreview(frame: HTMLIFrameElement): void {
+    frame.contentWindow?.focus();
+    frame.contentWindow?.print();
+  }
+
+  private releaseDocumentUrl(): void {
+    if (this.documentPreviewObjectUrl) {
+      URL.revokeObjectURL(this.documentPreviewObjectUrl);
+      this.documentPreviewObjectUrl = "";
+    }
   }
 
   clientName(id: string): string {
@@ -320,6 +383,46 @@ export class ReportsComponent {
     return labels[status] || status;
   }
 
+  equipmentDocumentRows(): EquipmentDocumentRow[] {
+    const selectedId = this.equipmentDocumentId || this.selectedEquipmentId();
+    return this.state
+      .equipment()
+      .filter((equipment) =>
+        this.equipmentDocumentMode === "single" ? equipment.id === selectedId : true,
+      )
+      .map((equipment) => {
+        const orders = this.filteredOrders().filter((order) =>
+          this.state.orderEquipmentReservationIds(order).includes(equipment.id),
+        );
+        const days = orders.reduce(
+          (sum, order) => sum + this.equipmentWorkDays(order, equipment.id),
+          0,
+        );
+        const hours = orders.reduce(
+          (sum, order) => sum + this.equipmentWorkHours(order, equipment.id),
+          0,
+        );
+        const summary = this.summaryFor(orders);
+        return {
+          equipment,
+          orders,
+          days,
+          hours,
+          plan: summary.plan,
+          income: summary.income,
+          expense: summary.expense,
+          profit: summary.profit,
+          remaining: summary.remaining,
+        };
+      })
+      .filter((row) =>
+        this.equipmentDocumentMode === "worked"
+          ? row.orders.length > 0 || row.days > 0
+          : true,
+      )
+      .sort((a, b) => b.plan - a.plan || b.days - a.days);
+  }
+
   private filteredOrders(): Order[] {
     return this.state
       .orders()
@@ -380,5 +483,188 @@ export class ReportsComponent {
 
   private normalizeLocation(value: string): string {
     return (value || "").trim().replace(/\s+/g, " ");
+  }
+
+  private equipmentDocumentHtml(rows: EquipmentDocumentRow[]): string {
+    const totals = rows.reduce(
+      (sum, row) => ({
+        equipment: sum.equipment + 1,
+        orders: sum.orders + row.orders.length,
+        days: sum.days + row.days,
+        hours: sum.hours + row.hours,
+        plan: sum.plan + row.plan,
+        income: sum.income + row.income,
+        expense: sum.expense + row.expense,
+        profit: sum.profit + row.profit,
+        remaining: sum.remaining + row.remaining,
+      }),
+      {
+        equipment: 0,
+        orders: 0,
+        days: 0,
+        hours: 0,
+        plan: 0,
+        income: 0,
+        expense: 0,
+        profit: 0,
+        remaining: 0,
+      },
+    );
+    const period = this.periodLabel();
+    const modeLabel =
+      this.equipmentDocumentMode === "all"
+        ? "Вся техника"
+        : this.equipmentDocumentMode === "worked"
+          ? "Техника, которая работала"
+          : `Одна единица: ${this.equipmentName(this.equipmentDocumentId)}`;
+    const rowHtml = rows
+      .map((row, index) => {
+        const orderDetails = row.orders.length
+          ? row.orders
+              .map(
+                (order) =>
+                  `<div class="detail-line">${this.html(this.utils.shortId(order.id))} • ${this.html(this.clientName(order.clientId))} • ${this.html(order.location || "—")} • ${this.html(this.utils.fmtDate(order.startDate))}-${this.html(this.utils.fmtDate(order.endDate))} • ${this.html(this.statusLabel(order.status))}</div>`,
+              )
+              .join("")
+          : `<div class="muted">Заявок за период нет.</div>`;
+        return `<tr>
+          <td>${index + 1}</td>
+          <td><strong>${this.html(row.equipment.name)}</strong><div class="muted">${this.html(row.equipment.type || "Тип не указан")}</div></td>
+          <td class="num">${row.orders.length}</td>
+          <td class="num">${row.days}</td>
+          <td class="num">${row.hours}</td>
+          ${
+            this.equipmentDocumentShowFinance
+              ? `<td class="money">${this.html(this.utils.money(row.plan))}</td>
+          <td class="money">${this.html(this.utils.money(row.income))}</td>
+          <td class="money">${this.html(this.utils.money(row.expense))}</td>
+          <td class="money">${this.html(this.utils.money(row.profit))}</td>
+          <td class="money">${this.html(this.utils.money(row.remaining))}</td>`
+              : ""
+          }
+          <td>${orderDetails}</td>
+        </tr>`;
+      })
+      .join("");
+
+    return `<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>Звіт по техніці</title>
+  <style>
+    :root { --ink: #172033; --muted: #697386; --line: #d8dee9; --brand: #15386f; --soft: #eef4ff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e8edf5; color: var(--ink); font-family: Arial, sans-serif; }
+    .toolbar { position: sticky; top: 0; z-index: 2; display: flex; justify-content: flex-end; gap: 10px; padding: 10px 14px; background: #111827; }
+    .toolbar button { border: 0; border-radius: 10px; padding: 10px 14px; font-weight: 800; cursor: pointer; color: #fff; background: #16a34a; }
+    .page { width: 297mm; min-height: 210mm; margin: 18px auto; padding: 16mm; background: #fff; box-shadow: 0 18px 50px rgba(15, 23, 42, .18); }
+    header { display: grid; grid-template-columns: 1fr 1.3fr; gap: 24px; align-items: end; padding-bottom: 14px; border-bottom: 3px solid #c7ceda; }
+    .logo { font-size: 48px; font-weight: 900; letter-spacing: -5px; color: #c2c9d4; line-height: .85; }
+    .logo span { color: #b7cdf8; }
+    .company, .address, .muted { color: var(--muted); }
+    .company, .address { font-weight: 700; font-size: 13px; line-height: 1.45; }
+    .address { text-align: right; }
+    h1 { margin: 24px 0 4px; color: var(--brand); text-align: center; font-size: 30px; }
+    .subtitle { margin: 0 0 18px; text-align: center; color: var(--muted); }
+    .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
+    .summary-card { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); }
+    .summary-card .label { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .summary-card .value { margin-top: 6px; font-size: 20px; font-weight: 900; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    th { background: var(--brand); color: #fff; text-align: left; font-size: 11px; letter-spacing: .03em; text-transform: uppercase; white-space: nowrap; }
+    th, td { border: 1px solid var(--line); padding: 7px; vertical-align: top; font-size: 11px; overflow-wrap: anywhere; }
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    .num, .money { text-align: right; white-space: nowrap; }
+    .detail-line { margin-bottom: 4px; }
+    .empty { padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
+    footer { margin-top: 22px; padding-top: 12px; border-top: 2px solid #c7ceda; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .page { width: auto; min-height: auto; margin: 0; padding: 10mm; box-shadow: none; }
+      tr { page-break-inside: avoid; }
+    }
+    @media (max-width: 900px) {
+      .page { width: 100%; margin: 0; padding: 16px; }
+      header, .summary { grid-template-columns: 1fr; }
+      .address { text-align: left; }
+      table { min-width: 1200px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar"><button type="button" onclick="window.print()">Печать / PDF</button></div>
+  <main class="page">
+    <header>
+      <div>
+        <div class="logo">R<span>B</span>T</div>
+        <div class="company">ТОВ «РБТ-ГРУП»<br />код ЄДРПОУ 37360626</div>
+      </div>
+      <div class="address">Місцезнаходження: 08292, Київська обл.,<br />Бучанський р-н, м. Буча, вул. Тячівська, буд.1</div>
+    </header>
+    <h1>Звіт по техніці</h1>
+    <p class="subtitle">Період: ${this.html(period)} • Вибірка: ${this.html(modeLabel)} • Сформовано ${this.html(this.utils.fmtDate(this.utils.todayStr()))}</p>
+    <section class="summary">
+      <div class="summary-card"><div class="label">Одиниць техніки</div><div class="value">${totals.equipment}</div></div>
+      <div class="summary-card"><div class="label">Заявок</div><div class="value">${totals.orders}</div></div>
+      <div class="summary-card"><div class="label">Днів роботи/резерву</div><div class="value">${totals.days}</div></div>
+      <div class="summary-card"><div class="label">Годин роботи</div><div class="value">${totals.hours}</div></div>
+      ${
+        this.equipmentDocumentShowFinance
+          ? `<div class="summary-card"><div class="label">План</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
+      <div class="summary-card"><div class="label">Прихід</div><div class="value">${this.html(this.utils.money(totals.income))}</div></div>
+      <div class="summary-card"><div class="label">Расход</div><div class="value">${this.html(this.utils.money(totals.expense))}</div></div>
+      <div class="summary-card"><div class="label">Прибуток</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>`
+          : ""
+      }
+    </section>
+    ${
+      rows.length
+        ? `<table>
+      <thead>
+        <tr>
+          <th style="width: 34px">№</th>
+          <th style="width: 210px">Техніка</th>
+          <th style="width: 58px">Заявки</th>
+          <th style="width: 52px">Дні</th>
+          <th style="width: 58px">Год.</th>
+          ${
+            this.equipmentDocumentShowFinance
+              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Расход</th><th style="width: 82px">Прибуток</th><th style="width: 82px">Залишок</th>`
+              : ""
+          }
+          <th>Деталі заявок</th>
+        </tr>
+      </thead>
+      <tbody>${rowHtml}</tbody>
+    </table>`
+        : `<div class="empty">За поточною вибіркою немає даних.</div>`
+    }
+    <footer>
+      <span>trans@rbt-group.com.ua</span>
+      <span>+38(068) 968 44 28</span>
+    </footer>
+  </main>
+</body>
+</html>`;
+  }
+
+  private periodLabel(): string {
+    const from = this.periodStart();
+    const to = this.periodEnd();
+    if (from && to) return `${this.utils.fmtDate(from)} - ${this.utils.fmtDate(to)}`;
+    if (from) return `з ${this.utils.fmtDate(from)}`;
+    if (to) return `до ${this.utils.fmtDate(to)}`;
+    return "весь період";
+  }
+
+  private html(value: unknown): string {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 }
