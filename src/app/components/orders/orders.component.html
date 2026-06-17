@@ -168,7 +168,7 @@
             </div>
             <div class="small">
               Всего часов техники: {{ orderDraftWorkHours() }} ч. Эти часы
-              добавляются к плану заявки.
+              добавляются к сумме к оплате по заявке.
             </div>
           </details>
           <div class="logistics-box">
@@ -266,7 +266,7 @@
                   }
                 </div>
                 <div class="small">
-                  Эти дни не считаются в план заявки и не занимают технику.
+                  Эти дни не считаются в сумму к оплате по заявке и не занимают технику.
                 </div>
               </details>
             </div>
@@ -746,9 +746,9 @@
                 Поломка:
                 {{ breakdownDates().length || 0 }} дн.
                 @if (form.breakdownAffectsPayment) {
-                  <span>Эти дни будут вычтены из плана аренды.</span>
+                  <span>Эти дни будут вычтены из суммы аренды.</span>
                 } @else {
-                  <span>План аренды не изменится.</span>
+                  <span>Сумма аренды не изменится.</span>
                 }
                 @if (form.breakdownRepairId) {
                   <strong
@@ -1114,7 +1114,7 @@
             }}</strong>
           </div>
           <div>
-            <span>План</span>
+            <span>Сумма к оплате</span>
             <strong>{{ utils.money(state.orderPlan(selected)) }}</strong>
           </div>
           <div>
@@ -1326,7 +1326,7 @@
                 <th>Период</th>
                 <th>Клиент</th>
                 <th>Техника</th>
-                <th>План</th>
+                <th>Сумма к оплате</th>
                 <th>Доход</th>
                 <th>Расход</th>
                 <th>Прибыль</th>

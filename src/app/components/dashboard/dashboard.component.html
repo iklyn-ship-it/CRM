@@ -41,19 +41,19 @@
 
 <div class="plan-analytics">
   <div class="card metric plan-metric">
-    <div class="label">План заявок</div>
+    <div class="label">Сумма к оплате по заявкам</div>
     <div class="val">{{ utils.money(planSummary().totalPlan) }}</div>
     <div class="sub">
       {{ periodOrders().length }} заявок {{ periodLabel() }}
     </div>
   </div>
   <div class="card metric plan-metric">
-    <div class="label">План в работе</div>
+    <div class="label">К оплате в работе</div>
     <div class="val">{{ utils.money(planSummary().activePlan) }}</div>
     <div class="sub">новые, подтверждённые и активные</div>
   </div>
   <div class="card metric plan-metric">
-    <div class="label">Закрытый план</div>
+    <div class="label">К оплате по закрытым</div>
     <div class="val">{{ utils.money(planSummary().completedPlan) }}</div>
     <div class="sub">по завершённым заявкам</div>
   </div>
@@ -66,9 +66,9 @@
 
 <div class="card panel plan-breakdown">
   <div class="chart-head">
-    <h3>План по статусам заявок</h3>
+    <h3>Сумма к оплате по статусам заявок</h3>
     <span class="small"
-      >Средний план: {{ utils.money(planSummary().avgPlan) }}</span
+      >Средняя сумма: {{ utils.money(planSummary().avgPlan) }}</span
     >
   </div>
   <div class="status-bars">
@@ -127,7 +127,7 @@
             </p>
           </div>
           <div class="conflict-meta">
-            <span>План {{ utils.money(state.orderPlan(order)) }}</span>
+            <span>Сумма к оплате {{ utils.money(state.orderPlan(order)) }}</span>
             <span>Оплачено {{ utils.money(state.orderIncome(order.id)) }}</span>
             <strong
               >Остаток {{ utils.money(state.orderRemaining(order)) }}</strong

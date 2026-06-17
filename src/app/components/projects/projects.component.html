@@ -459,7 +459,7 @@
             class="edit-chip money-chip plan-open-chip"
             (click)="openCreateCostEditor()"
           >
-            <span>Общая стоимость / план</span>
+            <span>Общая стоимость / сумма к оплате</span>
             <strong>{{ utils.money(createDraftPlan()) }}</strong>
             <small>Открыть расчет</small>
           </button>
@@ -727,7 +727,7 @@
                       }
                     </div>
                     <div class="small">
-                      Эти дни не считаются в план заявки и не занимают технику.
+                      Эти дни не считаются в сумму к оплате по заявке и не занимают технику.
                     </div>
                   </details>
                 </div>
@@ -1395,7 +1395,7 @@
             class="edit-chip money-chip plan-open-chip"
             (click)="openCostEditor()"
           >
-            <span>Общая стоимость / план</span>
+            <span>Общая стоимость / сумма к оплате</span>
             <strong>{{ utils.money(orderDraftPlan(order)) }}</strong>
             <small>Открыть расчет</small>
           </button>
@@ -1432,7 +1432,7 @@
 
         <div class="finance-summary">
           <div class="metric">
-            <span>План после правок</span>
+            <span>Сумма к оплате после правок</span>
             <strong>{{ utils.money(orderDraftPlan(order)) }}</strong>
             @if (breakdownPaymentDelta(order) > 0) {
               <small
@@ -1594,7 +1594,7 @@
                 >
                 @if (orderForm.breakdownAffectsPayment) {
                   <strong>
-                    План уменьшится на
+                    Сумма к оплате уменьшится на
                     {{ utils.money(breakdownPaymentDelta(order)) }}
                   </strong>
                 } @else {
@@ -2110,7 +2110,7 @@
         </div>
         <div class="location-totals">
           <div>
-            <span>План</span><strong>{{ utils.money(location.plan) }}</strong>
+            <span>Сумма к оплате</span><strong>{{ utils.money(location.plan) }}</strong>
           </div>
           <div>
             <span>Приход</span
@@ -2134,7 +2134,7 @@
               <th>ID</th>
               <th>Техника</th>
               <th>Даты брони</th>
-              <th>План</th>
+              <th>Сумма к оплате</th>
               <th>Приход</th>
               <th>Расход</th>
               <th>Прибыль</th>
@@ -2288,7 +2288,7 @@
             <strong>{{ client.clientName }}</strong>
             <span>{{ client.ordersCount }} заявк.</span>
             <span>{{ client.locations.length }} локац.</span>
-            <span>План {{ utils.money(client.plan) }}</span>
+            <span>Сумма к оплате {{ utils.money(client.plan) }}</span>
             <span>Прибыль {{ utils.money(client.profit) }}</span>
             <span class="indicator-pack">
               @if (client.newOrders) {

@@ -846,7 +846,7 @@ export class ReportsComponent {
                 <div><span>Статус</span><strong>${this.html(this.statusLabel(order.status))}</strong></div>
                 ${
                   this.clientDocumentShowFinance
-                    ? `<div><span>План</span><strong>${this.html(this.utils.money(this.state.orderPlan(order)))}</strong></div>
+                    ? `<div><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.orderPlan(order)))}</strong></div>
                 <div><span>Прибуток</span><strong>${this.html(this.utils.money(this.state.orderProfit(order.id)))}</strong></div>`
                     : ""
                 }
@@ -865,7 +865,7 @@ export class ReportsComponent {
                 <div><span>Статус</span><strong>${this.html(this.statusLabel(transport.status))}</strong></div>
                 ${
                   this.clientDocumentShowFinance
-                    ? `<div><span>План</span><strong>${this.html(this.utils.money(this.state.transportTotal(transport)))}</strong></div>
+                    ? `<div><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.transportTotal(transport)))}</strong></div>
                 <div><span>Прибуток</span><strong>${this.html(this.utils.money(this.state.transportProfit(transport)))}</strong></div>`
                     : ""
                 }
@@ -894,7 +894,7 @@ export class ReportsComponent {
             </div>
             ${
               this.clientDocumentShowFinance
-                ? `<div class="client-stat"><span>План</span><strong>${this.html(this.utils.money(row.plan))}</strong></div>
+                ? `<div class="client-stat"><span>Сума до сплати</span><strong>${this.html(this.utils.money(row.plan))}</strong></div>
             <div class="client-stat"><span>Прихід</span><strong>${this.html(this.utils.money(row.income))}</strong></div>
             <div class="client-stat"><span>Витрати</span><strong>${this.html(this.utils.money(row.expense))}</strong></div>
             <div class="client-stat"><span>Прибуток</span><strong>${this.html(this.utils.money(row.profit))}</strong></div>
@@ -985,7 +985,7 @@ export class ReportsComponent {
     <section class="summary">
       <div class="summary-card"><div class="label">Клієнтів</div><div class="value">${totals.clients}</div></div>
       <div class="summary-card"><div class="label">Записів</div><div class="value">${totals.records}</div></div>
-      <div class="summary-card"><div class="label">План</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
+      <div class="summary-card"><div class="label">Сума до сплати</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
       <div class="summary-card"><div class="label">Прибуток</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>
       ${
         this.clientDocumentShowFinance
@@ -1145,7 +1145,7 @@ export class ReportsComponent {
       <div class="summary-card"><div class="label">Годин роботи</div><div class="value">${totals.hours}</div></div>
       ${
         this.equipmentDocumentShowFinance
-          ? `<div class="summary-card"><div class="label">План</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
+          ? `<div class="summary-card"><div class="label">Сума до сплати</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
       <div class="summary-card"><div class="label">Прихід</div><div class="value">${this.html(this.utils.money(totals.income))}</div></div>
       <div class="summary-card"><div class="label">Витрати</div><div class="value">${this.html(this.utils.money(totals.expense))}</div></div>
       <div class="summary-card"><div class="label">Прибуток</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>`
@@ -1164,7 +1164,7 @@ export class ReportsComponent {
           <th style="width: 58px">Год.</th>
           ${
             this.equipmentDocumentShowFinance
-              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 92px">Борг до сплати</th>`
+              ? `<th style="width: 96px">Сума до сплати</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 92px">Борг до сплати</th>`
               : ""
           }
           <th>Деталі</th>

@@ -234,7 +234,7 @@
           <span>Заявки</span><strong>{{ clientSummary().orders }}</strong>
         </div>
         <div>
-          <span>План</span
+          <span>Сумма к оплате</span
           ><strong>{{ utils.money(clientSummary().plan) }}</strong>
         </div>
         <div>
@@ -271,7 +271,7 @@
               <th>Период</th>
               <th>Статус</th>
               <th>Комментарий</th>
-              <th>План</th>
+              <th>Сумма к оплате</th>
               <th>Приход</th>
               <th>Расход</th>
               <th>Прибыль</th>
@@ -340,7 +340,7 @@
           <span>Заявки</span><strong>{{ locationSummary().orders }}</strong>
         </div>
         <div>
-          <span>План</span
+          <span>Сумма к оплате</span
           ><strong>{{ utils.money(locationSummary().plan) }}</strong>
         </div>
         <div>
@@ -378,7 +378,7 @@
                     <th>Период</th>
                     <th>Статус</th>
                     <th>Комментарий</th>
-                    <th>План</th>
+                    <th>Сумма к оплате</th>
                     <th>Прибыль</th>
                   </tr>
                 </thead>
@@ -442,7 +442,7 @@
           <span>Записи</span><strong>{{ equipmentSummary().orders }}</strong>
         </div>
         <div>
-          <span>План</span
+          <span>Сумма к оплате</span
           ><strong>{{ utils.money(equipmentSummary().plan) }}</strong>
         </div>
         <div>
@@ -474,7 +474,7 @@
               <th>Работа</th>
               <th>Статус</th>
               <th>Комментарий</th>
-              <th>План</th>
+              <th>Сумма к оплате</th>
               <th>Прибыль</th>
             </tr>
           </thead>
@@ -583,7 +583,7 @@
           <span>Заявки</span><strong>{{ operatorSummary().orders }}</strong>
         </div>
         <div>
-          <span>План</span
+          <span>Сумма к оплате</span
           ><strong>{{ utils.money(operatorSummary().plan) }}</strong>
         </div>
         <div>
@@ -616,7 +616,7 @@
               <th>ЗП</th>
               <th>Статус</th>
               <th>Комментарий</th>
-              <th>План</th>
+              <th>Сумма к оплате</th>
             </tr>
           </thead>
           <tbody>
@@ -686,7 +686,7 @@
   </div>
 
   <div class="card panel">
-    <h3>Топ локаций по плану</h3>
+    <h3>Топ локаций по сумме к оплате</h3>
     <div class="list">
       @for (location of topLocations(); track location.location) {
         <button
@@ -707,7 +707,7 @@
 
 <div class="report-grid compact">
   <div class="card panel">
-    <h3>Топ техники по плану</h3>
+    <h3>Топ техники по сумме к оплате</h3>
     <div class="list">
       @for (item of topEquipment(); track item.id) {
         <button

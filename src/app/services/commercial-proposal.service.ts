@@ -185,7 +185,7 @@ export class CommercialProposalService {
           ? [
               {
                 title: `Оренда та додаткові послуги за заявкою ${this.shortId(order.id)}`,
-                details: `План ${this.money(this.state.orderPlan(order))}; оплачено ${this.money(paid)}`,
+                details: `Сума до сплати ${this.money(this.state.orderPlan(order))}; оплачено ${this.money(paid)}`,
                 amount: remaining,
               },
             ]
@@ -266,7 +266,7 @@ export class CommercialProposalService {
       termsHeading: "Коментарі",
       rows: [
         {
-          title: "План по заявці",
+          title: "Сума до сплати по заявці",
           details: "Оренда, логістика, додаткові послуги та витрати клієнта",
           amount: this.state.orderPlan(order),
         },
@@ -282,7 +282,7 @@ export class CommercialProposalService {
         },
         {
           title: "Залишок до оплати",
-          details: "План мінус отримані платежі",
+          details: "Сума до сплати мінус отримані платежі",
           amount: this.state.orderRemaining(order),
         },
         {
