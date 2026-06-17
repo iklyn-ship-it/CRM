@@ -827,19 +827,48 @@ export class ReportsComponent {
       )?.label || "Все статусы";
     const rowHtml = rows
       .map((row, index) => {
-        const details = [
+        const detailCards = [
           ...row.orders.map(
             (order) =>
-              `<div class="detail-line">Заявка ${this.html(this.utils.shortId(order.id))} • ${this.html(order.location || "—")} • ${this.html(this.equipmentName(order.equipmentId))} • ${this.html(this.orderOperatorNames(order))} • ${this.html(this.utils.fmtDate(order.startDate))}-${this.html(this.utils.fmtDate(order.endDate))} • ${this.html(this.statusLabel(order.status))} • ${this.html(order.notes || "без коментаря")}</div>`,
+              `<div class="record-card">
+                <div><span>ID</span><strong>Заявка ${this.html(this.utils.shortId(order.id))}</strong></div>
+                <div><span>Об'єкт</span><strong>${this.html(order.location || "—")}</strong></div>
+                <div><span>Техніка</span><strong>${this.html(this.equipmentName(order.equipmentId))}</strong></div>
+                <div><span>Оператор</span><strong>${this.html(this.orderOperatorNames(order))}</strong></div>
+                <div><span>Період</span><strong>${this.html(this.utils.fmtDate(order.startDate))} - ${this.html(this.utils.fmtDate(order.endDate))}</strong></div>
+                <div><span>Статус</span><strong>${this.html(this.statusLabel(order.status))}</strong></div>
+                ${
+                  this.clientDocumentShowFinance
+                    ? `<div><span>План</span><strong>${this.html(this.utils.money(this.state.orderPlan(order)))}</strong></div>
+                <div><span>Прибуток</span><strong>${this.html(this.utils.money(this.state.orderProfit(order.id)))}</strong></div>`
+                    : ""
+                }
+                <div class="record-comment"><span>Коментар</span><strong>${this.html(order.notes || "без коментаря")}</strong></div>
+              </div>`,
           ),
           ...row.transports.map(
             (transport) =>
-              `<div class="detail-line">Перевезення ${this.html(this.utils.shortId(transport.id))} • ${this.html(this.transportPartyName(transport.shipperClientId, transport.shipper))} → ${this.html(this.transportPartyName(transport.consigneeClientId, transport.consignee))} • ${this.html(transport.loadingPoint || "—")} → ${this.html(transport.unloadingPoint || "—")} • ${this.html(this.equipmentName(transport.equipmentId))} • ${this.html(this.utils.fmtDate(transport.startDate))}-${this.html(this.utils.fmtDate(transport.endDate))} • ${this.html(this.statusLabel(transport.status))} • ${this.html(transport.cargoName || transport.notes || "без коментаря")}</div>`,
+              `<div class="record-card transport-card">
+                <div><span>ID</span><strong>Перевезення ${this.html(this.utils.shortId(transport.id))}</strong></div>
+                <div><span>Сторони</span><strong>${this.html(this.transportPartyName(transport.shipperClientId, transport.shipper))} → ${this.html(this.transportPartyName(transport.consigneeClientId, transport.consignee))}</strong></div>
+                <div><span>Маршрут</span><strong>${this.html(transport.loadingPoint || "—")} → ${this.html(transport.unloadingPoint || "—")}</strong></div>
+                <div><span>Трал</span><strong>${this.html(this.equipmentName(transport.equipmentId))}</strong></div>
+                <div><span>Водій</span><strong>${this.html(this.operatorName(transport.driverId))}</strong></div>
+                <div><span>Період</span><strong>${this.html(this.utils.fmtDate(transport.startDate))} - ${this.html(this.utils.fmtDate(transport.endDate))}</strong></div>
+                <div><span>Статус</span><strong>${this.html(this.statusLabel(transport.status))}</strong></div>
+                ${
+                  this.clientDocumentShowFinance
+                    ? `<div><span>План</span><strong>${this.html(this.utils.money(this.state.transportTotal(transport)))}</strong></div>
+                <div><span>Прибуток</span><strong>${this.html(this.utils.money(this.state.transportProfit(transport)))}</strong></div>`
+                    : ""
+                }
+                <div class="record-comment"><span>Вантаж / коментар</span><strong>${this.html(transport.cargoName || transport.notes || "без коментаря")}</strong></div>
+              </div>`,
           ),
         ];
-        const detailsHtml = details.length
-          ? details.join("")
-          : `<div class="muted">Записів за період немає.</div>`;
+        const detailsHtml = detailCards.length
+          ? `<tr class="client-details-row"><td colspan="${this.clientDocumentShowFinance ? 9 : 4}"><div class="client-details">${detailCards.join("")}</div></td></tr>`
+          : `<tr class="client-details-row"><td colspan="${this.clientDocumentShowFinance ? 9 : 4}"><div class="client-details"><div class="empty">Записів за період немає.</div></div></td></tr>`;
         return `<tr>
           <td>${index + 1}</td>
           <td>
@@ -858,8 +887,7 @@ export class ReportsComponent {
           <td class="money">${this.html(this.utils.money(row.remaining))}</td>`
               : ""
           }
-          <td>${detailsHtml}</td>
-        </tr>`;
+        </tr>${detailsHtml}`;
       })
       .join("");
 
@@ -892,7 +920,14 @@ export class ReportsComponent {
     th, td { border: 1px solid var(--line); padding: 7px; vertical-align: top; font-size: 11px; overflow-wrap: anywhere; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
     .num, .money { text-align: right; white-space: nowrap; }
-    .detail-line { margin-bottom: 4px; }
+    .client-details-row td { padding: 0 7px 12px; background: #fff !important; border-top: 0; }
+    .client-details { display: grid; gap: 7px; padding: 8px; border: 1px solid #dbe3f0; border-top: 0; background: #f8fafc; }
+    .record-card { display: grid; grid-template-columns: 92px 1.15fr 1.25fr 1fr 96px 84px 86px 86px minmax(140px, 1.3fr); gap: 6px; align-items: stretch; padding: 7px; border: 1px solid #d8dee9; border-left: 4px solid var(--brand); border-radius: 10px; background: #fff; }
+    .transport-card { border-left-color: #0f766e; }
+    .record-card div { min-width: 0; padding: 5px 6px; border-radius: 7px; background: #f1f5f9; }
+    .record-card span { display: block; color: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+    .record-card strong { display: block; margin-top: 2px; font-size: 10px; line-height: 1.25; overflow-wrap: anywhere; }
+    .record-comment { grid-column: auto; }
     .empty { padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
     footer { margin-top: 22px; padding-top: 12px; border-top: 2px solid #c7ceda; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
     @media print {
@@ -942,13 +977,12 @@ export class ReportsComponent {
           <th style="width: 34px">№</th>
           <th style="width: 190px">Клієнт</th>
           <th style="width: 58px">Записи</th>
-          <th style="width: 170px">Локації / маршрути</th>
+          <th>Локації / маршрути</th>
           ${
             this.clientDocumentShowFinance
               ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 82px">Залишок</th>`
               : ""
           }
-          <th>Деталі</th>
         </tr>
       </thead>
       <tbody>${rowHtml}</tbody>
