@@ -78,6 +78,9 @@
         @if (form.deferred) {
           <span class="badge deferred">Отложена</span>
         }
+        @if (form.internal) {
+          <span class="badge internal">Внутренняя</span>
+        }
       </div>
 
       <div class="transport-work-summary">
@@ -266,6 +269,22 @@
             </div>
           </div>
           <div class="field wide">
+            <label>Тип перевозки</label>
+            <button
+              type="button"
+              class="status-button internal-toggle"
+              [class.selected-status]="form.internal"
+              (click)="form.internal = !form.internal"
+            >
+              {{ form.internal ? "✓ Внутренняя перевозка" : "Внутренние перевозки" }}
+            </button>
+            @if (form.internal) {
+              <div class="small text-warning">
+                Индикатор включен: перевозка будет отмечена как внутренняя.
+              </div>
+            }
+          </div>
+          <div class="field wide">
             <label>Наименование груза</label>
             <input
               type="text"
@@ -408,6 +427,11 @@
                 <span class="badge" [ngClass]="statusBadgeClass(item.status)">
                   {{ statusLabel(item.status) }}
                 </span>
+                @if (item.internal) {
+                  <div>
+                    <span class="badge internal">Внутренняя</span>
+                  </div>
+                }
               </td>
               <td>
                 <button

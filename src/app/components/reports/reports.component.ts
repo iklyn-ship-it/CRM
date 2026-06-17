@@ -77,6 +77,7 @@ export class ReportsComponent {
   periodFrom = signal("");
   periodTo = signal("");
   orderStatusFilter = signal<"" | OrderStatus>("");
+  hideInternalTransports = signal(false);
   documentPreviewUrl = signal<SafeResourceUrl | null>(null);
   private documentPreviewObjectUrl = "";
   activeDocumentType: ReportDocumentType = "equipment";
@@ -315,6 +316,11 @@ export class ReportsComponent {
 
   setOrderStatusFilter(status: "" | OrderStatus): void {
     this.orderStatusFilter.set(status);
+    this.refreshDocumentIfOpen();
+  }
+
+  setHideInternalTransports(value: boolean): void {
+    this.hideInternalTransports.set(value);
     this.refreshDocumentIfOpen();
   }
 
@@ -735,6 +741,7 @@ export class ReportsComponent {
       .filter(
         (transport) =>
           !transport.deferred &&
+          (!this.hideInternalTransports() || !transport.internal) &&
           (!transportStatus || transport.status === transportStatus) &&
           this.rangeInPeriod(transport.startDate, transport.endDate),
       );
@@ -849,7 +856,7 @@ export class ReportsComponent {
           ...row.transports.map(
             (transport) =>
               `<div class="record-card transport-card">
-                <div><span>ID</span><strong>Перевезення ${this.html(this.utils.shortId(transport.id))}</strong></div>
+                <div><span>ID</span><strong>Перевезення ${this.html(this.utils.shortId(transport.id))}${transport.internal ? " • внутрішня" : ""}</strong></div>
                 <div><span>Сторони</span><strong>${this.html(this.transportPartyName(transport.shipperClientId, transport.shipper))} → ${this.html(this.transportPartyName(transport.consigneeClientId, transport.consignee))}</strong></div>
                 <div><span>Маршрут</span><strong>${this.html(transport.loadingPoint || "—")} → ${this.html(transport.unloadingPoint || "—")}</strong></div>
                 <div><span>Трал</span><strong>${this.html(this.equipmentName(transport.equipmentId))}</strong></div>

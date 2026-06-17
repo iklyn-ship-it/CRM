@@ -44,6 +44,14 @@
   <button type="button" class="btn ghost" (click)="resetPeriod()">
     Весь период
   </button>
+  <button
+    type="button"
+    class="btn ghost"
+    [class.active]="hideInternalTransports()"
+    (click)="setHideInternalTransports(!hideInternalTransports())"
+  >
+    {{ hideInternalTransports() ? "Внутренние убраны" : "Убрать внутренние перевозки" }}
+  </button>
 </div>
 
 @if (documentPreviewUrl(); as previewUrl) {
@@ -97,6 +105,15 @@
           </select>
         </label>
         @if (activeDocumentType === "client") {
+          <label class="document-check">
+            <input
+              type="checkbox"
+              [ngModel]="hideInternalTransports()"
+              name="hideInternalTransportsClient"
+              (ngModelChange)="setHideInternalTransports($event)"
+            />
+            Убрать внутренние перевозки
+          </label>
           <label>
             Выбор клиентов
             <select
@@ -134,6 +151,15 @@
             Показывать финансы
           </label>
         } @else {
+          <label class="document-check">
+            <input
+              type="checkbox"
+              [ngModel]="hideInternalTransports()"
+              name="hideInternalTransportsEquipment"
+              (ngModelChange)="setHideInternalTransports($event)"
+            />
+            Убрать внутренние перевозки
+          </label>
           <label>
             Выбор техники
             <select

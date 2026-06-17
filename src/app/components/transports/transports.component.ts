@@ -218,6 +218,7 @@ export class TransportsComponent {
       notes: item.notes || "",
       status: item.status || "new",
       deferred: Boolean(item.deferred),
+      internal: Boolean(item.internal),
       pickupPricePerKm: Number(item.pickupPricePerKm || 50),
       deliveryPricePerKm: Number(item.deliveryPricePerKm || 250),
       pickupKm: Number(item.pickupKm || 0),
@@ -386,6 +387,7 @@ export class TransportsComponent {
       notes: "",
       status: "new" as TransportStatus,
       deferred: false,
+      internal: false,
       pickupPricePerKm: 50,
       deliveryPricePerKm: 250,
       pickupKm: 0,
@@ -488,6 +490,9 @@ export class TransportsComponent {
         : "";
     if (message.includes("deferred")) {
       return "База Supabase еще не готова для отложенных перевозок. Выполни SQL-файл supabase-transport-deferred.sql в Supabase SQL Editor и попробуй снова.";
+    }
+    if (message.includes("internal")) {
+      return "База Supabase еще не готова для внутренних перевозок. Выполни SQL-файл supabase-transport-internal.sql в Supabase SQL Editor и попробуй снова.";
     }
     if (message.includes("transports")) {
       return "База Supabase еще не готова для перевозок. Выполни SQL-файл supabase-transports.sql в Supabase SQL Editor и попробуй снова.";

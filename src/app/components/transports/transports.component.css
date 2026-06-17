@@ -58,6 +58,12 @@
   color: #fde68a;
 }
 
+.badge.internal {
+  border-color: rgba(14, 165, 233, 0.38);
+  background: rgba(14, 165, 233, 0.14);
+  color: #bae6fd;
+}
+
 .transport-hero h3 {
   margin: 6px 0;
   color: #facc15;
@@ -137,6 +143,16 @@
 
 .status-button.selected-status {
   box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.26);
+}
+
+.internal-toggle {
+  width: fit-content;
+  border-color: rgba(14, 165, 233, 0.32);
+}
+
+.text-warning {
+  color: #fde68a;
+  font-weight: 700;
 }
 
 .transport-total {

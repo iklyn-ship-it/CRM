@@ -161,6 +161,7 @@ export interface Transport {
   notes: string;
   status: TransportStatus;
   deferred: boolean;
+  internal: boolean;
   pickupPricePerKm: number;
   deliveryPricePerKm: number;
   pickupKm: number;

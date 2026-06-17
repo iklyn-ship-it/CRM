@@ -288,6 +288,7 @@ export class DbService {
       deliveryCost: Number(transport.deliveryCost || 0),
       status: transport.status || "new",
       deferred: Boolean(transport.deferred),
+      internal: Boolean(transport.internal),
       createdAt: transport.createdAt || "",
     } as Transport;
   }
