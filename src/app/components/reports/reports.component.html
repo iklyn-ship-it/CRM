@@ -3,9 +3,14 @@
     <h2>Отчеты</h2>
     <p>Сводки по клиентам, объектам, технике, операторам и деньгам.</p>
   </div>
-  <button type="button" class="btn primary" (click)="openEquipmentDocument()">
-    ⎙ Документ по технике
-  </button>
+  <div class="section-actions">
+    <button type="button" class="btn ghost" (click)="openClientDocument()">
+      ⎙ Документ по клиентам
+    </button>
+    <button type="button" class="btn primary" (click)="openEquipmentDocument()">
+      ⎙ Документ по технике
+    </button>
+  </div>
 </div>
 
 <div class="card panel report-controls">
@@ -14,7 +19,7 @@
     <input
       type="date"
       [ngModel]="periodFrom()"
-      (ngModelChange)="periodFrom.set($event); refreshEquipmentDocumentIfOpen()"
+      (ngModelChange)="periodFrom.set($event); refreshDocumentIfOpen()"
     />
   </label>
   <label>
@@ -22,7 +27,7 @@
     <input
       type="date"
       [ngModel]="periodTo()"
-      (ngModelChange)="periodTo.set($event); refreshEquipmentDocumentIfOpen()"
+      (ngModelChange)="periodTo.set($event); refreshDocumentIfOpen()"
     />
   </label>
   <label>
@@ -46,7 +51,13 @@
     <div class="document-preview-modal" (click)="$event.stopPropagation()">
       <div class="document-preview-head">
         <div>
-          <h3>Документ по технике</h3>
+          <h3>
+            {{
+              activeDocumentType === "client"
+                ? "Документ по клиентам"
+                : "Документ по технике"
+            }}
+          </h3>
           <p>Настрой выборку, проверь документ и отправь на печать/PDF.</p>
         </div>
         <button
@@ -63,7 +74,7 @@
           <input
             type="date"
             [ngModel]="periodFrom()"
-            (ngModelChange)="periodFrom.set($event); refreshEquipmentDocument()"
+            (ngModelChange)="periodFrom.set($event); refreshDocument()"
           />
         </label>
         <label>
@@ -71,7 +82,7 @@
           <input
             type="date"
             [ngModel]="periodTo()"
-            (ngModelChange)="periodTo.set($event); refreshEquipmentDocument()"
+            (ngModelChange)="periodTo.set($event); refreshDocument()"
           />
         </label>
         <label>
@@ -85,39 +96,78 @@
             }
           </select>
         </label>
-        <label>
-          Выбор техники
-          <select
-            [(ngModel)]="equipmentDocumentMode"
-            name="equipmentDocumentMode"
-            (ngModelChange)="refreshEquipmentDocument()"
-          >
-            <option value="all">Вся техника</option>
-            <option value="worked">Техника, которая работала</option>
-            <option value="single">Одна единица</option>
-          </select>
-        </label>
-        @if (equipmentDocumentMode === "single") {
+        @if (activeDocumentType === "client") {
           <label>
-            Техника
-            <app-equipment-picker
-              name="equipmentDocumentId"
-              placeholder="— выбрать технику —"
-              [equipment]="state.equipment()"
-              [(value)]="equipmentDocumentId"
-              (valueChange)="refreshEquipmentDocument()"
+            Выбор клиентов
+            <select
+              [(ngModel)]="clientDocumentMode"
+              name="clientDocumentMode"
+              (ngModelChange)="refreshClientDocument()"
+            >
+              <option value="all">Все клиенты</option>
+              <option value="worked">Клиенты с заявками/перевозками</option>
+              <option value="single">Один клиент</option>
+            </select>
+          </label>
+          @if (clientDocumentMode === "single") {
+            <label>
+              Клиент
+              <select
+                [(ngModel)]="clientDocumentId"
+                name="clientDocumentId"
+                (ngModelChange)="refreshClientDocument()"
+              >
+                <option value="">— выбрать клиента —</option>
+                @for (client of state.clients(); track client.id) {
+                  <option [value]="client.id">{{ client.name }}</option>
+                }
+              </select>
+            </label>
+          }
+          <label class="document-check">
+            <input
+              type="checkbox"
+              [(ngModel)]="clientDocumentShowFinance"
+              name="clientDocumentShowFinance"
+              (ngModelChange)="refreshClientDocument()"
             />
+            Показывать финансы
+          </label>
+        } @else {
+          <label>
+            Выбор техники
+            <select
+              [(ngModel)]="equipmentDocumentMode"
+              name="equipmentDocumentMode"
+              (ngModelChange)="refreshEquipmentDocument()"
+            >
+              <option value="all">Вся техника</option>
+              <option value="worked">Техника, которая работала</option>
+              <option value="single">Одна единица</option>
+            </select>
+          </label>
+          @if (equipmentDocumentMode === "single") {
+            <label>
+              Техника
+              <app-equipment-picker
+                name="equipmentDocumentId"
+                placeholder="— выбрать технику —"
+                [equipment]="state.equipment()"
+                [(value)]="equipmentDocumentId"
+                (valueChange)="refreshEquipmentDocument()"
+              />
+            </label>
+          }
+          <label class="document-check">
+            <input
+              type="checkbox"
+              [(ngModel)]="equipmentDocumentShowFinance"
+              name="equipmentDocumentShowFinance"
+              (ngModelChange)="refreshEquipmentDocument()"
+            />
+            Показывать финансы
           </label>
         }
-        <label class="document-check">
-          <input
-            type="checkbox"
-            [(ngModel)]="equipmentDocumentShowFinance"
-            name="equipmentDocumentShowFinance"
-            (ngModelChange)="refreshEquipmentDocument()"
-          />
-          Показывать финансы
-        </label>
         <button
           type="button"
           class="btn primary"
@@ -129,7 +179,7 @@
       <iframe
         #documentPreviewFrame
         class="document-preview-frame"
-        title="Документ по технике"
+        title="Документ отчета"
         [src]="previewUrl"
       ></iframe>
     </div>
