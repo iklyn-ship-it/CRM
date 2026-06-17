@@ -25,6 +25,17 @@
       (ngModelChange)="periodTo.set($event); refreshEquipmentDocumentIfOpen()"
     />
   </label>
+  <label>
+    <span>Статус заявок</span>
+    <select
+      [ngModel]="orderStatusFilter()"
+      (ngModelChange)="setOrderStatusFilter($event)"
+    >
+      @for (status of orderStatusOptions; track status.value) {
+        <option [value]="status.value">{{ status.label }}</option>
+      }
+    </select>
+  </label>
   <button type="button" class="btn ghost" (click)="resetPeriod()">
     Весь период
   </button>
@@ -62,6 +73,17 @@
             [ngModel]="periodTo()"
             (ngModelChange)="periodTo.set($event); refreshEquipmentDocument()"
           />
+        </label>
+        <label>
+          Статус заявок
+          <select
+            [ngModel]="orderStatusFilter()"
+            (ngModelChange)="setOrderStatusFilter($event)"
+          >
+            @for (status of orderStatusOptions; track status.value) {
+              <option [value]="status.value">{{ status.label }}</option>
+            }
+          </select>
         </label>
         <label>
           Выбор техники

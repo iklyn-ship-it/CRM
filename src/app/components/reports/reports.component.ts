@@ -4,7 +4,7 @@ import { FormsModule } from "@angular/forms";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
-import { Equipment, Order } from "../../models/crm.models";
+import { Equipment, Order, OrderStatus } from "../../models/crm.models";
 import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 interface ReportSummary {
@@ -55,11 +55,21 @@ export class ReportsComponent {
   selectedOperatorId = signal("");
   periodFrom = signal("");
   periodTo = signal("");
+  orderStatusFilter = signal<"" | OrderStatus>("");
   documentPreviewUrl = signal<SafeResourceUrl | null>(null);
   private documentPreviewObjectUrl = "";
   equipmentDocumentMode: EquipmentDocumentMode = "worked";
   equipmentDocumentId = "";
   equipmentDocumentShowFinance = true;
+
+  readonly orderStatusOptions: { value: "" | OrderStatus; label: string }[] = [
+    { value: "", label: "Все статусы" },
+    { value: "new", label: "Новые" },
+    { value: "confirmed", label: "Подтвержденные" },
+    { value: "active", label: "В работе" },
+    { value: "completed", label: "Завершенные" },
+    { value: "cancelled", label: "Отмененные" },
+  ];
 
   readonly locations = computed(() =>
     Array.from(
@@ -239,6 +249,11 @@ export class ReportsComponent {
   resetPeriod(): void {
     this.periodFrom.set("");
     this.periodTo.set("");
+    this.refreshEquipmentDocumentIfOpen();
+  }
+
+  setOrderStatusFilter(status: "" | OrderStatus): void {
+    this.orderStatusFilter.set(status);
     this.refreshEquipmentDocumentIfOpen();
   }
 
@@ -428,7 +443,10 @@ export class ReportsComponent {
       .orders()
       .filter(
         (order) =>
-          !order.deferred && this.rangeInPeriod(order.startDate, order.endDate),
+          !order.deferred &&
+          (!this.orderStatusFilter() ||
+            order.status === this.orderStatusFilter()) &&
+          this.rangeInPeriod(order.startDate, order.endDate),
       );
   }
 
@@ -517,6 +535,10 @@ export class ReportsComponent {
         : this.equipmentDocumentMode === "worked"
           ? "Техника, которая работала"
           : `Одна единица: ${this.equipmentName(this.equipmentDocumentId)}`;
+    const statusLabel =
+      this.orderStatusOptions.find(
+        (status) => status.value === this.orderStatusFilter(),
+      )?.label || "Все статусы";
     const rowHtml = rows
       .map((row, index) => {
         const orderDetails = row.orders.length
@@ -604,7 +626,7 @@ export class ReportsComponent {
       <div class="address">Місцезнаходження: 08292, Київська обл.,<br />Бучанський р-н, м. Буча, вул. Тячівська, буд.1</div>
     </header>
     <h1>Звіт по техніці</h1>
-    <p class="subtitle">Період: ${this.html(period)} • Вибірка: ${this.html(modeLabel)} • Сформовано ${this.html(this.utils.fmtDate(this.utils.todayStr()))}</p>
+    <p class="subtitle">Період: ${this.html(period)} • Статус: ${this.html(statusLabel)} • Вибірка: ${this.html(modeLabel)} • Сформовано ${this.html(this.utils.fmtDate(this.utils.todayStr()))}</p>
     <section class="summary">
       <div class="summary-card"><div class="label">Одиниць техніки</div><div class="value">${totals.equipment}</div></div>
       <div class="summary-card"><div class="label">Заявок</div><div class="value">${totals.orders}</div></div>
