@@ -832,7 +832,7 @@ export class ReportsComponent {
       this.orderStatusOptions.find(
         (status) => status.value === this.orderStatusFilter(),
       )?.label || "Все статусы";
-    const rowHtml = rows
+    const clientBlocks = rows
       .map((row, index) => {
         const detailCards = [
           ...row.orders.map(
@@ -874,27 +874,36 @@ export class ReportsComponent {
           ),
         ];
         const detailsHtml = detailCards.length
-          ? `<tr class="client-details-row"><td colspan="${this.clientDocumentShowFinance ? 9 : 4}"><div class="client-details">${detailCards.join("")}</div></td></tr>`
-          : `<tr class="client-details-row"><td colspan="${this.clientDocumentShowFinance ? 9 : 4}"><div class="client-details"><div class="empty">Записів за період немає.</div></div></td></tr>`;
-        return `<tr>
-          <td>${index + 1}</td>
-          <td>
-            <strong>${this.html(row.client.name)}</strong>
-            <div class="muted">${this.html(row.client.phone || "Телефон не вказано")}</div>
-            <div class="muted">${this.html([row.client.type, row.client.source].filter(Boolean).join(" • ") || "Тип/джерело не вказано")}</div>
-          </td>
-          <td class="num">${row.orders.length + row.transports.length}</td>
-          <td>${this.html(row.locations.join(", ") || "—")}</td>
-          ${
-            this.clientDocumentShowFinance
-              ? `<td class="money">${this.html(this.utils.money(row.plan))}</td>
-          <td class="money">${this.html(this.utils.money(row.income))}</td>
-          <td class="money">${this.html(this.utils.money(row.expense))}</td>
-          <td class="money">${this.html(this.utils.money(row.profit))}</td>
-          <td class="money">${this.html(this.utils.money(row.remaining))}</td>`
-              : ""
-          }
-        </tr>${detailsHtml}`;
+          ? detailCards.join("")
+          : `<div class="empty">Записів за період немає.</div>`;
+        return `<section class="client-block ${this.clientDocumentShowFinance ? "with-finance" : "no-finance"}">
+          <div class="client-head">
+            <div class="client-index">${index + 1}</div>
+            <div class="client-name">
+              <strong>${this.html(row.client.name)}</strong>
+              <span>${this.html(row.client.phone || "Телефон не вказано")}</span>
+              <span>${this.html([row.client.type, row.client.source].filter(Boolean).join(" • ") || "Тип/джерело не вказано")}</span>
+            </div>
+            <div class="client-locations">
+              <span>Локації / маршрути</span>
+              <strong>${this.html(row.locations.join(", ") || "—")}</strong>
+            </div>
+            <div class="client-stat">
+              <span>Записів</span>
+              <strong>${row.orders.length + row.transports.length}</strong>
+            </div>
+            ${
+              this.clientDocumentShowFinance
+                ? `<div class="client-stat"><span>План</span><strong>${this.html(this.utils.money(row.plan))}</strong></div>
+            <div class="client-stat"><span>Прихід</span><strong>${this.html(this.utils.money(row.income))}</strong></div>
+            <div class="client-stat"><span>Витрати</span><strong>${this.html(this.utils.money(row.expense))}</strong></div>
+            <div class="client-stat"><span>Прибуток</span><strong>${this.html(this.utils.money(row.profit))}</strong></div>
+            <div class="client-stat"><span>Борг до сплати</span><strong>${this.html(this.utils.money(row.remaining))}</strong></div>`
+                : ""
+            }
+          </div>
+          <div class="client-details">${detailsHtml}</div>
+        </section>`;
       })
       .join("");
 
@@ -927,9 +936,19 @@ export class ReportsComponent {
     th, td { border: 1px solid var(--line); padding: 7px; vertical-align: top; font-size: 11px; overflow-wrap: anywhere; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
     .num, .money { text-align: right; white-space: nowrap; }
-    .client-details-row td { padding: 0 7px 12px; background: #fff !important; border-top: 0; }
-    .client-details { display: grid; gap: 7px; padding: 8px; border: 1px solid #dbe3f0; border-top: 0; background: #f8fafc; }
-    .record-card { display: grid; grid-template-columns: 92px 1.15fr 1.25fr 1fr 96px 84px 86px 86px minmax(140px, 1.3fr); gap: 6px; align-items: stretch; padding: 7px; border: 1px solid #d8dee9; border-left: 4px solid var(--brand); border-radius: 10px; background: #fff; }
+    .client-list { display: grid; gap: 14px; }
+    .client-block { border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+    .client-head { display: grid; gap: 0; background: #edf3ff; border-bottom: 1px solid var(--line); break-inside: avoid; page-break-inside: avoid; break-after: avoid; page-break-after: avoid; }
+    .client-block.with-finance .client-head { grid-template-columns: 32px 1.35fr 1.7fr 62px repeat(5, 86px); }
+    .client-block.no-finance .client-head { grid-template-columns: 32px 1.4fr 2fr 72px; }
+    .client-index, .client-name, .client-locations, .client-stat { min-width: 0; padding: 8px; border-right: 1px solid var(--line); }
+    .client-stat:last-child { border-right: 0; }
+    .client-index { color: #fff; background: var(--brand); font-weight: 900; text-align: center; }
+    .client-name strong, .client-locations strong, .client-stat strong { display: block; margin-top: 2px; font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
+    .client-name span, .client-locations span, .client-stat span { display: block; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
+    .client-stat { text-align: right; white-space: nowrap; }
+    .client-details { display: grid; gap: 7px; padding: 8px; background: #f8fafc; }
+    .record-card { display: grid; grid-template-columns: 92px 1.15fr 1.25fr 1fr 96px 84px 86px 86px minmax(140px, 1.3fr); gap: 6px; align-items: stretch; padding: 7px; border: 1px solid #d8dee9; border-left: 4px solid var(--brand); border-radius: 10px; background: #fff; break-inside: avoid; page-break-inside: avoid; }
     .transport-card { border-left-color: #0f766e; }
     .record-card div { min-width: 0; padding: 5px 6px; border-radius: 7px; background: #f1f5f9; }
     .record-card span { display: block; color: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
@@ -978,22 +997,7 @@ export class ReportsComponent {
     </section>
     ${
       rows.length
-        ? `<table>
-      <thead>
-        <tr>
-          <th style="width: 34px">№</th>
-          <th style="width: 190px">Клієнт</th>
-          <th style="width: 58px">Записи</th>
-          <th>Локації / маршрути</th>
-          ${
-            this.clientDocumentShowFinance
-              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 92px">Борг до сплати</th>`
-              : ""
-          }
-        </tr>
-      </thead>
-      <tbody>${rowHtml}</tbody>
-    </table>`
+        ? `<div class="client-list">${clientBlocks}</div>`
         : `<div class="empty">За поточною вибіркою немає даних.</div>`
     }
     <footer>
