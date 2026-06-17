@@ -4,7 +4,12 @@ import { FormsModule } from "@angular/forms";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { StateService } from "../../services/state.service";
 import { UtilsService } from "../../services/utils.service";
-import { Equipment, Order, OrderStatus } from "../../models/crm.models";
+import {
+  Equipment,
+  Order,
+  OrderStatus,
+  Transport,
+} from "../../models/crm.models";
 import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 interface ReportSummary {
@@ -28,6 +33,7 @@ type EquipmentDocumentMode = "all" | "worked" | "single";
 interface EquipmentDocumentRow {
   equipment: Equipment;
   orders: Order[];
+  transports: Transport[];
   days: number;
   hours: number;
   plan: number;
@@ -109,6 +115,14 @@ export class ReportsComponent {
     );
   });
 
+  readonly equipmentTransports = computed(() => {
+    const equipmentId = this.selectedEquipmentId();
+    if (!equipmentId) return [];
+    return this.filteredTransports().filter(
+      (transport) => transport.equipmentId === equipmentId,
+    );
+  });
+
   readonly operatorOrders = computed(() => {
     const operatorId = this.selectedOperatorId();
     if (!operatorId) return [];
@@ -117,9 +131,22 @@ export class ReportsComponent {
     );
   });
 
-  readonly equipmentSummary = computed(() =>
-    this.summaryFor(this.equipmentOrders()),
-  );
+  readonly equipmentSummary = computed(() => {
+    const equipmentId = this.selectedEquipmentId();
+    const orders = this.equipmentFinancialSummary(
+      equipmentId,
+      this.equipmentOrders(),
+    );
+    const transports = this.transportFinancialSummary(this.equipmentTransports());
+    return {
+      orders: orders.orders + transports.orders,
+      plan: orders.plan + transports.plan,
+      income: orders.income + transports.income,
+      expense: orders.expense + transports.expense,
+      profit: orders.profit + transports.profit,
+      remaining: orders.remaining + transports.remaining,
+    };
+  });
   readonly operatorSummary = computed(() =>
     this.summaryFor(this.operatorOrders()),
   );
@@ -197,10 +224,25 @@ export class ReportsComponent {
         const orders = this.filteredOrders().filter((order) =>
           this.state.orderEquipmentReservationIds(order).includes(equipment.id),
         );
+        const transports = this.filteredTransports().filter(
+          (transport) => transport.equipmentId === equipment.id,
+        );
+        const orderSummary = this.equipmentFinancialSummary(
+          equipment.id,
+          orders,
+        );
+        const transportSummary = this.transportFinancialSummary(transports);
         return {
           id: equipment.id,
           name: equipment.name,
-          summary: this.summaryFor(orders),
+          summary: {
+            orders: orderSummary.orders + transportSummary.orders,
+            plan: orderSummary.plan + transportSummary.plan,
+            income: orderSummary.income + transportSummary.income,
+            expense: orderSummary.expense + transportSummary.expense,
+            profit: orderSummary.profit + transportSummary.profit,
+            remaining: orderSummary.remaining + transportSummary.remaining,
+          },
         };
       })
       .filter((item) => item.summary.orders)
@@ -312,6 +354,14 @@ export class ReportsComponent {
     return this.state.byId(this.state.operators(), id)?.name || "—";
   }
 
+  transportPartyName(clientId: string, fallback: string): string {
+    return (
+      this.state.byId(this.state.clients(), clientId)?.name ||
+      fallback ||
+      "—"
+    );
+  }
+
   orderOperatorNames(order: Order): string {
     const names = this.state
       .orderOperatorIds(order)
@@ -341,10 +391,16 @@ export class ReportsComponent {
       order.logisticsReturnEndDate || order.endDate,
     );
     const reserved = new Set<string>();
-    if (order.logisticsTrailerId === equipmentId) {
+    if (
+      order.logisticsProvider === "own_trawl" &&
+      order.logisticsTrailerId === equipmentId
+    ) {
       dates.forEach((date) => reserved.add(date));
     }
-    if (order.logisticsReturnTrailerId === equipmentId) {
+    if (
+      order.logisticsReturnProvider === "own_trawl" &&
+      order.logisticsReturnTrailerId === equipmentId
+    ) {
       returnDates.forEach((date) => reserved.add(date));
     }
     return [...reserved].filter((date) => this.dateInPeriod(date)).length;
@@ -374,6 +430,20 @@ export class ReportsComponent {
       operatorId,
       this.periodStart(),
       this.periodEnd(),
+    );
+  }
+
+  equipmentOrderPlan(order: Order): number {
+    return this.orderPlanForEquipment(order, this.selectedEquipmentId());
+  }
+
+  equipmentOrderProfit(order: Order): number {
+    const plan = this.equipmentOrderPlan(order);
+    const totalPlan = this.state.orderPlan(order);
+    const share = totalPlan > 0 ? plan / totalPlan : 0;
+    return (
+      this.state.orderIncome(order.id) * share -
+      this.state.orderExpense(order.id) * share
     );
   }
 
@@ -409,33 +479,127 @@ export class ReportsComponent {
         const orders = this.filteredOrders().filter((order) =>
           this.state.orderEquipmentReservationIds(order).includes(equipment.id),
         );
-        const days = orders.reduce(
-          (sum, order) => sum + this.equipmentWorkDays(order, equipment.id),
-          0,
+        const transports = this.filteredTransports().filter(
+          (transport) => transport.equipmentId === equipment.id,
         );
-        const hours = orders.reduce(
-          (sum, order) => sum + this.equipmentWorkHours(order, equipment.id),
-          0,
-        );
-        const summary = this.summaryFor(orders);
+        const days =
+          orders.reduce(
+            (sum, order) => sum + this.equipmentWorkDays(order, equipment.id),
+            0,
+          ) +
+          transports.reduce(
+            (sum, transport) => sum + this.transportDays(transport),
+            0,
+          );
+        const hours =
+          orders.reduce(
+            (sum, order) => sum + this.equipmentWorkHours(order, equipment.id),
+            0,
+          ) +
+          transports.reduce(
+            (sum, transport) => sum + this.transportDays(transport) * 8,
+            0,
+          );
+        const summary = this.equipmentFinancialSummary(equipment.id, orders);
+        const transportSummary = this.transportFinancialSummary(transports);
         return {
           equipment,
           orders,
+          transports,
           days,
           hours,
-          plan: summary.plan,
-          income: summary.income,
-          expense: summary.expense,
-          profit: summary.profit,
-          remaining: summary.remaining,
+          plan: summary.plan + transportSummary.plan,
+          income: summary.income + transportSummary.income,
+          expense: summary.expense + transportSummary.expense,
+          profit: summary.profit + transportSummary.profit,
+          remaining: summary.remaining + transportSummary.remaining,
         };
       })
       .filter((row) =>
         this.equipmentDocumentMode === "worked"
-          ? row.orders.length > 0 || row.days > 0
+          ? row.orders.length > 0 || row.transports.length > 0 || row.days > 0
           : true,
       )
       .sort((a, b) => b.plan - a.plan || b.days - a.days);
+  }
+
+  private equipmentFinancialSummary(
+    equipmentId: string,
+    orders: Order[],
+  ): ReportSummary {
+    return orders.reduce(
+      (summary, order) => {
+        const plan = this.orderPlanForEquipment(order, equipmentId);
+        const totalPlan = this.state.orderPlan(order);
+        const share = totalPlan > 0 ? plan / totalPlan : 0;
+        const income = this.state.orderIncome(order.id) * share;
+        const expense = this.state.orderExpense(order.id) * share;
+        return {
+          orders: summary.orders + 1,
+          plan: summary.plan + plan,
+          income: summary.income + income,
+          expense: summary.expense + expense,
+          profit: summary.profit + income - expense,
+          remaining:
+            summary.remaining + Math.max(0, plan - income),
+        };
+      },
+      { orders: 0, plan: 0, income: 0, expense: 0, profit: 0, remaining: 0 },
+    );
+  }
+
+  private orderPlanForEquipment(order: Order, equipmentId: string): number {
+    let plan = 0;
+    if (order.equipmentId === equipmentId) {
+      plan += Math.max(
+        0,
+        this.state.orderPlan(order) - this.state.orderLogisticsCost(order),
+      );
+    }
+    if (
+      order.logisticsProvider === "own_trawl" &&
+      order.logisticsTrailerId === equipmentId
+    ) {
+      plan +=
+        Number(order.logisticsPickupCost || 0) +
+        Number(order.logisticsDeliveryCost || 0);
+    }
+    if (
+      order.logisticsReturnProvider === "own_trawl" &&
+      order.logisticsReturnTrailerId === equipmentId
+    ) {
+      plan +=
+        Number(order.logisticsReturnPickupCost || 0) +
+        Number(order.logisticsReturnDeliveryCost || 0);
+    }
+    return plan;
+  }
+
+  private transportFinancialSummary(transports: Transport[]): ReportSummary {
+    return transports.reduce(
+      (summary, transport) => {
+        const plan = this.state.transportTotal(transport);
+        const income = this.state.transportIncome(transport.id);
+        const expense = this.state.transportExpense(transport);
+        return {
+          orders: summary.orders + 1,
+          plan: summary.plan + plan,
+          income: summary.income + income,
+          expense: summary.expense + expense,
+          profit: summary.profit + income - expense,
+          remaining: summary.remaining + this.state.transportRemaining(transport),
+        };
+      },
+      { orders: 0, plan: 0, income: 0, expense: 0, profit: 0, remaining: 0 },
+    );
+  }
+
+  transportDays(transport: Transport): number {
+    const dates = this.utils.datesInclusive(
+      transport.startDate,
+      transport.endDate,
+    );
+    return dates.filter((date) => this.dateInPeriod(date)).length;
   }
 
   private filteredOrders(): Order[] {
@@ -447,6 +611,25 @@ export class ReportsComponent {
           (!this.orderStatusFilter() ||
             order.status === this.orderStatusFilter()) &&
           this.rangeInPeriod(order.startDate, order.endDate),
+      );
+  }
+
+  private filteredTransports(): Transport[] {
+    const status = this.orderStatusFilter();
+    const transportStatus =
+      status === "new" ||
+      status === "active" ||
+      status === "completed" ||
+      status === "cancelled"
+        ? status
+        : "";
+    return this.state
+      .transports()
+      .filter(
+        (transport) =>
+          !transport.deferred &&
+          (!transportStatus || transport.status === transportStatus) &&
+          this.rangeInPeriod(transport.startDate, transport.endDate),
       );
   }
 
@@ -507,7 +690,7 @@ export class ReportsComponent {
     const totals = rows.reduce(
       (sum, row) => ({
         equipment: sum.equipment + 1,
-        orders: sum.orders + row.orders.length,
+        orders: sum.orders + row.orders.length + row.transports.length,
         days: sum.days + row.days,
         hours: sum.hours + row.hours,
         plan: sum.plan + row.plan,
@@ -541,18 +724,23 @@ export class ReportsComponent {
       )?.label || "Все статусы";
     const rowHtml = rows
       .map((row, index) => {
-        const orderDetails = row.orders.length
-          ? row.orders
-              .map(
-                (order) =>
-                  `<div class="detail-line">${this.html(this.utils.shortId(order.id))} • ${this.html(this.clientName(order.clientId))} • ${this.html(order.location || "—")} • ${this.html(this.utils.fmtDate(order.startDate))}-${this.html(this.utils.fmtDate(order.endDate))} • ${this.html(this.statusLabel(order.status))}</div>`,
-              )
-              .join("")
-          : `<div class="muted">Заявок за период нет.</div>`;
+        const details = [
+          ...row.orders.map(
+            (order) =>
+              `<div class="detail-line">Заявка ${this.html(this.utils.shortId(order.id))} • ${this.html(this.clientName(order.clientId))} • ${this.html(order.location || "—")} • ${this.html(this.utils.fmtDate(order.startDate))}-${this.html(this.utils.fmtDate(order.endDate))} • ${this.html(this.statusLabel(order.status))}</div>`,
+          ),
+          ...row.transports.map(
+            (transport) =>
+              `<div class="detail-line">Перевезення ${this.html(this.utils.shortId(transport.id))} • ${this.html(this.transportPartyName(transport.shipperClientId, transport.shipper))} → ${this.html(this.transportPartyName(transport.consigneeClientId, transport.consignee))} • ${this.html(transport.loadingPoint || "—")} → ${this.html(transport.unloadingPoint || "—")} • ${this.html(this.utils.fmtDate(transport.startDate))}-${this.html(this.utils.fmtDate(transport.endDate))} • ${this.html(this.statusLabel(transport.status))}</div>`,
+          ),
+        ];
+        const orderDetails = details.length
+          ? details.join("")
+          : `<div class="muted">Записів за період немає.</div>`;
         return `<tr>
           <td>${index + 1}</td>
           <td><strong>${this.html(row.equipment.name)}</strong><div class="muted">${this.html(row.equipment.type || "Тип не указан")}</div></td>
-          <td class="num">${row.orders.length}</td>
+          <td class="num">${row.orders.length + row.transports.length}</td>
           <td class="num">${row.days}</td>
           <td class="num">${row.hours}</td>
           ${
@@ -629,14 +817,14 @@ export class ReportsComponent {
     <p class="subtitle">Період: ${this.html(period)} • Статус: ${this.html(statusLabel)} • Вибірка: ${this.html(modeLabel)} • Сформовано ${this.html(this.utils.fmtDate(this.utils.todayStr()))}</p>
     <section class="summary">
       <div class="summary-card"><div class="label">Одиниць техніки</div><div class="value">${totals.equipment}</div></div>
-      <div class="summary-card"><div class="label">Заявок</div><div class="value">${totals.orders}</div></div>
+      <div class="summary-card"><div class="label">Записів</div><div class="value">${totals.orders}</div></div>
       <div class="summary-card"><div class="label">Днів роботи/резерву</div><div class="value">${totals.days}</div></div>
       <div class="summary-card"><div class="label">Годин роботи</div><div class="value">${totals.hours}</div></div>
       ${
         this.equipmentDocumentShowFinance
           ? `<div class="summary-card"><div class="label">План</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
       <div class="summary-card"><div class="label">Прихід</div><div class="value">${this.html(this.utils.money(totals.income))}</div></div>
-      <div class="summary-card"><div class="label">Расход</div><div class="value">${this.html(this.utils.money(totals.expense))}</div></div>
+      <div class="summary-card"><div class="label">Витрати</div><div class="value">${this.html(this.utils.money(totals.expense))}</div></div>
       <div class="summary-card"><div class="label">Прибуток</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>`
           : ""
       }
@@ -648,15 +836,15 @@ export class ReportsComponent {
         <tr>
           <th style="width: 34px">№</th>
           <th style="width: 210px">Техніка</th>
-          <th style="width: 58px">Заявки</th>
+          <th style="width: 58px">Записи</th>
           <th style="width: 52px">Дні</th>
           <th style="width: 58px">Год.</th>
           ${
             this.equipmentDocumentShowFinance
-              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Расход</th><th style="width: 82px">Прибуток</th><th style="width: 82px">Залишок</th>`
+              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 82px">Залишок</th>`
               : ""
           }
-          <th>Деталі заявок</th>
+          <th>Деталі</th>
         </tr>
       </thead>
       <tbody>${rowHtml}</tbody>

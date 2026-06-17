@@ -363,7 +363,7 @@
     @if (selectedEquipmentId()) {
       <div class="summary-cards">
         <div>
-          <span>Заявки</span><strong>{{ equipmentSummary().orders }}</strong>
+          <span>Записи</span><strong>{{ equipmentSummary().orders }}</strong>
         </div>
         <div>
           <span>План</span
@@ -391,7 +391,7 @@
         <table>
           <thead>
             <tr>
-              <th>Заявка</th>
+              <th>Запись</th>
               <th>Клиент / локация</th>
               <th>Оператор</th>
               <th>Период</th>
@@ -429,14 +429,52 @@
                   </span>
                 </td>
                 <td>{{ order.notes || "—" }}</td>
-                <td>{{ utils.money(state.orderPlan(order)) }}</td>
-                <td>{{ utils.money(state.orderProfit(order.id)) }}</td>
+                <td>{{ utils.money(equipmentOrderPlan(order)) }}</td>
+                <td>{{ utils.money(equipmentOrderProfit(order)) }}</td>
               </tr>
             }
-            @if (!equipmentOrders().length) {
+            @for (transport of equipmentTransports(); track transport.id) {
+              <tr>
+                <td>
+                  {{ utils.shortId(transport.id) }}
+                  <div class="small">Перевозка</div>
+                </td>
+                <td>
+                  {{ transportPartyName(transport.shipperClientId, transport.shipper) }}
+                  →
+                  {{ transportPartyName(transport.consigneeClientId, transport.consignee) }}
+                  <div class="small">
+                    {{ transport.loadingPoint || "—" }} →
+                    {{ transport.unloadingPoint || "—" }}
+                  </div>
+                </td>
+                <td>{{ operatorName(transport.driverId) }}</td>
+                <td>
+                  {{ utils.fmtDate(transport.startDate) }}
+                  <div class="small">
+                    {{ utils.fmtDate(transport.endDate) }} •
+                    {{ transportDays(transport) }}
+                    дн.
+                  </div>
+                </td>
+                <td>
+                  {{ transportDays(transport) }} дн.
+                  <div class="small">{{ transportDays(transport) * 8 }} ч.</div>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="transport.status">
+                    {{ statusLabel(transport.status) }}
+                  </span>
+                </td>
+                <td>{{ transport.cargoName || transport.notes || "—" }}</td>
+                <td>{{ utils.money(state.transportTotal(transport)) }}</td>
+                <td>{{ utils.money(state.transportProfit(transport)) }}</td>
+              </tr>
+            }
+            @if (!equipmentOrders().length && !equipmentTransports().length) {
               <tr>
                 <td colspan="9">
-                  <div class="empty">Нет заявок по технике.</div>
+                  <div class="empty">Нет записей по технике.</div>
                 </td>
               </tr>
             }
