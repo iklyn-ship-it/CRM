@@ -972,7 +972,7 @@ export class ReportsComponent {
         this.clientDocumentShowFinance
           ? `<div class="summary-card"><div class="label">Прихід</div><div class="value">${this.html(this.utils.money(totals.income))}</div></div>
       <div class="summary-card"><div class="label">Витрати</div><div class="value">${this.html(this.utils.money(totals.expense))}</div></div>
-      <div class="summary-card"><div class="label">Залишок</div><div class="value">${this.html(this.utils.money(totals.remaining))}</div></div>`
+      <div class="summary-card"><div class="label">Борг до сплати</div><div class="value">${this.html(this.utils.money(totals.remaining))}</div></div>`
           : ""
       }
     </section>
@@ -987,7 +987,7 @@ export class ReportsComponent {
           <th>Локації / маршрути</th>
           ${
             this.clientDocumentShowFinance
-              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 82px">Залишок</th>`
+              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 92px">Борг до сплати</th>`
               : ""
           }
         </tr>
@@ -1160,7 +1160,7 @@ export class ReportsComponent {
           <th style="width: 58px">Год.</th>
           ${
             this.equipmentDocumentShowFinance
-              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 82px">Залишок</th>`
+              ? `<th style="width: 82px">План</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 92px">Борг до сплати</th>`
               : ""
           }
           <th>Деталі</th>
