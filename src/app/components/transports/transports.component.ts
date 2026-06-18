@@ -10,7 +10,11 @@ import {
 import { StateService } from "../../services/state.service";
 import { DbService } from "../../services/db.service";
 import { UtilsService } from "../../services/utils.service";
-import { Transport, TransportStatus } from "../../models/crm.models";
+import {
+  FinanceOperation,
+  Transport,
+  TransportStatus,
+} from "../../models/crm.models";
 import { EquipmentPickerComponent } from "../equipment-picker/equipment-picker.component";
 
 @Component({
@@ -33,10 +37,13 @@ export class TransportsComponent {
   formOpen = signal(false);
   selectedTransportId = signal("");
   invoiceEditorOpen = signal(false);
+  operationEditorOpen = signal(false);
   documentPreviewUrl = signal<SafeResourceUrl | null>(null);
   private documentPreviewObjectUrl = "";
   editingId = "";
+  operationEditingId = "";
   invoiceDraft: CommercialProposalDraft | null = null;
+  operationForm = this.emptyOperationForm();
 
   form = this.emptyForm();
 
@@ -45,6 +52,15 @@ export class TransportsComponent {
     { value: "active", label: "В работе" },
     { value: "completed", label: "Завершена" },
     { value: "cancelled", label: "Отменена" },
+  ];
+
+  readonly operationCategories = [
+    "Оплата клиента",
+    "Топливо",
+    "Зарплата водителя",
+    "Платные дороги",
+    "Ремонт",
+    "Прочее",
   ];
 
   readonly filteredTransports = computed(() => {
@@ -89,6 +105,15 @@ export class TransportsComponent {
   readonly selectedTransport = computed(() =>
     this.state.byId(this.state.transports(), this.selectedTransportId()),
   );
+
+  readonly selectedTransportOperations = computed(() => {
+    const transportId = this.selectedTransportId();
+    if (!transportId) return [];
+    return this.state
+      .operations()
+      .filter((operation) => operation.transportId === transportId)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  });
 
   switchTransportScope(scope: "active" | "deferred" | "completed"): void {
     this.transportScope.set(scope);
@@ -254,8 +279,91 @@ export class TransportsComponent {
   }
 
   closeTransport(): void {
+    this.closeOperationEditor();
     this.closeInvoiceEditor();
     this.closeForm();
+  }
+
+  openOperationEditor(
+    type: "income" | "expense" = "income",
+    operation?: FinanceOperation,
+  ): void {
+    if (!this.selectedTransportId()) return;
+    if (operation) {
+      this.operationEditingId = operation.id;
+      this.operationForm = {
+        date: operation.date,
+        type: operation.type,
+        category: operation.category,
+        amount: Number(operation.amount || 0),
+        paid: Boolean(operation.paid),
+        comment: operation.comment || "",
+      };
+    } else {
+      this.operationEditingId = "";
+      this.operationForm = this.emptyOperationForm(type);
+    }
+    this.operationEditorOpen.set(true);
+  }
+
+  closeOperationEditor(): void {
+    this.operationEditorOpen.set(false);
+    this.operationEditingId = "";
+    this.operationForm = this.emptyOperationForm();
+  }
+
+  setOperationType(type: "income" | "expense"): void {
+    this.operationForm.type = type;
+    this.operationForm.category =
+      type === "income" ? "Оплата клиента" : "Топливо";
+    if (type === "income") this.operationForm.paid = false;
+  }
+
+  async saveOperation(): Promise<void> {
+    const transport = this.selectedTransport();
+    if (!transport || Number(this.operationForm.amount || 0) <= 0) {
+      alert("Укажи сумму операции.");
+      return;
+    }
+    const payload = {
+      date: this.operationForm.date || this.utils.todayStr(),
+      type: this.operationForm.type,
+      category: this.operationForm.category,
+      amount: Number(this.operationForm.amount || 0),
+      orderId: "",
+      repairId: "",
+      transportId: transport.id,
+      equipmentId: transport.equipmentId || "",
+      billClient: false,
+      markup: 0,
+      paid:
+        this.operationForm.type === "expense"
+          ? Boolean(this.operationForm.paid)
+          : false,
+      comment: this.operationForm.comment || "",
+    };
+    try {
+      if (this.operationEditingId) {
+        await this.db.update("operations", this.operationEditingId, payload);
+      } else {
+        await this.db.insert("operations", {
+          id: this.utils.uid("fin"),
+          ...payload,
+        });
+      }
+      this.closeOperationEditor();
+    } catch (error) {
+      alert(`Не удалось сохранить операцию: ${this.errorMessage(error)}`);
+    }
+  }
+
+  async removeOperation(operation: FinanceOperation): Promise<void> {
+    if (!confirm("Удалить финансовую операцию?")) return;
+    try {
+      await this.db.remove("operations", operation.id);
+    } catch (error) {
+      alert(`Не удалось удалить операцию: ${this.errorMessage(error)}`);
+    }
   }
 
   async save(): Promise<void> {
@@ -397,6 +505,17 @@ export class TransportsComponent {
     };
   }
 
+  private emptyOperationForm(type: "income" | "expense" = "income") {
+    return {
+      date: this.utils.todayStr(),
+      type,
+      category: type === "income" ? "Оплата клиента" : "Топливо",
+      amount: 0,
+      paid: false,
+      comment: "",
+    };
+  }
+
   private transportConflictWarnings(): string[] {
     const draft = this.formDraftTransport();
     if (!this.state.transportBlocksSchedule(draft)) return [];
@@ -500,5 +619,11 @@ export class TransportsComponent {
     return message
       ? `Не удалось сохранить перевозку: ${message}`
       : "Не удалось сохранить перевозку.";
+  }
+
+  private errorMessage(error: unknown): string {
+    return error && typeof error === "object" && "message" in error
+      ? String((error as { message?: unknown }).message || "Неизвестная ошибка")
+      : String(error || "Неизвестная ошибка");
   }
 }

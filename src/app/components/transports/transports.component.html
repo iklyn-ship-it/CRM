@@ -320,6 +320,125 @@
           </button>
         </div>
       </form>
+
+      @if (selectedTransport(); as selected) {
+        <section class="transport-finance-card">
+          <div class="transport-finance-head">
+            <div>
+              <h3>Приходы и расходы</h3>
+              <p>Финансовые операции по перевозке {{ utils.shortId(selected.id) }}.</p>
+            </div>
+            <button
+              type="button"
+              class="btn primary"
+              (click)="openOperationEditor('income')"
+            >
+              + Добавить операцию
+            </button>
+          </div>
+
+          <div class="transport-finance-summary">
+            <div class="metric">
+              <span>Сумма к оплате</span>
+              <strong>{{ utils.money(state.transportTotal(selected)) }}</strong>
+            </div>
+            <div class="metric income-metric">
+              <span>Приход</span>
+              <strong>{{ utils.money(state.transportIncome(selected.id)) }}</strong>
+            </div>
+            <div class="metric expense-metric">
+              <span>Расход</span>
+              <strong>{{ utils.money(state.transportExpense(selected)) }}</strong>
+            </div>
+            <div class="metric">
+              <span>Прибыль с учетом оплаты задолженности</span>
+              <strong>
+                {{
+                  utils.money(
+                    state.transportTotal(selected) -
+                      state.transportExpense(selected)
+                  )
+                }}
+              </strong>
+            </div>
+            <div class="metric">
+              <span>Долг к оплате</span>
+              <strong>{{ utils.money(state.transportRemaining(selected)) }}</strong>
+            </div>
+          </div>
+          <div class="small transport-finance-note">
+            Общий расход включает внесенные операции и автоматически рассчитанную
+            оплату водителя.
+          </div>
+
+          <div class="table-wrap transport-operation-list">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Тип</th>
+                  <th>Категория</th>
+                  <th>Сумма</th>
+                  <th>Комментарий</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (
+                  operation of selectedTransportOperations();
+                  track operation.id
+                ) {
+                  <tr>
+                    <td>{{ utils.fmtDate(operation.date) }}</td>
+                    <td>
+                      <span
+                        class="badge"
+                        [class.finance-income]="operation.type === 'income'"
+                        [class.finance-expense]="operation.type === 'expense'"
+                      >
+                        {{ operation.type === "income" ? "Приход" : "Расход" }}
+                      </span>
+                    </td>
+                    <td>
+                      {{ operation.category }}
+                      @if (operation.type === "expense" && operation.paid) {
+                        <div class="small">Оплачено</div>
+                      }
+                    </td>
+                    <td>{{ utils.money(operation.amount) }}</td>
+                    <td>{{ operation.comment || "—" }}</td>
+                    <td>
+                      <div class="operation-actions">
+                        <button
+                          type="button"
+                          class="btn ghost"
+                          (click)="openOperationEditor(operation.type, operation)"
+                        >
+                          Ред.
+                        </button>
+                        <button
+                          type="button"
+                          class="btn ghost danger"
+                          (click)="removeOperation(operation)"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+                @if (!selectedTransportOperations().length) {
+                  <tr>
+                    <td colspan="6">
+                      <div class="empty">Операций по перевозке пока нет.</div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
     </div>
   </section>
 } @else {
@@ -456,6 +575,104 @@
           }
         </tbody>
       </table>
+    </div>
+  </div>
+}
+
+@if (operationEditorOpen()) {
+  <div class="proposal-backdrop" (click)="closeOperationEditor()">
+    <div
+      class="operation-editor card"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="operation-editor-head">
+        <div>
+          <div class="eyebrow">Финансы перевозки</div>
+          <h3>
+            {{ operationEditingId ? "Редактировать операцию" : "Новая операция" }}
+          </h3>
+        </div>
+        <button type="button" class="btn ghost" (click)="closeOperationEditor()">
+          Закрыть
+        </button>
+      </div>
+
+      <div class="operation-type-row">
+        <button
+          type="button"
+          class="status-button finance-income"
+          [class.selected-status]="operationForm.type === 'income'"
+          (click)="setOperationType('income')"
+        >
+          Приход
+        </button>
+        <button
+          type="button"
+          class="status-button finance-expense"
+          [class.selected-status]="operationForm.type === 'expense'"
+          (click)="setOperationType('expense')"
+        >
+          Расход
+        </button>
+      </div>
+
+      <div class="operation-form-grid">
+        <div class="field">
+          <label>Дата</label>
+          <input
+            type="date"
+            [(ngModel)]="operationForm.date"
+            name="transportOperationDate"
+          />
+        </div>
+        <div class="field">
+          <label>Категория</label>
+          <select
+            [(ngModel)]="operationForm.category"
+            name="transportOperationCategory"
+          >
+            @for (category of operationCategories; track category) {
+              <option [value]="category">{{ category }}</option>
+            }
+          </select>
+        </div>
+        <div class="field wide">
+          <label>Сумма, ₴</label>
+          <input
+            type="number"
+            min="0"
+            [(ngModel)]="operationForm.amount"
+            name="transportOperationAmount"
+          />
+        </div>
+        @if (operationForm.type === "expense") {
+          <label class="operation-paid wide">
+            <input
+              type="checkbox"
+              [(ngModel)]="operationForm.paid"
+              name="transportOperationPaid"
+            />
+            <span>Расход оплачен</span>
+          </label>
+        }
+        <div class="field wide">
+          <label>Комментарий</label>
+          <textarea
+            [(ngModel)]="operationForm.comment"
+            name="transportOperationComment"
+            placeholder="Назначение операции"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn primary" (click)="saveOperation()">
+          {{ operationEditingId ? "Сохранить изменения" : "Сохранить операцию" }}
+        </button>
+        <button type="button" class="btn ghost" (click)="closeOperationEditor()">
+          Отмена
+        </button>
+      </div>
     </div>
   </div>
 }
