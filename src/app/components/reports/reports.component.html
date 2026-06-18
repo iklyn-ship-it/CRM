@@ -280,7 +280,10 @@
           <tbody>
             @for (order of clientOrders(); track order.id) {
               <tr>
-                <td>{{ utils.shortId(order.id) }}</td>
+                <td>
+                  {{ utils.shortId(order.id) }}
+                  <div class="small">{{ paymentTypeLabel(order.paymentType) }}</div>
+                </td>
                 <td>{{ order.location || "—" }}</td>
                 <td>{{ equipmentName(order.equipmentId) }}</td>
                 <td>{{ orderOperatorNames(order) }}</td>
@@ -385,7 +388,10 @@
                 <tbody>
                   @for (order of group.orders; track order.id) {
                     <tr>
-                      <td>{{ utils.shortId(order.id) }}</td>
+                      <td>
+                        {{ utils.shortId(order.id) }}
+                        <div class="small">{{ paymentTypeLabel(order.paymentType) }}</div>
+                      </td>
                       <td>{{ equipmentName(order.equipmentId) }}</td>
                       <td>{{ orderOperatorNames(order) }}</td>
                       <td>
@@ -481,7 +487,10 @@
           <tbody>
             @for (order of equipmentOrders(); track order.id) {
               <tr>
-                <td>{{ utils.shortId(order.id) }}</td>
+                <td>
+                  {{ utils.shortId(order.id) }}
+                  <div class="small">{{ paymentTypeLabel(order.paymentType) }}</div>
+                </td>
                 <td>
                   {{ clientName(order.clientId) }}
                   <div class="small">{{ order.location || "—" }}</div>
@@ -622,7 +631,10 @@
           <tbody>
             @for (order of operatorOrders(); track order.id) {
               <tr>
-                <td>{{ utils.shortId(order.id) }}</td>
+                <td>
+                  {{ utils.shortId(order.id) }}
+                  <div class="small">{{ paymentTypeLabel(order.paymentType) }}</div>
+                </td>
                 <td>
                   {{ clientName(order.clientId) }}
                   <div class="small">{{ order.location || "—" }}</div>

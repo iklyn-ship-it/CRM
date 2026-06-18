@@ -405,6 +405,10 @@ export class ReportsComponent {
     return this.state.byId(this.state.operators(), id)?.name || "—";
   }
 
+  paymentTypeLabel(type?: Order["paymentType"]): string {
+    return type === "cash" ? "Нал" : "Безнал";
+  }
+
   transportPartyName(clientId: string, fallback: string): string {
     return (
       this.state.byId(this.state.clients(), clientId)?.name ||
@@ -838,7 +842,7 @@ export class ReportsComponent {
           ...row.orders.map(
             (order) =>
               `<div class="record-card">
-                <div><span>ID</span><strong>Заявка ${this.html(this.utils.shortId(order.id))}</strong></div>
+                <div><span>ID</span><strong>Заявка ${this.html(this.utils.shortId(order.id))} • ${this.html(this.paymentTypeLabel(order.paymentType))}</strong></div>
                 <div><span>Об'єкт</span><strong>${this.html(order.location || "—")}</strong></div>
                 <div><span>Техніка</span><strong>${this.html(this.equipmentName(order.equipmentId))}</strong></div>
                 <div><span>Оператор</span><strong>${this.html(this.orderOperatorNames(order))}</strong></div>
@@ -1050,7 +1054,7 @@ export class ReportsComponent {
         const details = [
           ...row.orders.map(
             (order) =>
-              `<div class="detail-line">Заявка ${this.html(this.utils.shortId(order.id))} • ${this.html(this.clientName(order.clientId))} • ${this.html(order.location || "—")} • ${this.html(this.utils.fmtDate(order.startDate))}-${this.html(this.utils.fmtDate(order.endDate))} • ${this.html(this.statusLabel(order.status))}</div>`,
+              `<div class="detail-line">Заявка ${this.html(this.utils.shortId(order.id))} • ${this.html(this.paymentTypeLabel(order.paymentType))} • ${this.html(this.clientName(order.clientId))} • ${this.html(order.location || "—")} • ${this.html(this.utils.fmtDate(order.startDate))}-${this.html(this.utils.fmtDate(order.endDate))} • ${this.html(this.statusLabel(order.status))}</div>`,
           ),
           ...row.transports.map(
             (transport) =>
