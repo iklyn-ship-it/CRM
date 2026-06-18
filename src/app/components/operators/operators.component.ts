@@ -193,17 +193,25 @@ export class OperatorsComponent {
 
   async save(): Promise<void> {
     if (!this.form.name) return;
+    const payload = { ...this.form };
+    const id = this.editingId || this.utils.uid("op");
     try {
-      if (this.editingId)
-        await this.db.update("operators", this.editingId, this.form);
-      else
-        await this.db.insert("operators", {
-          id: this.utils.uid("op"),
-          ...this.form,
-        });
+      await this.saveOperator(id, payload);
     } catch (error) {
-      alert(this.saveErrorMessage(error));
-      return;
+      if (!this.isHourlyRateSchemaError(error)) {
+        alert(this.saveErrorMessage(error));
+        return;
+      }
+      const { hourlyRate: _hourlyRate, ...compatiblePayload } = payload;
+      try {
+        await this.saveOperator(id, compatiblePayload);
+        alert(
+          "Дневная ставка и данные оператора сохранены. Часовая ставка станет доступна после выполнения SQL-файла supabase-hourly-rates-and-operation-equipment.sql.",
+        );
+      } catch (fallbackError) {
+        alert(this.saveErrorMessage(fallbackError));
+        return;
+      }
     }
     this.clearForm();
     this.formOpen.set(false);
@@ -276,12 +284,31 @@ export class OperatorsComponent {
     };
   }
 
+  private async saveOperator(
+    id: string,
+    payload: Omit<typeof this.form, "hourlyRate"> | typeof this.form,
+  ): Promise<void> {
+    if (this.editingId) {
+      await this.db.update("operators", id, payload);
+      return;
+    }
+    await this.db.insert("operators", { id, ...payload });
+  }
+
+  private isHourlyRateSchemaError(error: unknown): boolean {
+    const message =
+      error && typeof error === "object" && "message" in error
+        ? String((error as { message?: unknown }).message || "")
+        : "";
+    return message.includes("hourly_rate");
+  }
+
   private saveErrorMessage(error: unknown): string {
     const message =
       error && typeof error === "object" && "message" in error
         ? String((error as { message?: unknown }).message || "")
         : "";
-    if (message.includes("hourly_rate")) {
+    if (this.isHourlyRateSchemaError(error)) {
       return "База Supabase еще не готова для часовых ставок. Выполни SQL-файл supabase-hourly-rates-and-operation-equipment.sql в Supabase SQL Editor и попробуй снова.";
     }
     return message
