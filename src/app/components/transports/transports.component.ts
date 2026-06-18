@@ -167,6 +167,13 @@ export class TransportsComponent {
     return Number(item.pickupCost || 0) + Number(item.deliveryCost || 0);
   }
 
+  transportPaid(item: Transport): boolean {
+    return (
+      this.state.transportTotal(item) > 0 &&
+      this.state.transportRemaining(item) <= 0
+    );
+  }
+
   statusLabel(status: string): string {
     return (
       {

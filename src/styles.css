@@ -366,6 +366,16 @@ th {
   border-color: rgba(239, 68, 68, 0.3);
   color: #fca5a5;
 }
+.badge.payment-paid {
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.28);
+  color: #86efac;
+}
+.badge.payment-unpaid {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+}
 
 .hidden {
   display: none !important;

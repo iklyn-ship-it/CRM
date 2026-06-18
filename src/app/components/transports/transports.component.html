@@ -81,6 +81,20 @@
         @if (form.internal) {
           <span class="badge internal">Внутренняя</span>
         }
+        @if (selectedTransport(); as selected) {
+          <span
+            class="badge"
+            [class.payment-paid]="transportPaid(selected)"
+            [class.payment-unpaid]="!transportPaid(selected)"
+          >
+            {{
+              transportPaid(selected)
+                ? "Оплачено"
+                : "Не оплачено " +
+                  utils.money(state.transportRemaining(selected))
+            }}
+          </span>
+        }
       </div>
 
       <div class="transport-work-summary">
@@ -551,6 +565,20 @@
                     <span class="badge internal">Внутренняя</span>
                   </div>
                 }
+                <div>
+                  <span
+                    class="badge"
+                    [class.payment-paid]="transportPaid(item)"
+                    [class.payment-unpaid]="!transportPaid(item)"
+                  >
+                    {{
+                      transportPaid(item)
+                        ? "Оплачено"
+                        : "Не оплачено " +
+                          utils.money(state.transportRemaining(item))
+                    }}
+                  </span>
+                </div>
               </td>
               <td>
                 <button
