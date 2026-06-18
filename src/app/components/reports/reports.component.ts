@@ -858,8 +858,8 @@ export class ReportsComponent {
                 <div><span>Статус</span><strong>${this.html(this.statusLabel(order.status))}</strong></div>
                 ${
                   this.clientDocumentShowFinance
-                    ? `<div><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.orderPlan(order)))}</strong></div>
-                <div><span>Прибуток після погашення боргу</span><strong>${this.html(this.utils.money(this.orderProjectedProfit(order)))}</strong></div>`
+                    ? `<div class="record-finance"><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.orderPlan(order)))}</strong></div>
+                <div class="record-finance"><span>Прибуток після погашення боргу</span><strong>${this.html(this.utils.money(this.orderProjectedProfit(order)))}</strong></div>`
                     : ""
                 }
                 <div class="record-comment"><span>Коментар</span><strong>${this.html(order.notes || "без коментаря")}</strong></div>
@@ -877,8 +877,8 @@ export class ReportsComponent {
                 <div><span>Статус</span><strong>${this.html(this.statusLabel(transport.status))}</strong></div>
                 ${
                   this.clientDocumentShowFinance
-                    ? `<div><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.transportTotal(transport)))}</strong></div>
-                <div><span>Прибуток після погашення боргу</span><strong>${this.html(this.utils.money(this.transportProjectedProfit(transport)))}</strong></div>`
+                    ? `<div class="record-finance"><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.transportTotal(transport)))}</strong></div>
+                <div class="record-finance"><span>Прибуток після погашення боргу</span><strong>${this.html(this.utils.money(this.transportProjectedProfit(transport)))}</strong></div>`
                     : ""
                 }
                 <div class="record-comment"><span>Вантаж / коментар</span><strong>${this.html(transport.cargoName || transport.notes || "без коментаря")}</strong></div>
@@ -961,12 +961,13 @@ export class ReportsComponent {
     .client-stat { text-align: right; }
     .client-stat strong { white-space: nowrap; }
     .client-details { display: grid; gap: 7px; padding: 8px; background: #f8fafc; }
-    .record-card { display: grid; grid-template-columns: 92px 1.15fr 1.25fr 1fr 96px 84px 86px 86px minmax(140px, 1.3fr); gap: 6px; align-items: stretch; padding: 7px; border: 1px solid #d8dee9; border-left: 4px solid var(--brand); border-radius: 10px; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+    .record-card { display: grid; grid-template-columns: 84px minmax(110px, 1.1fr) minmax(135px, 1.35fr) minmax(110px, 1fr) 105px 92px; gap: 6px; align-items: stretch; padding: 7px; border: 1px solid #d8dee9; border-left: 4px solid var(--brand); border-radius: 10px; background: #fff; break-inside: avoid; page-break-inside: avoid; }
     .transport-card { border-left-color: #0f766e; }
-    .record-card div { min-width: 0; padding: 5px 6px; border-radius: 7px; background: #f1f5f9; }
-    .record-card span { display: block; color: var(--muted); font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
-    .record-card strong { display: block; margin-top: 2px; font-size: 10px; line-height: 1.25; overflow-wrap: anywhere; }
-    .record-comment { grid-column: auto; }
+    .record-card div { min-width: 0; max-width: 100%; padding: 5px 6px; border-radius: 7px; background: #f1f5f9; overflow: hidden; }
+    .record-card span { display: block; max-width: 100%; color: var(--muted); font-size: 8px; line-height: 1.2; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; white-space: normal; overflow-wrap: anywhere; }
+    .record-card strong { display: block; max-width: 100%; margin-top: 3px; font-size: 10px; line-height: 1.25; overflow-wrap: anywhere; }
+    .record-finance { grid-column: span 1; }
+    .record-comment { grid-column: span 3; }
     .empty { padding: 24px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
     footer { margin-top: 22px; padding-top: 12px; border-top: 2px solid #c7ceda; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
     @media print {
