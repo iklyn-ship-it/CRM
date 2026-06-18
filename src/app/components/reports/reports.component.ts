@@ -496,9 +496,17 @@ export class ReportsComponent {
     const plan = this.equipmentOrderPlan(order);
     const totalPlan = this.state.orderPlan(order);
     const share = totalPlan > 0 ? plan / totalPlan : 0;
+    return plan - this.state.orderExpense(order.id) * share;
+  }
+
+  orderProjectedProfit(order: Order): number {
+    return this.state.orderPlan(order) - this.state.orderExpense(order.id);
+  }
+
+  transportProjectedProfit(transport: Transport): number {
     return (
-      this.state.orderIncome(order.id) * share -
-      this.state.orderExpense(order.id) * share
+      this.state.transportTotal(transport) -
+      this.state.transportExpense(transport)
     );
   }
 
@@ -656,7 +664,7 @@ export class ReportsComponent {
           plan: summary.plan + plan,
           income: summary.income + income,
           expense: summary.expense + expense,
-          profit: summary.profit + income - expense,
+          profit: summary.profit + plan - expense,
           remaining:
             summary.remaining + Math.max(0, plan - income),
         };
@@ -703,7 +711,7 @@ export class ReportsComponent {
           plan: summary.plan + plan,
           income: summary.income + income,
           expense: summary.expense + expense,
-          profit: summary.profit + income - expense,
+          profit: summary.profit + plan - expense,
           remaining: summary.remaining + this.state.transportRemaining(transport),
         };
       },
@@ -762,7 +770,7 @@ export class ReportsComponent {
           plan: summary.plan + plan,
           income: summary.income + income,
           expense: summary.expense + expense,
-          profit: summary.profit + income - expense,
+          profit: summary.profit + plan - expense,
           remaining: summary.remaining + this.state.orderRemaining(order),
         };
       },
@@ -851,7 +859,7 @@ export class ReportsComponent {
                 ${
                   this.clientDocumentShowFinance
                     ? `<div><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.orderPlan(order)))}</strong></div>
-                <div><span>Прибуток</span><strong>${this.html(this.utils.money(this.state.orderProfit(order.id)))}</strong></div>`
+                <div><span>Прибуток після погашення боргу</span><strong>${this.html(this.utils.money(this.orderProjectedProfit(order)))}</strong></div>`
                     : ""
                 }
                 <div class="record-comment"><span>Коментар</span><strong>${this.html(order.notes || "без коментаря")}</strong></div>
@@ -870,7 +878,7 @@ export class ReportsComponent {
                 ${
                   this.clientDocumentShowFinance
                     ? `<div><span>Сума до сплати</span><strong>${this.html(this.utils.money(this.state.transportTotal(transport)))}</strong></div>
-                <div><span>Прибуток</span><strong>${this.html(this.utils.money(this.state.transportProfit(transport)))}</strong></div>`
+                <div><span>Прибуток після погашення боргу</span><strong>${this.html(this.utils.money(this.transportProjectedProfit(transport)))}</strong></div>`
                     : ""
                 }
                 <div class="record-comment"><span>Вантаж / коментар</span><strong>${this.html(transport.cargoName || transport.notes || "без коментаря")}</strong></div>
@@ -901,7 +909,7 @@ export class ReportsComponent {
                 ? `<div class="client-stat"><span>Сума до сплати</span><strong>${this.html(this.utils.money(row.plan))}</strong></div>
             <div class="client-stat"><span>Прихід</span><strong>${this.html(this.utils.money(row.income))}</strong></div>
             <div class="client-stat"><span>Витрати</span><strong>${this.html(this.utils.money(row.expense))}</strong></div>
-            <div class="client-stat"><span>Прибуток</span><strong>${this.html(this.utils.money(row.profit))}</strong></div>
+            <div class="client-stat"><span>Прибуток після погашення боргу</span><strong>${this.html(this.utils.money(row.profit))}</strong></div>
             <div class="client-stat"><span>Борг до сплати</span><strong>${this.html(this.utils.money(row.remaining))}</strong></div>`
                 : ""
             }
@@ -950,7 +958,8 @@ export class ReportsComponent {
     .client-index { color: #fff; background: var(--brand); font-weight: 900; text-align: center; }
     .client-name strong, .client-locations strong, .client-stat strong { display: block; margin-top: 2px; font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
     .client-name span, .client-locations span, .client-stat span { display: block; color: var(--muted); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; }
-    .client-stat { text-align: right; white-space: nowrap; }
+    .client-stat { text-align: right; }
+    .client-stat strong { white-space: nowrap; }
     .client-details { display: grid; gap: 7px; padding: 8px; background: #f8fafc; }
     .record-card { display: grid; grid-template-columns: 92px 1.15fr 1.25fr 1fr 96px 84px 86px 86px minmax(140px, 1.3fr); gap: 6px; align-items: stretch; padding: 7px; border: 1px solid #d8dee9; border-left: 4px solid var(--brand); border-radius: 10px; background: #fff; break-inside: avoid; page-break-inside: avoid; }
     .transport-card { border-left-color: #0f766e; }
@@ -990,7 +999,7 @@ export class ReportsComponent {
       <div class="summary-card"><div class="label">Клієнтів</div><div class="value">${totals.clients}</div></div>
       <div class="summary-card"><div class="label">Записів</div><div class="value">${totals.records}</div></div>
       <div class="summary-card"><div class="label">Сума до сплати</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
-      <div class="summary-card"><div class="label">Прибуток</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>
+      <div class="summary-card"><div class="label">Прибуток після погашення боргу</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>
       ${
         this.clientDocumentShowFinance
           ? `<div class="summary-card"><div class="label">Прихід</div><div class="value">${this.html(this.utils.money(totals.income))}</div></div>
@@ -1152,7 +1161,7 @@ export class ReportsComponent {
           ? `<div class="summary-card"><div class="label">Сума до сплати</div><div class="value">${this.html(this.utils.money(totals.plan))}</div></div>
       <div class="summary-card"><div class="label">Прихід</div><div class="value">${this.html(this.utils.money(totals.income))}</div></div>
       <div class="summary-card"><div class="label">Витрати</div><div class="value">${this.html(this.utils.money(totals.expense))}</div></div>
-      <div class="summary-card"><div class="label">Прибуток</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>`
+      <div class="summary-card"><div class="label">Прибуток після погашення боргу</div><div class="value">${this.html(this.utils.money(totals.profit))}</div></div>`
           : ""
       }
     </section>
@@ -1168,7 +1177,7 @@ export class ReportsComponent {
           <th style="width: 58px">Год.</th>
           ${
             this.equipmentDocumentShowFinance
-              ? `<th style="width: 96px">Сума до сплати</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 82px">Прибуток</th><th style="width: 92px">Борг до сплати</th>`
+              ? `<th style="width: 96px">Сума до сплати</th><th style="width: 82px">Прихід</th><th style="width: 82px">Витрати</th><th style="width: 120px">Прибуток після погашення боргу</th><th style="width: 92px">Борг до сплати</th>`
               : ""
           }
           <th>Деталі</th>

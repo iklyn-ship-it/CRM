@@ -246,7 +246,7 @@
           ><strong>{{ utils.money(clientSummary().expense) }}</strong>
         </div>
         <div>
-          <span>Прибыль</span
+          <span>Прибыль с учетом оплаты задолженности</span
           ><strong>{{ utils.money(clientSummary().profit) }}</strong>
         </div>
         <div>
@@ -274,7 +274,7 @@
               <th>Сумма к оплате</th>
               <th>Приход</th>
               <th>Расход</th>
-              <th>Прибыль</th>
+              <th>Прибыль с учетом оплаты задолженности</th>
             </tr>
           </thead>
           <tbody>
@@ -304,7 +304,7 @@
                 <td>{{ utils.money(state.orderPlan(order)) }}</td>
                 <td>{{ utils.money(state.orderIncome(order.id)) }}</td>
                 <td>{{ utils.money(state.orderExpense(order.id)) }}</td>
-                <td>{{ utils.money(state.orderProfit(order.id)) }}</td>
+                <td>{{ utils.money(orderProjectedProfit(order)) }}</td>
               </tr>
             }
             @if (!clientOrders().length) {
@@ -355,7 +355,7 @@
           ><strong>{{ utils.money(locationSummary().expense) }}</strong>
         </div>
         <div>
-          <span>Прибыль</span
+          <span>Прибыль с учетом оплаты задолженности</span
           ><strong>{{ utils.money(locationSummary().profit) }}</strong>
         </div>
         <div>
@@ -382,7 +382,7 @@
                     <th>Статус</th>
                     <th>Комментарий</th>
                     <th>Сумма к оплате</th>
-                    <th>Прибыль</th>
+                    <th>Прибыль с учетом оплаты задолженности</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -411,7 +411,7 @@
                       </td>
                       <td>{{ order.notes || "—" }}</td>
                       <td>{{ utils.money(state.orderPlan(order)) }}</td>
-                      <td>{{ utils.money(state.orderProfit(order.id)) }}</td>
+                      <td>{{ utils.money(orderProjectedProfit(order)) }}</td>
                     </tr>
                   }
                 </tbody>
@@ -460,7 +460,7 @@
           ><strong>{{ utils.money(equipmentSummary().expense) }}</strong>
         </div>
         <div>
-          <span>Прибыль</span
+          <span>Прибыль с учетом оплаты задолженности</span
           ><strong>{{ utils.money(equipmentSummary().profit) }}</strong>
         </div>
         <div>
@@ -481,7 +481,7 @@
               <th>Статус</th>
               <th>Комментарий</th>
               <th>Сумма к оплате</th>
-              <th>Прибыль</th>
+              <th>Прибыль с учетом оплаты задолженности</th>
             </tr>
           </thead>
           <tbody>
@@ -553,7 +553,7 @@
                 </td>
                 <td>{{ transport.cargoName || transport.notes || "—" }}</td>
                 <td>{{ utils.money(state.transportTotal(transport)) }}</td>
-                <td>{{ utils.money(state.transportProfit(transport)) }}</td>
+                <td>{{ utils.money(transportProjectedProfit(transport)) }}</td>
               </tr>
             }
             @if (!equipmentOrders().length && !equipmentTransports().length) {
@@ -604,7 +604,7 @@
           ><strong>{{ utils.money(operatorSummary().expense) }}</strong>
         </div>
         <div>
-          <span>Прибыль</span
+          <span>Прибыль с учетом оплаты задолженности</span
           ><strong>{{ utils.money(operatorSummary().profit) }}</strong>
         </div>
         <div>
@@ -679,7 +679,7 @@
 
 <div class="report-grid compact">
   <div class="card panel">
-    <h3>Топ клиентов по прибыли</h3>
+    <h3>Топ клиентов по прибыли с учетом оплаты задолженности</h3>
     <div class="list">
       @for (client of topClients(); track client.id) {
         <button
